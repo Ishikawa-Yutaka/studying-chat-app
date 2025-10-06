@@ -1,0 +1,84 @@
+// Prismaの設定ファイル
+// データベースの構造（テーブル設計）を定義します
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ユーザーモデル
+// アプリを使用するユーザーの情報を保存
+model User {
+  id        String   @id @default(cuid()) // 一意のID（自動生成）
+  name      String                        // ユーザー名
+  email     String   @unique              // メールアドレス（重複不可）
+  authId    String   @unique              // Supabaseの認証ID（重複不可）
+  createdAt DateTime @default(now())      // 作成日時（自動設定）
+  updatedAt DateTime @updatedAt           // 更新日時（自動更新）
+
+  // リレーション（他のテーブルとの関係）
+  messages Message[]        // このユーザーが送信したメッセージ一覧
+  channels ChannelMember[]  // このユーザーが参加しているチャンネル一覧
+}
+
+// チャンネルモデル
+// チャットルーム（通常のチャンネルとDM）の情報を保存
+model Channel {
+  id          String   @id @default(cuid()) // 一意のID（自動生成）
+  name        String?                       // チャンネル名（DMの場合はnull）
+  description String?                       // チャンネルの説明（DMの場合はnull）
+  type        String                        // "channel"（通常）または"dm"（ダイレクトメッセージ）
+  createdAt   DateTime @default(now())      // 作成日時（自動設定）
+  updatedAt   DateTime @updatedAt           // 更新日時（自動更新）
+
+  // リレーション（他のテーブルとの関係）
+  messages Message[]        // このチャンネル内のメッセージ一覧
+  members  ChannelMember[]  // このチャンネルに参加しているユーザー一覧
+}
+
+// チャンネルメンバーモデル（中間テーブル）
+// どのユーザーがどのチャンネルに参加しているかを管理
+model ChannelMember {
+  id        String   @id @default(cuid()) // 一意のID（自動生成）
+  createdAt DateTime @default(now())      // 参加日時（自動設定）
+  updatedAt DateTime @updatedAt           // 更新日時（自動更新）
+
+  // リレーション（外部キー）
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String  // 参加するユーザーのID
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channelId String  // 参加するチャンネルのID
+
+  // 複合一意制約：同じユーザーが同じチャンネルに重複参加できない
+  @@unique([userId, channelId])
+}
+
+// メッセージモデル
+// チャット内で送信されるメッセージの情報を保存
+model Message {
+  id        String   @id @default(cuid()) // 一意のID（自動生成）
+  content   String                        // メッセージ内容
+  createdAt DateTime @default(now())      // 送信日時（自動設定）
+  updatedAt DateTime @updatedAt           // 更新日時（自動更新）
+
+  // リレーション（外部キー）
+  sender    User    @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  senderId  String  // 送信者のユーザーID
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channelId String  // 送信先チャンネルのID
+}
+
+// AIチャットモデル
+// AI機能との会話履歴を保存
+model AiChat {
+  id        String   @id @default(cuid()) // 一意のID（自動生成）
+  userId    String                        // 会話したユーザーのID
+  message   String                        // ユーザーのメッセージ
+  response  String                        // AIの応答
+  createdAt DateTime @default(now())      // 会話日時（自動設定）
+}
