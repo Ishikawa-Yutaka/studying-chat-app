@@ -1,18 +1,15 @@
 /**
- * Next.js ミドルウェア
+ * Next.js ミドルウェア (一時的に無効化)
  * 
- * 「入口の警備員」の役割：
- * - すべてのページアクセス前に実行される
- * - ログイン状態をチェックし、必要に応じてリダイレクト
- * - セッション情報を最新の状態に保つ
+ * デバッグ用：ミドルウェアを無効化してサーバー起動問題を調査
  */
 
-import { type NextRequest } from 'next/server';
-import { updateSession } from '@/utils/supabase/middleware';
+import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  // Supabaseのセッション管理を実行
-  return await updateSession(request);
+  // 一時的にミドルウェアを無効化
+  // 単純にリクエストをそのまま通す
+  return NextResponse.next();
 }
 
 // このミドルウェアが実行されるパスを指定
