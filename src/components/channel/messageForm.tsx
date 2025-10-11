@@ -29,8 +29,11 @@ export default function MessageForm({
     // 空白のみのメッセージは送信しない
     if (!content.trim()) return;
     
+    // 文字化けを防ぐために文字列を正規化
+    const normalizedContent = content.trim().normalize('NFC');
+    
     // 親コンポーネントから渡された送信関数を呼び出し
-    handleSendMessage(content);
+    handleSendMessage(normalizedContent);
     
     // 入力フィールドをクリア
     setContent('');
@@ -45,6 +48,10 @@ export default function MessageForm({
           className="flex-1"
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          type="text"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck="false"
         />
         
         {/* 送信ボタン */}
