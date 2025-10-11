@@ -10,10 +10,11 @@ import ChannelHeader from '@/components/channel/channelHeader';
 import MessageView from '@/components/channel/messageView';
 import MessageForm from '@/components/channel/messageForm';
 
-// 型定義（仮の型定義）
+// 型定義
 interface User {
   id: string;
   name: string;
+  email?: string;
 }
 
 interface Message {
@@ -21,6 +22,15 @@ interface Message {
   sender: User;
   content: string;
   createdAt: Date | string;
+}
+
+interface Channel {
+  id: string;
+  name: string;
+  description?: string;
+  type: string;
+  memberCount: number;
+  members: User[];
 }
 
 export default function ChannelPage() {
@@ -31,42 +41,51 @@ export default function ChannelPage() {
   // 初期化状態を管理（データ読み込み完了を示す）
   const [isInitialized, setIsInitialized] = useState(false);
   
-  // メッセージの状態管理（後でデータベースから取得する予定）
+  // メッセージとチャンネル情報の状態管理
   const [messages, setMessages] = useState<Message[]>([]);
+  const [channel, setChannel] = useState<Channel | null>(null);
   
-  // 現在のユーザーID（仮の値、後で認証機能と連携）
-  const myUserId = "user1";
+  // 現在のユーザーID（テストデータの田中太郎のID、後で認証機能と連携）
+  const myUserId = "cmglkz5uq0000j0x2kxp1oy71";
 
   // コンポーネントがマウントされた時とchannelIdが変更された時に実行
   useEffect(() => {
     const initData = async () => {
-      // TODO: ここでメッセージデータを取得
-      console.log('チャンネルID:', channelId);
-      
-      // 仮のメッセージデータ
-      const dummyMessages: Message[] = [
-        {
-          id: "1",
-          sender: { id: "user2", name: "田中さん" },
-          content: "こんにちは！",
-          createdAt: new Date('2024-01-01 10:00:00')
-        },
-        {
-          id: "2",
-          sender: { id: "user1", name: "私" },
-          content: "おはようございます！",
-          createdAt: new Date('2024-01-01 10:01:00')
-        },
-        {
-          id: "3",
-          sender: { id: "user2", name: "田中さん" },
-          content: "今日はいい天気ですね",
-          createdAt: new Date('2024-01-01 10:02:00')
+      try {
+        console.log('チャンネルID:', channelId, 'の情報を取得中...');
+        
+        // チャンネル情報とメッセージを並列で取得
+        const [channelResponse, messagesResponse] = await Promise.all([
+          fetch(`/api/channel/${channelId}`),
+          fetch(`/api/messages/${channelId}`)
+        ]);
+        
+        // チャンネル情報の処理
+        const channelData = await channelResponse.json();
+        if (channelResponse.ok && channelData.success) {
+          console.log(`✅ チャンネル情報取得成功: ${channelData.channel.name}`);
+          setChannel(channelData.channel);
+        } else {
+          throw new Error(channelData.error || 'チャンネル情報の取得に失敗しました');
         }
-      ];
-      
-      setMessages(dummyMessages);
-      setIsInitialized(true);
+        
+        // メッセージの処理
+        const messagesData = await messagesResponse.json();
+        if (messagesResponse.ok && messagesData.success) {
+          console.log(`✅ メッセージ取得成功: ${messagesData.count}件`);
+          setMessages(messagesData.messages);
+        } else {
+          console.log('📭 メッセージなし、空のチャットを開始');
+          setMessages([]);
+        }
+        
+      } catch (error) {
+        console.error('❌ データ取得エラー:', error);
+        setMessages([]);
+        setChannel(null);
+      } finally {
+        setIsInitialized(true);
+      }
     };
 
     initData();
@@ -77,24 +96,41 @@ export default function ChannelPage() {
     try {
       console.log('メッセージ送信:', content);
       
-      // 新しいメッセージを作成（仮の実装）
-      const newMessage: Message = {
-        id: Date.now().toString(), // 仮のID
-        sender: { id: myUserId, name: "私" },
-        content,
-        createdAt: new Date()
-      };
+      // 実際のAPIにメッセージを送信
+      const response = await fetch(`/api/messages/${channelId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: content,
+          senderId: myUserId  // 現在は仮のユーザーID、後で実際の認証と連携
+        }),
+      });
       
-      // メッセージを追加
-      setMessages(prevMessages => [...prevMessages, newMessage]);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'メッセージの送信に失敗しました');
+      }
+      
+      if (data.success) {
+        console.log('✅ メッセージ送信成功:', data.message);
+        
+        // 送信成功時、メッセージリストに新しいメッセージを追加
+        setMessages(prevMessages => [...prevMessages, data.message]);
+      } else {
+        throw new Error(data.error);
+      }
       
     } catch (error) {
-      console.error('メッセージの送信に失敗しました:', error);
+      console.error('❌ メッセージの送信に失敗しました:', error);
+      alert('メッセージの送信に失敗しました。もう一度お試しください。');
     }
   };
 
   // データ読み込み中の表示
-  if (!isInitialized) {
+  if (!isInitialized || !channel) {
     return (
       <div className="flex items-center justify-center h-full">
         <p>読み込み中...</p>
@@ -106,9 +142,9 @@ export default function ChannelPage() {
     <div className="flex flex-col h-full">
       {/* チャンネルヘッダー */}
       <ChannelHeader 
-        channelName={`チャンネル-${channelId}`}
-        channelDescription="サンプルチャンネルです"
-        memberCount={5}
+        channelName={channel.name}
+        channelDescription={channel.description}
+        memberCount={channel.memberCount}
       />
       
       {/* メッセージ表示エリア */}
@@ -116,7 +152,7 @@ export default function ChannelPage() {
       
       {/* メッセージ入力フォーム */}
       <MessageForm 
-        channelDisplayName={`# チャンネル-${channelId}`}
+        channelDisplayName={`# ${channel.name}`}
         handleSendMessage={handleSendMessage}
       />
     </div>

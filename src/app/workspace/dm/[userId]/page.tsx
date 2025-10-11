@@ -37,65 +37,68 @@ export default function DirectMessagePage() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [dmPartner, setDmPartner] = useState<User | null>(null);
+  const [dmChannelId, setDmChannelId] = useState<string>('');
   
-  // 現在のユーザーID（仮の値、後で認証機能と連携）
-  const myUserId = "user1";
+  // 現在のユーザーID（テストデータの田中太郎のID、後で認証機能と連携）
+  const myUserId = "cmglkz5uq0000j0x2kxp1oy71";
   const myUser: User = {
     id: myUserId,
-    name: "私",
+    name: "田中太郎",
     isOnline: true
   };
 
   // コンポーネントがマウントされた時とuserIdが変更された時に実行
   useEffect(() => {
     const initData = async () => {
-      console.log('DM相手のユーザーID:', userId);
-      
-      // DM相手のユーザー情報を取得（仮データ）
-      const partnerData: User = {
-        id: userId,
-        name: getUserNameById(userId),
-        email: `${userId}@example.com`,
-        isOnline: Math.random() > 0.5, // ランダムでオンライン状態を決定
-        lastSeen: new Date(Date.now() - Math.random() * 3600000) // 1時間以内のランダムな時間
-      };
-      
-      setDmPartner(partnerData);
-      
-      // DM履歴を取得（仮データ）
-      const dummyDmMessages: Message[] = [
-        {
-          id: "dm1",
-          sender: partnerData,
-          content: "こんにちは！元気ですか？",
-          createdAt: new Date('2024-01-01 14:00:00')
-        },
-        {
-          id: "dm2",
-          sender: myUser,
-          content: "こんにちは！元気ですよ。お疲れ様です！",
-          createdAt: new Date('2024-01-01 14:01:00')
-        },
-        {
-          id: "dm3",
-          sender: partnerData,
-          content: "今日の会議の件、確認できましたか？",
-          createdAt: new Date('2024-01-01 14:02:00')
-        },
-        {
-          id: "dm4",
-          sender: myUser,
-          content: "はい、確認しました。問題ありません！",
-          createdAt: new Date('2024-01-01 14:03:00')
+      try {
+        console.log('DM相手のユーザーID:', userId);
+        
+        // DMチャンネルを取得または作成
+        const dmResponse = await fetch(`/api/dm/${userId}?myUserId=${myUserId}`);
+        const dmData = await dmResponse.json();
+        
+        if (!dmResponse.ok) {
+          throw new Error(dmData.error || 'DMチャンネルの取得に失敗しました');
         }
-      ];
-      
-      setMessages(dummyDmMessages);
-      setIsInitialized(true);
+        
+        if (dmData.success) {
+          console.log(`✅ DMチャンネル取得成功:`, dmData.dmChannel);
+          
+          // DM相手の情報を設定
+          setDmPartner({
+            ...dmData.dmChannel.partner,
+            isOnline: Math.random() > 0.5, // 仮のオンライン状態
+            lastSeen: new Date(Date.now() - Math.random() * 3600000)
+          });
+          
+          // DMチャンネルIDを設定
+          setDmChannelId(dmData.dmChannel.id);
+          
+          // DMメッセージを取得
+          const messagesResponse = await fetch(`/api/messages/${dmData.dmChannel.id}`);
+          const messagesData = await messagesResponse.json();
+          
+          if (messagesResponse.ok && messagesData.success) {
+            console.log(`✅ DMメッセージ取得成功: ${messagesData.count}件`);
+            setMessages(messagesData.messages);
+          } else {
+            console.log('📭 DMメッセージなし、空のチャットを開始');
+            setMessages([]);
+          }
+        } else {
+          throw new Error(dmData.error);
+        }
+        
+      } catch (error) {
+        console.error('❌ DM初期化エラー:', error);
+        alert('DMの初期化に失敗しました。ページをリロードしてください。');
+      } finally {
+        setIsInitialized(true);
+      }
     };
 
     initData();
-  }, [userId]);
+  }, [userId, myUserId]);
 
   // ユーザーIDから名前を取得する関数（仮実装）
   function getUserNameById(id: string): string {
@@ -113,19 +116,41 @@ export default function DirectMessagePage() {
     try {
       console.log('DMメッセージ送信:', content);
       
-      // 新しいDMメッセージを作成
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        sender: myUser,
-        content,
-        createdAt: new Date()
-      };
+      if (!dmChannelId) {
+        alert('DMチャンネルが初期化されていません。ページをリロードしてください。');
+        return;
+      }
       
-      // メッセージを追加
-      setMessages(prevMessages => [...prevMessages, newMessage]);
+      // 実際のAPIにDMメッセージを送信
+      const response = await fetch(`/api/messages/${dmChannelId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: content,
+          senderId: myUserId
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'DMメッセージの送信に失敗しました');
+      }
+      
+      if (data.success) {
+        console.log('✅ DMメッセージ送信成功:', data.message);
+        
+        // 送信成功時、メッセージリストに新しいメッセージを追加
+        setMessages(prevMessages => [...prevMessages, data.message]);
+      } else {
+        throw new Error(data.error);
+      }
       
     } catch (error) {
-      console.error('DMメッセージの送信に失敗しました:', error);
+      console.error('❌ DMメッセージの送信に失敗しました:', error);
+      alert('メッセージの送信に失敗しました。もう一度お試しください。');
     }
   };
 

@@ -10,10 +10,12 @@ import Link from 'next/link';
 import { User, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// 仮のDM型
+// DM型（APIレスポンスと一致）
 interface DirectMessage {
   id: string;
+  partnerId: string;
   partnerName: string;
+  partnerEmail: string;
 }
 
 interface DirectMessageListProps {
@@ -32,11 +34,11 @@ export default function DirectMessageList({ directMessages, pathname }: DirectMe
       </div>
       <div className="space-y-1">
         {directMessages.map((dm) => {
-          const isActive = pathname === `/workspace/channel/${dm.id}`;
+          const isActive = pathname === `/workspace/dm/${dm.partnerId}`;
           return (
             <Link
               key={dm.id}
-              href={`/workspace/channel/${dm.id}`}
+              href={`/workspace/dm/${dm.partnerId}`}
               className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${
                 isActive ? 'bg-accent text-accent-foreground' : ''
               }`}

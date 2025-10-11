@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,24 +21,52 @@ import UserProfileBar from '@/components/workspace/userProfileBar';
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState<boolean>(false);
+  
+  // 実データベース状態管理
+  const [channels, setChannels] = useState<any[]>([]);
+  const [directMessages, setDirectMessages] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 仮のデータ（後でデータベースから取得）
+  // 現在のユーザー（テストデータの田中太郎）
   const currentUser = {
-    id: '1',
-    name: 'テストユーザー',
-    email: 'test@example.com'
+    id: 'cmglkz5uq0000j0x2kxp1oy71',
+    name: '田中太郎',
+    email: 'tanaka@example.com'
   };
 
-  const channels = [
-    { id: '1', name: '一般', description: '一般的な話題' },
-    { id: '2', name: '開発', description: '開発に関する議論' },
-    { id: '3', name: '雑談', description: '自由な雑談' }
-  ];
+  // データベースからチャンネル・DM一覧を取得
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        console.log('📋 サイドバーデータ取得開始...');
+        
+        const response = await fetch(`/api/channels?userId=${currentUser.id}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'チャンネル取得に失敗しました');
+        }
+        
+        if (data.success) {
+          console.log(`✅ サイドバーデータ取得成功:`, data.counts);
+          setChannels(data.channels);
+          setDirectMessages(data.directMessages);
+        } else {
+          throw new Error(data.error);
+        }
+        
+      } catch (error) {
+        console.error('❌ サイドバーデータ取得エラー:', error);
+        // エラー時は空配列を設定
+        setChannels([]);
+        setDirectMessages([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const directMessages = [
-    { id: 'dm1', partnerName: '田中さん' },
-    { id: 'dm2', partnerName: '佐藤さん' }
-  ];
+    fetchData();
+  }, [currentUser.id]);
 
   return (
     <div className="flex min-h-screen flex-col">

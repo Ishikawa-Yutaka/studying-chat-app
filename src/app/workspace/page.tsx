@@ -7,30 +7,99 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Hash, MessageSquare, Users, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
+// 型定義
+interface Channel {
+  id: string;
+  name: string;
+  description?: string;
+  memberCount: number;
+}
+
+interface DirectMessage {
+  id: string;
+  partnerId: string;
+  partnerName: string;
+  partnerEmail: string;
+}
+
+interface DashboardStats {
+  channelCount: number;
+  dmCount: number;
+  totalRoomsCount: number;
+  userMessageCount: number;
+  totalUserCount: number;
+}
+
 export default function WorkspacePage() {
-  // 仮のデータ（後でデータベースから取得）
-  const [stats] = useState({
-    channelCount: 3,
-    messageCount: 42,
-    memberCount: 8
-  });
+  // 現在のユーザー（テストデータの田中太郎）
+  const currentUser = {
+    id: 'cmglkz5uq0000j0x2kxp1oy71',
+    name: '田中太郎',
+    email: 'tanaka@example.com'
+  };
 
-  const channels = [
-    { id: '1', name: '一般', description: '一般的な話題について話しましょう' },
-    { id: '2', name: '開発', description: 'プロジェクトの開発に関する議論' },
-    { id: '3', name: '雑談', description: '自由な雑談スペース' }
-  ];
+  // 状態管理
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
 
-  const directMessages = [
-    { id: 'dm1', partnerName: '田中さん' },
-    { id: 'dm2', partnerName: '佐藤さん' }
-  ];
+  // データ取得
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        console.log('📊 ダッシュボードデータ取得開始...');
+        
+        const response = await fetch(`/api/dashboard?userId=${currentUser.id}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'ダッシュボードデータの取得に失敗しました');
+        }
+        
+        if (data.success) {
+          console.log('✅ ダッシュボードデータ取得成功:', data.stats);
+          setStats(data.stats);
+          setChannels(data.channels);
+          setDirectMessages(data.directMessages);
+        } else {
+          throw new Error(data.error);
+        }
+        
+      } catch (error) {
+        console.error('❌ ダッシュボードデータ取得エラー:', error);
+        // エラー時は空のデータを設定
+        setStats({
+          channelCount: 0,
+          dmCount: 0,
+          totalRoomsCount: 0,
+          userMessageCount: 0,
+          totalUserCount: 0
+        });
+        setChannels([]);
+        setDirectMessages([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [currentUser.id]);
+
+  // ロード中の表示
+  if (isLoading || !stats) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p>読み込み中...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -57,7 +126,7 @@ export default function WorkspacePage() {
             <Hash className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.channelCount + directMessages.length}</div>
+            <div className="text-2xl font-bold">{stats.totalRoomsCount}</div>
             <p className="text-xs text-muted-foreground">参加しているチャンネル・DM 数</p>
           </CardContent>
         </Card>
@@ -68,7 +137,7 @@ export default function WorkspacePage() {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.messageCount}</div>
+            <div className="text-2xl font-bold">{stats.userMessageCount}</div>
             <p className="text-xs text-muted-foreground">自分が投稿したメッセージ数</p>
           </CardContent>
         </Card>
@@ -79,7 +148,7 @@ export default function WorkspacePage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.memberCount}</div>
+            <div className="text-2xl font-bold">{stats.totalUserCount}</div>
             <p className="text-xs text-muted-foreground">ワークスペース全体のメンバー数</p>
           </CardContent>
         </Card>
@@ -107,10 +176,17 @@ export default function WorkspacePage() {
                     >
                       {channel.name}
                     </Link>
-                    <p className="text-sm text-muted-foreground">{channel.description}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {channel.description} ({channel.memberCount} 人のメンバー)
+                    </p>
                   </div>
                 </div>
               ))}
+              {channels.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  まだチャンネルに参加していません
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -132,7 +208,7 @@ export default function WorkspacePage() {
                   </div>
                   <div className="space-y-1 flex-1">
                     <Link 
-                      href={`/workspace/channel/${dm.id}`} 
+                      href={`/workspace/dm/${dm.partnerId}`} 
                       className="font-medium hover:underline block"
                     >
                       {dm.partnerName}
@@ -141,6 +217,11 @@ export default function WorkspacePage() {
                   </div>
                 </div>
               ))}
+              {directMessages.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  まだDMがありません
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
