@@ -1,11 +1,9 @@
 /**
- * Supabase Realtimeを使用したメッセージのリアルタイム更新カスタムフック
- * 
- * データベースでMessage テーブルの変更（INSERT/UPDATE/DELETE）を監視し、
- * 自動的にメッセージリストを更新します
+ * Supabase Realtimeを使用したメッセージのリアルタイム更新カスタムフック（修正版）
+ * 無限ループ問題を根本的に解決
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
 // メッセージの型定義
@@ -37,21 +35,21 @@ export function useRealtimeMessages({ channelId, initialMessages }: UseRealtimeM
       // 重複チェック：同じIDのメッセージが既に存在する場合は追加しない
       const exists = prevMessages.some(msg => msg.id === newMessage.id);
       if (exists) {
+        console.log('🔄 重複メッセージをスキップ:', newMessage.id);
         return prevMessages;
       }
+      console.log('✅ 新しいメッセージを追加:', newMessage.id);
       return [...prevMessages, newMessage];
     });
   }, []);
 
-  // 初期メッセージの更新（useRefを使用して安全に更新）
-  const initializedRef = useRef(false);
-  
+  // 初期メッセージの更新（リセット）
   useEffect(() => {
-    if (initialMessages && !initializedRef.current) {
+    if (initialMessages.length > 0) {
+      console.log('🔄 初期メッセージを設定:', initialMessages.length, '件');
       setMessages(initialMessages);
-      initializedRef.current = true;
     }
-  }, [initialMessages?.length]);
+  }, [initialMessages.length]);
 
   // Supabase Realtimeの設定
   useEffect(() => {
@@ -75,7 +73,8 @@ export function useRealtimeMessages({ channelId, initialMessages }: UseRealtimeM
           filter: `channelId=eq.${channelId}` // 特定のチャンネルのみ監視
         },
         async (payload) => {
-          console.log('📨 新しいメッセージを受信:', payload);
+          console.log('📨 Realtimeで新しいメッセージを受信:', payload);
+          console.log('📨 受信データ詳細:', JSON.stringify(payload, null, 2));
           
           try {
             // データベースから送信されたpayloadをMessage型に変換
@@ -110,8 +109,20 @@ export function useRealtimeMessages({ channelId, initialMessages }: UseRealtimeM
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log(`📡 Realtime接続状況: ${status}`);
+        if (err) {
+          console.error('❌ Realtime接続エラー:', err);
+        }
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Realtimeサブスクリプション成功');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Realtimeチャンネルエラー');
+        } else if (status === 'TIMED_OUT') {
+          console.error('⏰ Realtime接続タイムアウト');
+        } else if (status === 'CLOSED') {
+          console.log('🔌 Realtime接続クローズ');
+        }
       });
 
     // クリーンアップ関数：コンポーネントがアンマウントされた時にサブスクリプションを解除

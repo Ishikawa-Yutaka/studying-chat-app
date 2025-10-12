@@ -1,11 +1,9 @@
 /**
- * Supabase Realtimeを使用したダッシュボード統計情報のリアルタイム更新カスタムフック
- * 
- * メッセージ送信、チャンネル作成・削除、ユーザー追加等によって
- * ダッシュボードの統計情報が自動的に更新されます
+ * Supabase Realtimeを使用したダッシュボード統計情報のリアルタイム更新カスタムフック（修正版）
+ * 無限ループ問題を根本的に解決
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
 // ダッシュボード統計の型定義
@@ -69,23 +67,30 @@ export function useRealtimeDashboard({
     }
   }, [currentUserId]);
 
-  // 初期データの更新（useRefを使用して安全に更新）
-  const initializedRef = useRef(false);
-  const lastInitialStatsRef = useRef(null);
-  
+  // 初期データが変更された時の処理（useMemoで安定した比較）
+  const hasInitialDataChanged = useMemo(() => {
+    return (
+      initialStats.totalRoomsCount !== stats.totalRoomsCount ||
+      initialChannels.length !== channels.length ||
+      initialDirectMessages.length !== directMessages.length
+    );
+  }, [
+    initialStats.totalRoomsCount,
+    initialChannels.length,
+    initialDirectMessages.length,
+    stats.totalRoomsCount,
+    channels.length,
+    directMessages.length
+  ]);
+
+  // 初期データの更新（安全な方法）
   useEffect(() => {
-    // 初期データが存在し、まだ初期化されていない、または初期データが変更された場合
-    if (initialStats && initialChannels && initialDirectMessages && 
-        (!initializedRef.current || lastInitialStatsRef.current !== initialStats)) {
-      
+    if (hasInitialDataChanged) {
       setStats(initialStats);
       setChannels(initialChannels);
       setDirectMessages(initialDirectMessages);
-      
-      initializedRef.current = true;
-      lastInitialStatsRef.current = initialStats;
     }
-  }, [initialStats, initialChannels, initialDirectMessages]);
+  }, [hasInitialDataChanged, initialStats, initialChannels, initialDirectMessages]);
 
   // Supabase Realtimeの設定
   useEffect(() => {

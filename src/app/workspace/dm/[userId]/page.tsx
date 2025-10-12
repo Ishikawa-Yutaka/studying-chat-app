@@ -12,8 +12,8 @@ import MessageForm from '@/components/channel/messageForm';
 // DM専用ヘッダー
 import DmHeader from '@/components/dm/dmHeader';
 
-// リアルタイム機能のカスタムフック（修正版）
-import { useRealtimeMessages } from '@/hooks/useRealtimeMessages-fixed';
+// リアルタイム機能のカスタムフック
+import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
 
 // 型定義
 interface User {

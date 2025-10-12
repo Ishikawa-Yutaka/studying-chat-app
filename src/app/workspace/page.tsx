@@ -13,8 +13,8 @@ import { Hash, MessageSquare, Users, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-// リアルタイム機能のカスタムフック（修正版）
-import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard-fixed';
+// リアルタイム機能のカスタムフック
+import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard';
 
 // 型定義
 interface Channel {
