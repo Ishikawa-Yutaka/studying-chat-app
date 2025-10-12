@@ -1,8 +1,6 @@
 /**
- * ワークスペースダッシュボード
- * 
- * チャットアプリのメイン画面
- * 統計情報、チャンネル一覧、最近のアクティビティを表示
+ * ワークスペースダッシュボード（シンプル版）
+ * リアルタイム機能を無効化したテスト用
  */
 
 'use client';
@@ -12,9 +10,6 @@ import Link from 'next/link';
 import { Hash, MessageSquare, Users, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
-// リアルタイム機能のカスタムフック（修正版）
-import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard-fixed';
 
 // 型定義
 interface Channel {
@@ -39,7 +34,7 @@ interface DashboardStats {
   totalUserCount: number;
 }
 
-export default function WorkspacePage() {
+export default function WorkspacePageSimple() {
   // 現在のユーザー（テストデータの田中太郎）
   const currentUser = {
     id: 'cmglkz5uq0000j0x2kxp1oy71',
@@ -49,23 +44,9 @@ export default function WorkspacePage() {
 
   // 状態管理
   const [isLoading, setIsLoading] = useState(true);
-  const [initialStats, setInitialStats] = useState<DashboardStats | null>(null);
-  const [initialChannels, setInitialChannels] = useState<Channel[]>([]);
-  const [initialDirectMessages, setInitialDirectMessages] = useState<DirectMessage[]>([]);
-  
-  // リアルタイムダッシュボードフック：自動的に統計情報がリアルタイム更新される
-  const { stats, channels, directMessages } = useRealtimeDashboard({
-    initialStats: initialStats || {
-      channelCount: 0,
-      dmCount: 0,
-      totalRoomsCount: 0,
-      userMessageCount: 0,
-      totalUserCount: 0
-    },
-    initialChannels,
-    initialDirectMessages,
-    currentUserId: currentUser.id
-  });
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [directMessages, setDirectMessages] = useState<DirectMessage[]>([]);
 
   // データ取得
   useEffect(() => {
@@ -82,9 +63,9 @@ export default function WorkspacePage() {
         
         if (data.success) {
           console.log('✅ ダッシュボードデータ取得成功:', data.stats);
-          setInitialStats(data.stats);
-          setInitialChannels(data.channels);
-          setInitialDirectMessages(data.directMessages);
+          setStats(data.stats);
+          setChannels(data.channels);
+          setDirectMessages(data.directMessages);
         } else {
           throw new Error(data.error);
         }
@@ -92,15 +73,15 @@ export default function WorkspacePage() {
       } catch (error) {
         console.error('❌ ダッシュボードデータ取得エラー:', error);
         // エラー時は空のデータを設定
-        setInitialStats({
+        setStats({
           channelCount: 0,
           dmCount: 0,
           totalRoomsCount: 0,
           userMessageCount: 0,
           totalUserCount: 0
         });
-        setInitialChannels([]);
-        setInitialDirectMessages([]);
+        setChannels([]);
+        setDirectMessages([]);
       } finally {
         setIsLoading(false);
       }
@@ -110,7 +91,7 @@ export default function WorkspacePage() {
   }, [currentUser.id]);
 
   // ロード中の表示
-  if (isLoading || !initialStats) {
+  if (isLoading || !stats) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <p>読み込み中...</p>
@@ -122,7 +103,7 @@ export default function WorkspacePage() {
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       {/* ヘッダー */}
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">ダッシュボード</h2>
+        <h2 className="text-3xl font-bold tracking-tight">ダッシュボード（シンプル版）</h2>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm">
             <Users className="mr-2 h-4 w-4" />

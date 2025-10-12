@@ -10,6 +10,9 @@ import ChannelHeader from '@/components/channel/channelHeader';
 import MessageView from '@/components/channel/messageView';
 import MessageForm from '@/components/channel/messageForm';
 
+// リアルタイム機能のカスタムフック
+import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
+
 // 型定義
 interface User {
   id: string;
@@ -41,9 +44,17 @@ export default function ChannelPage() {
   // 初期化状態を管理（データ読み込み完了を示す）
   const [isInitialized, setIsInitialized] = useState(false);
   
-  // メッセージとチャンネル情報の状態管理
-  const [messages, setMessages] = useState<Message[]>([]);
+  // チャンネル情報の状態管理
   const [channel, setChannel] = useState<Channel | null>(null);
+  
+  // 初期メッセージの状態管理（リアルタイムフックの初期値用）
+  const [initialMessages, setInitialMessages] = useState<Message[]>([]);
+  
+  // リアルタイムメッセージフック：自動的にメッセージがリアルタイム更新される
+  const { messages, addMessage } = useRealtimeMessages({
+    channelId,
+    initialMessages
+  });
   
   // 現在のユーザーID（テストデータの田中太郎のID、後で認証機能と連携）
   const myUserId = "cmglkz5uq0000j0x2kxp1oy71";
@@ -73,15 +84,15 @@ export default function ChannelPage() {
         const messagesData = await messagesResponse.json();
         if (messagesResponse.ok && messagesData.success) {
           console.log(`✅ メッセージ取得成功: ${messagesData.count}件`);
-          setMessages(messagesData.messages);
+          setInitialMessages(messagesData.messages);
         } else {
           console.log('📭 メッセージなし、空のチャットを開始');
-          setMessages([]);
+          setInitialMessages([]);
         }
         
       } catch (error) {
         console.error('❌ データ取得エラー:', error);
-        setMessages([]);
+        setInitialMessages([]);
         setChannel(null);
       } finally {
         setIsInitialized(true);
@@ -117,8 +128,9 @@ export default function ChannelPage() {
       if (data.success) {
         console.log('✅ メッセージ送信成功:', data.message);
         
-        // 送信成功時、メッセージリストに新しいメッセージを追加
-        setMessages(prevMessages => [...prevMessages, data.message]);
+        // 楽観的更新：送信成功時、メッセージリストに新しいメッセージを即座に追加
+        // リアルタイム機能により、他のユーザーの画面にも自動的に表示される
+        addMessage(data.message);
       } else {
         throw new Error(data.error);
       }

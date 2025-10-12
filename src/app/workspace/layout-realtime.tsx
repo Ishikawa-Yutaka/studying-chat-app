@@ -1,6 +1,8 @@
 /**
- * ワークスペースレイアウト（シンプル版）
- * リアルタイム機能を無効化したテスト用
+ * ワークスペースレイアウト
+ * 
+ * サイドバー付きのレイアウト
+ * デスクトップではサイドバー固定、モバイルではハンバーガーメニュー
  */
 
 'use client';
@@ -16,21 +18,36 @@ import ChannelList from '@/components/workspace/channelList';
 import DirectMessageList from '@/components/workspace/directMessageList';
 import UserProfileBar from '@/components/workspace/userProfileBar';
 
+// リアルタイム機能のカスタムフック
+import { useRealtimeChannels } from '@/hooks/useRealtimeChannels';
+import { useRealtimeDirectMessages } from '@/hooks/useRealtimeDirectMessages';
+
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState<boolean>(false);
   
-  // 実データベース状態管理（リアルタイム機能なし）
-  const [channels, setChannels] = useState<any[]>([]);
-  const [directMessages, setDirectMessages] = useState<any[]>([]);
+  // 実データベース状態管理
+  const [initialChannels, setInitialChannels] = useState<any[]>([]);
+  const [initialDirectMessages, setInitialDirectMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  
   // 現在のユーザー（テストデータの田中太郎）
   const currentUser = {
     id: 'cmglkz5uq0000j0x2kxp1oy71',
     name: '田中太郎',
     email: 'tanaka@example.com'
   };
+  
+  // リアルタイムチャンネルフック：自動的にチャンネルがリアルタイム更新される
+  const { channels } = useRealtimeChannels({
+    initialChannels
+  });
+  
+  // リアルタイムDMフック：自動的にDM一覧がリアルタイム更新される
+  const { directMessages } = useRealtimeDirectMessages({
+    initialDirectMessages,
+    currentUserId: currentUser.id
+  });
 
   // データベースからチャンネル・DM一覧を取得
   useEffect(() => {
@@ -47,10 +64,8 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
         
         if (data.success) {
           console.log(`✅ サイドバーデータ取得成功:`, data.counts);
-          console.log('チャンネル:', data.channels);
-          console.log('DM:', data.directMessages);
-          setChannels(data.channels);
-          setDirectMessages(data.directMessages);
+          setInitialChannels(data.channels);
+          setInitialDirectMessages(data.directMessages);
         } else {
           throw new Error(data.error);
         }
@@ -58,8 +73,8 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
       } catch (error) {
         console.error('❌ サイドバーデータ取得エラー:', error);
         // エラー時は空配列を設定
-        setChannels([]);
-        setDirectMessages([]);
+        setInitialChannels([]);
+        setInitialDirectMessages([]);
       } finally {
         setIsLoading(false);
       }
@@ -106,17 +121,9 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             <AppLogo />
           </div>
           <div className="flex-1 py-2">
-            {isLoading ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                読み込み中...
-              </div>
-            ) : (
-              <>
-                <ChannelList channels={channels} pathname={pathname} />
-                <Separator className="my-2" />
-                <DirectMessageList directMessages={directMessages} pathname={pathname} />
-              </>
-            )}
+            <ChannelList channels={channels} pathname={pathname} />
+            <Separator className="my-2" />
+            <DirectMessageList directMessages={directMessages} pathname={pathname} />
           </div>
           <div className="sticky bottom-0 border-t bg-background p-4">
             <UserProfileBar user={currentUser} />

@@ -12,6 +12,9 @@ import MessageForm from '@/components/channel/messageForm';
 // DM専用ヘッダー
 import DmHeader from '@/components/dm/dmHeader';
 
+// リアルタイム機能のカスタムフック（修正版）
+import { useRealtimeMessages } from '@/hooks/useRealtimeMessages-fixed';
+
 // 型定義
 interface User {
   id: string;
@@ -35,9 +38,15 @@ export default function DirectMessagePage() {
   
   // 初期化状態とメッセージ管理
   const [isInitialized, setIsInitialized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [initialMessages, setInitialMessages] = useState<Message[]>([]);
   const [dmPartner, setDmPartner] = useState<User | null>(null);
   const [dmChannelId, setDmChannelId] = useState<string>('');
+  
+  // リアルタイムメッセージフック：自動的にメッセージがリアルタイム更新される
+  const { messages, addMessage } = useRealtimeMessages({
+    channelId: dmChannelId,
+    initialMessages
+  });
   
   // 現在のユーザーID（テストデータの田中太郎のID、後で認証機能と連携）
   const myUserId = "cmglkz5uq0000j0x2kxp1oy71";
@@ -80,10 +89,10 @@ export default function DirectMessagePage() {
           
           if (messagesResponse.ok && messagesData.success) {
             console.log(`✅ DMメッセージ取得成功: ${messagesData.count}件`);
-            setMessages(messagesData.messages);
+            setInitialMessages(messagesData.messages);
           } else {
             console.log('📭 DMメッセージなし、空のチャットを開始');
-            setMessages([]);
+            setInitialMessages([]);
           }
         } else {
           throw new Error(dmData.error);
@@ -142,8 +151,9 @@ export default function DirectMessagePage() {
       if (data.success) {
         console.log('✅ DMメッセージ送信成功:', data.message);
         
-        // 送信成功時、メッセージリストに新しいメッセージを追加
-        setMessages(prevMessages => [...prevMessages, data.message]);
+        // 楽観的更新：送信成功時、メッセージリストに新しいメッセージを即座に追加
+        // リアルタイム機能により、他のユーザーの画面にも自動的に表示される
+        addMessage(data.message);
       } else {
         throw new Error(data.error);
       }

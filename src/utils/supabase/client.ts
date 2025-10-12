@@ -12,6 +12,12 @@ export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  // ブラウザ用のSupabaseクライアントを作成
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  // ブラウザ用のSupabaseクライアントを作成（Realtime有効化）
+  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
+    }
+  });
 }
