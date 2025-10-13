@@ -9,7 +9,7 @@
 import { LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// 仮のユーザー型（後でSupabaseと連携）
+// ユーザー型定義
 interface User {
   id: string;
   name: string;
@@ -17,14 +17,26 @@ interface User {
 }
 
 interface UserProfileBarProps {
-  user: User;
+  user: User | null;
+  onSignOut?: () => void;
 }
 
-export default function UserProfileBar({ user }: UserProfileBarProps) {
-  const handleLogout = () => {
-    // TODO: ログアウト処理を実装
+export default function UserProfileBar({ user, onSignOut }: UserProfileBarProps) {
+  const handleLogout = async () => {
+    if (onSignOut) {
+      await onSignOut();
+    }
+    // ログアウト後にログインページにリダイレクト
     window.location.href = '/login';
   };
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <p className="text-sm text-muted-foreground">読み込み中...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-between">

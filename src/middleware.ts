@@ -1,15 +1,15 @@
 /**
- * Next.js ミドルウェア (一時的に無効化)
+ * Next.js 認証ミドルウェア
  * 
- * デバッグ用：ミドルウェアを無効化してサーバー起動問題を調査
+ * 認証が必要なページへのアクセス制御を行う
  */
 
-import { NextResponse, type NextRequest } from 'next/server';
+import { type NextRequest } from 'next/server';
+import { updateSession } from '@/utils/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
-  // 一時的にミドルウェアを無効化
-  // 単純にリクエストをそのまま通す
-  return NextResponse.next();
+  // Supabase認証ミドルウェアを実行
+  return await updateSession(request);
 }
 
 // このミドルウェアが実行されるパスを指定

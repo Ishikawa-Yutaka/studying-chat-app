@@ -1,12 +1,12 @@
 /**
- * ワークスペースレイアウト（シンプル版）
- * リアルタイム機能を無効化したテスト用
+ * ワークスペースレイアウト
+ * 認証機能統合版
  */
 
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -15,30 +15,40 @@ import AppLogo from '@/components/workspace/appLogo';
 import ChannelList from '@/components/workspace/channelList';
 import DirectMessageList from '@/components/workspace/directMessageList';
 import UserProfileBar from '@/components/workspace/userProfileBar';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState<boolean>(false);
   
-  // 実データベース状態管理（リアルタイム機能なし）
+  // 認証状態管理
+  const { user, loading: authLoading, isAuthenticated, signOut } = useAuth();
+  
+  // データベース状態管理
   const [channels, setChannels] = useState<any[]>([]);
   const [directMessages, setDirectMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 現在のユーザー（テストデータの田中太郎）
-  const currentUser = {
-    id: 'cmglkz5uq0000j0x2kxp1oy71',
-    name: '田中太郎',
-    email: 'tanaka@example.com'
-  };
+  // 認証チェック
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      console.log('🚫 認証されていません。ログインページにリダイレクト');
+      router.push('/login');
+      return;
+    }
+  }, [authLoading, isAuthenticated, router]);
 
   // データベースからチャンネル・DM一覧を取得
   useEffect(() => {
+    // 認証が完了していない場合は実行しない
+    if (!user) return;
+
     const fetchData = async () => {
       try {
-        console.log('📋 サイドバーデータ取得開始...');
+        console.log('📋 サイドバーデータ取得開始...', user.email);
         
-        const response = await fetch(`/api/channels?userId=${currentUser.id}`);
+        const response = await fetch(`/api/channels?userId=${user.id}`);
         const data = await response.json();
         
         if (!response.ok) {
@@ -66,7 +76,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
     };
 
     fetchData();
-  }, [currentUser.id]);
+  }, [user]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -91,7 +101,14 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             </div>
             <Separator />
             <div className="p-4">
-              <UserProfileBar user={currentUser} />
+              <UserProfileBar 
+                user={user ? {
+                  id: user.id,
+                  name: user.user_metadata?.name || user.email?.split('@')[0] || 'ユーザー',
+                  email: user.email || ''
+                } : null} 
+                onSignOut={signOut}
+              />
             </div>
           </SheetContent>
         </Sheet>
@@ -119,7 +136,14 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             )}
           </div>
           <div className="sticky bottom-0 border-t bg-background p-4">
-            <UserProfileBar user={currentUser} />
+            <UserProfileBar 
+              user={user ? {
+                id: user.id,
+                name: user.user_metadata?.name || user.email?.split('@')[0] || 'ユーザー',
+                email: user.email || ''
+              } : null} 
+              onSignOut={signOut}
+            />
           </div>
         </aside>
 

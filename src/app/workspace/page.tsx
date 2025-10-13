@@ -15,6 +15,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard';
+// 認証フック
+import { useAuth } from '@/hooks/useAuth';
 
 // 型定義
 interface Channel {
@@ -40,12 +42,8 @@ interface DashboardStats {
 }
 
 export default function WorkspacePage() {
-  // 現在のユーザー（テストデータの田中太郎）
-  const currentUser = {
-    id: 'cmglkz5uq0000j0x2kxp1oy71',
-    name: '田中太郎',
-    email: 'tanaka@example.com'
-  };
+  // 認証状態
+  const { user } = useAuth();
 
   // 状態管理
   const [isLoading, setIsLoading] = useState(true);
@@ -64,16 +62,19 @@ export default function WorkspacePage() {
     },
     initialChannels,
     initialDirectMessages,
-    currentUserId: currentUser.id
+    currentUserId: user?.id || ''
   });
 
   // データ取得
   useEffect(() => {
+    // 認証が完了していない場合は実行しない
+    if (!user) return;
+
     const fetchDashboardData = async () => {
       try {
-        console.log('📊 ダッシュボードデータ取得開始...');
+        console.log('📊 ダッシュボードデータ取得開始...', user.email);
         
-        const response = await fetch(`/api/dashboard?userId=${currentUser.id}`);
+        const response = await fetch(`/api/dashboard?userId=${user.id}`);
         const data = await response.json();
         
         if (!response.ok) {
@@ -107,7 +108,7 @@ export default function WorkspacePage() {
     };
 
     fetchDashboardData();
-  }, [currentUser.id]);
+  }, [user]);
 
   // ロード中の表示
   if (isLoading || !initialStats) {

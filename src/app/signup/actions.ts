@@ -10,6 +10,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { prisma } from '@/lib/prisma'
 
 /**
  * サインアップ処理
@@ -26,7 +27,7 @@ export async function signup(formData: FormData) {
   }
 
   // Supabaseでユーザー登録処理を実行
-  const { error } = await supabase.auth.signUp({
+  const { data: authData, error } = await supabase.auth.signUp({
     email: data.email,
     password: data.password,
     options: {
@@ -37,8 +38,25 @@ export async function signup(formData: FormData) {
   })
 
   if (error) {
-    // エラーがあった場合はエラーページにリダイレクト
+    console.error('Supabase Auth Error:', error.message)
     redirect('/error')
+  }
+
+  // Supabaseユーザー作成成功時、Prismaにもユーザーレコードを作成
+  if (authData.user) {
+    try {
+      await prisma.user.create({
+        data: {
+          authId: authData.user.id,     // Supabaseユーザーの ID
+          email: data.email,
+          name: data.name,
+        },
+      })
+      console.log('Prisma User created successfully')
+    } catch (prismaError) {
+      console.error('Prisma User creation error:', prismaError)
+      // Prisma側のエラーでもユーザーは作成されているので、続行
+    }
   }
 
   // 登録成功時はページを更新してワークスペースにリダイレクト
