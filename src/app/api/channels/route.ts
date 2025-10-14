@@ -19,10 +19,24 @@ export async function GET(request: NextRequest) {
     
     console.log(`📋 チャンネル一覧取得 - ユーザーID: ${userId}`);
     
+    // SupabaseのauthIdからPrismaのユーザー内部IDを取得
+    const user = await prisma.user.findFirst({
+      where: { authId: userId }
+    });
+    
+    if (!user) {
+      return NextResponse.json({
+        success: false,
+        error: 'ユーザーが見つかりません'
+      }, { status: 404 });
+    }
+    
+    console.log(`👤 Prismaユーザー確認: ${user.name} (内部ID: ${user.id})`);
+    
     // ユーザーが参加しているチャンネルを取得
     const userChannels = await prisma.channelMember.findMany({
       where: {
-        userId: userId
+        userId: user.id
       },
       include: {
         channel: {
@@ -64,7 +78,7 @@ export async function GET(request: NextRequest) {
         });
       } else if (channel.type === 'dm') {
         // DM - 相手のユーザー情報を取得
-        const partner = channel.members.find(member => member.userId !== userId);
+        const partner = channel.members.find(member => member.userId !== user.id);
         if (partner) {
           directMessages.push({
             id: channel.id,

@@ -11,6 +11,7 @@ interface User {
   id: string;
   name: string;
   email?: string;
+  authId?: string;  // SupabaseのAuthIDも含める
 }
 
 interface Message {
@@ -85,7 +86,8 @@ export function useRealtimeMessages({ channelId, initialMessages }: UseRealtimeM
             let senderInfo = {
               id: newMessage.senderId,
               name: 'Unknown User',
-              email: ''
+              email: '',
+              authId: undefined
             };
             
             if (response.ok) {

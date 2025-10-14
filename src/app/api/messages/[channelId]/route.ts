@@ -36,7 +36,8 @@ export async function GET(
           select: {
             id: true,
             name: true,
-            email: true
+            email: true,
+            authId: true  // SupabaseのAuthIDも含める
           }
         }
       },
@@ -107,9 +108,9 @@ export async function POST(
       }, { status: 404 });
     }
     
-    // 送信者の存在確認
-    const sender = await prisma.user.findUnique({
-      where: { id: senderId }
+    // SupabaseのauthIdからPrismaのユーザー内部IDを取得
+    const sender = await prisma.user.findFirst({
+      where: { authId: senderId }
     });
     
     if (!sender) {
@@ -119,11 +120,13 @@ export async function POST(
       }, { status: 404 });
     }
     
+    console.log(`👤 送信者確認: ${sender.name} (内部ID: ${sender.id})`);
+    
     // メッセージ作成
     const newMessage = await prisma.message.create({
       data: {
         content: content.trim(),
-        senderId: senderId,
+        senderId: sender.id, // Prismaの内部IDを使用
         channelId: channelId
       },
       include: {
@@ -131,7 +134,8 @@ export async function POST(
           select: {
             id: true,
             name: true,
-            email: true
+            email: true,
+            authId: true  // SupabaseのAuthIDも含める
           }
         }
       }

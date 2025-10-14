@@ -14,6 +14,8 @@ import DmHeader from '@/components/dm/dmHeader';
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
+// 認証フック
+import { useAuth } from '@/hooks/useAuth';
 
 // 型定義
 interface User {
@@ -36,6 +38,9 @@ export default function DirectMessagePage() {
   // 例: /workspace/dm/user123 → userId = "user123"
   const { userId } = useParams<{ userId: string }>();
   
+  // 認証状態管理
+  const { user } = useAuth();
+  
   // 初期化状態とメッセージ管理
   const [isInitialized, setIsInitialized] = useState(false);
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
@@ -48,19 +53,17 @@ export default function DirectMessagePage() {
     initialMessages
   });
   
-  // 現在のユーザーID（テストデータの田中太郎のID、後で認証機能と連携）
-  const myUserId = "cmglkz5uq0000j0x2kxp1oy71";
-  const myUser: User = {
-    id: myUserId,
-    name: "田中太郎",
-    isOnline: true
-  };
+  // 現在のユーザーID（認証されたユーザー）
+  const myUserId = user?.id;
 
   // コンポーネントがマウントされた時とuserIdが変更された時に実行
   useEffect(() => {
+    // 認証が完了していない場合は実行しない
+    if (!myUserId) return;
+
     const initData = async () => {
       try {
-        console.log('DM相手のユーザーID:', userId);
+        console.log('DM相手のユーザーID:', userId, 'by user:', myUserId);
         
         // DMチャンネルを取得または作成
         const dmResponse = await fetch(`/api/dm/${userId}?myUserId=${myUserId}`);
@@ -122,8 +125,15 @@ export default function DirectMessagePage() {
 
   // DMメッセージ送信処理
   const handleSendMessage = async (content: string) => {
+    // 認証チェック
+    if (!myUserId) {
+      console.error('❌ ユーザーが認証されていません');
+      alert('メッセージを送信するにはログインが必要です。');
+      return;
+    }
+
     try {
-      console.log('DMメッセージ送信:', content);
+      console.log('DMメッセージ送信:', content, 'by user:', myUserId);
       
       if (!dmChannelId) {
         alert('DMチャンネルが初期化されていません。ページをリロードしてください。');
@@ -164,8 +174,8 @@ export default function DirectMessagePage() {
     }
   };
 
-  // データ読み込み中の表示
-  if (!isInitialized || !dmPartner) {
+  // データ読み込み中・認証チェック
+  if (!isInitialized || !dmPartner || !user) {
     return (
       <div className="flex items-center justify-center h-full">
         <p>読み込み中...</p>

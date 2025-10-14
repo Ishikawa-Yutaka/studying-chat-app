@@ -19,7 +19,21 @@ export async function GET(request: NextRequest) {
     
     console.log(`📊 ダッシュボード統計取得 - ユーザーID: ${userId}`);
     
-    // 並列でデータを取得
+    // SupabaseのauthIdからPrismaのユーザー内部IDを取得
+    const user = await prisma.user.findFirst({
+      where: { authId: userId }
+    });
+    
+    if (!user) {
+      return NextResponse.json({
+        success: false,
+        error: 'ユーザーが見つかりません'
+      }, { status: 404 });
+    }
+    
+    console.log(`👤 Prismaユーザー確認: ${user.name} (内部ID: ${user.id})`);
+    
+    // 並列でデータを取得（Prismaの内部IDを使用）
     const [
       userChannels,
       userMessageCount,
@@ -27,7 +41,7 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       // ユーザーが参加しているチャンネル・DM
       prisma.channelMember.findMany({
-        where: { userId: userId },
+        where: { userId: user.id },
         include: {
           channel: {
             select: {
@@ -53,7 +67,7 @@ export async function GET(request: NextRequest) {
       
       // ユーザーが送信したメッセージ数
       prisma.message.count({
-        where: { senderId: userId }
+        where: { senderId: user.id }
       }),
       
       // ワークスペース全体のユーザー数
@@ -77,7 +91,7 @@ export async function GET(request: NextRequest) {
         });
       } else if (channel.type === 'dm') {
         // DM - 相手のユーザー情報を取得
-        const partner = channel.members.find(member => member.userId !== userId);
+        const partner = channel.members.find(member => member.userId !== user.id);
         if (partner) {
           directMessages.push({
             id: channel.id,

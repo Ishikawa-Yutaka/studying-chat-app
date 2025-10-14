@@ -20,6 +20,14 @@
 - **解決策**: プリミティブ値のみを依存関係に使用
 - **学習ポイント**: React依存関係の仕組み、useCallback/useMemo活用法
 
+### 3. [SUPABASE_AUTH_INTEGRATION.md](./SUPABASE_AUTH_INTEGRATION.md) ⭐ **NEW**
+**Supabase認証システム統合トラブルシューティング**
+
+- **対象**: 認証統合後にチャンネル・データが表示されない問題
+- **主な原因**: Supabase AuthIDとPrisma内部IDの不整合
+- **解決策**: `authId`フィールドによるID変換処理実装
+- **学習ポイント**: マイクロサービス連携、ORMとAuth統合、ユーザーID管理
+
 ## 🎯 活用方法
 
 ### 開発者向け
@@ -35,9 +43,11 @@
 ## 🔍 関連技術
 
 - **React**: useEffect, useState, useCallback, useMemo
-- **Supabase**: Realtime, PostgreSQL Publication
+- **Supabase**: Realtime, Auth, PostgreSQL Publication
+- **Prisma**: ORM, リレーション管理, ユーザーID管理
 - **PostgreSQL**: 論理レプリケーション, システムカタログ
 - **TypeScript**: 型安全性, インターフェース定義
+- **認証システム**: JWT, セッション管理, マイクロサービス連携
 
 ## 📚 参考リンク
 

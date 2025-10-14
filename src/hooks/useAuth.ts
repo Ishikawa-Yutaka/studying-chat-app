@@ -26,10 +26,16 @@ export function useAuth() {
   const supabase = createClient();
 
   useEffect(() => {
+    let mounted = true; // コンポーネントがマウント状態か確認
+
     // 初回ユーザー情報取得
     const getInitialUser = async () => {
       try {
+        console.log('🔄 認証状態確認開始...');
+        
         const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (!mounted) return; // アンマウント済みなら何もしない
         
         if (error) {
           console.error('❌ ユーザー情報取得エラー:', error);
@@ -47,15 +53,17 @@ export function useAuth() {
           error: null
         });
 
-        console.log('👤 ユーザー情報取得:', user ? `${user.email}` : 'ログインしていません');
+        console.log('👤 認証状態確認完了:', user ? `${user.email} (ID: ${user.id})` : 'ログインしていません');
         
       } catch (error) {
         console.error('❌ 認証状態確認エラー:', error);
-        setAuthState({
-          user: null,
-          loading: false,
-          error: '認証状態の確認に失敗しました'
-        });
+        if (mounted) {
+          setAuthState({
+            user: null,
+            loading: false,
+            error: '認証状態の確認に失敗しました'
+          });
+        }
       }
     };
 
@@ -64,6 +72,8 @@ export function useAuth() {
     // 認証状態の変更を監視
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         console.log('🔐 認証状態変更:', event, session?.user?.email || 'ログアウト');
         
         setAuthState({
@@ -76,6 +86,7 @@ export function useAuth() {
 
     // クリーンアップ
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [supabase]);

@@ -4,6 +4,7 @@
 interface User {
   id: string;
   name: string;
+  authId?: string;  // SupabaseのAuthIDも含める
 }
 
 interface Message {
@@ -20,8 +21,14 @@ interface MessageViewProps {
 }
 
 export default function MessageView({ messages, myUserId }: MessageViewProps) {
-  // 自分のメッセージかどうかを判定する関数
-  const isMyMessage = (message: Message) => message.sender.id === myUserId;
+  // 自分のメッセージかどうかを判定する関数（SupabaseのAuthIDで比較）
+  const isMyMessage = (message: Message) => {
+    // myUserIdが未定義または空の場合は自分のメッセージではない
+    if (!myUserId || !message.sender.authId) {
+      return false;
+    }
+    return message.sender.authId === myUserId;
+  };
 
   return (
     <div className="flex-1 p-4 overflow-y-auto">
@@ -42,14 +49,19 @@ export default function MessageView({ messages, myUserId }: MessageViewProps) {
             )}
 
             {/* メッセージ本体 */}
-            <div className="grid gap-1">
+            <div className={`flex flex-col gap-1 ${
+              isMyMessage(message) ? 'items-end' : 'items-start'
+            }`}>
               {/* ヘッダー部分（名前と時刻） */}
-              <div className={`flex items-center gap-2 ${
-                isMyMessage(message) ? 'justify-end' : ''
-              }`}>
+              <div className="flex items-center gap-2">
                 {/* 相手のメッセージの場合は名前を左に表示 */}
                 {!isMyMessage(message) && (
-                  <span className="font-semibold">{message.sender.name}</span>
+                  <span className="font-semibold text-gray-900">{message.sender.name}</span>
+                )}
+                
+                {/* 自分のメッセージの場合は名前を左に表示 */}
+                {isMyMessage(message) && (
+                  <span className="font-semibold text-gray-900">自分</span>
                 )}
                 
                 {/* 時刻表示 */}
@@ -60,19 +72,14 @@ export default function MessageView({ messages, myUserId }: MessageViewProps) {
                     ? message.createdAt.toLocaleString('ja-JP')
                     : ''}
                 </span>
-                
-                {/* 自分のメッセージの場合は名前を右に表示 */}
-                {isMyMessage(message) && (
-                  <span className="font-semibold">自分</span>
-                )}
               </div>
               
               {/* メッセージ内容 */}
               <div
                 className={`px-4 py-2 rounded-lg max-w-xs ${
                   isMyMessage(message) 
-                    ? 'bg-blue-500 text-white ml-auto' 
-                    : 'bg-gray-200'
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-gray-200 text-gray-900'
                 }`}
               >
                 <p className="text-sm">{message.content}</p>

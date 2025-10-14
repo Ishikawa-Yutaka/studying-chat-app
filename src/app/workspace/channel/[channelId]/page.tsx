@@ -12,6 +12,8 @@ import MessageForm from '@/components/channel/messageForm';
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
+// 認証フック
+import { useAuth } from '@/hooks/useAuth';
 
 // 型定義
 interface User {
@@ -41,6 +43,9 @@ export default function ChannelPage() {
   // 例: /workspace/channel/123 → channelId = "123"
   const { channelId } = useParams<{ channelId: string }>();
   
+  // 認証状態管理
+  const { user, loading: authLoading } = useAuth();
+  
   // 初期化状態を管理（データ読み込み完了を示す）
   const [isInitialized, setIsInitialized] = useState(false);
   
@@ -56,14 +61,20 @@ export default function ChannelPage() {
     initialMessages
   });
   
-  // 現在のユーザーID（テストデータの田中太郎のID、後で認証機能と連携）
-  const myUserId = "cmglkz5uq0000j0x2kxp1oy71";
+  // 現在のユーザーID（認証されたユーザー）
+  const myUserId = user?.id;
 
-  // コンポーネントがマウントされた時とchannelIdが変更された時に実行
+  // 認証が完了してからデータ取得を開始するuseEffect
   useEffect(() => {
+    // 認証が完了していない場合は何もしない
+    if (authLoading || !user) {
+      console.log('⏳ 認証完了待ち...', { authLoading, hasUser: !!user });
+      return;
+    }
+
     const initData = async () => {
       try {
-        console.log('チャンネルID:', channelId, 'の情報を取得中...');
+        console.log('📊 チャンネルデータ取得開始 - チャンネルID:', channelId, 'ユーザー:', user.email);
         
         // チャンネル情報とメッセージを並列で取得
         const [channelResponse, messagesResponse] = await Promise.all([
@@ -100,12 +111,19 @@ export default function ChannelPage() {
     };
 
     initData();
-  }, [channelId]); // channelIdが変更された時に再実行
+  }, [channelId, authLoading, user]); // 認証状態とchannelIdが変更された時に再実行
 
   // メッセージ送信処理
   const handleSendMessage = async (content: string) => {
+    // 認証チェック
+    if (!myUserId) {
+      console.error('❌ ユーザーが認証されていません');
+      alert('メッセージを送信するにはログインが必要です。');
+      return;
+    }
+
     try {
-      console.log('メッセージ送信:', content);
+      console.log('メッセージ送信:', content, 'by user:', myUserId);
       
       // 実際のAPIにメッセージを送信
       const response = await fetch(`/api/messages/${channelId}`, {
@@ -115,7 +133,7 @@ export default function ChannelPage() {
         },
         body: JSON.stringify({
           content: content,
-          senderId: myUserId  // 現在は仮のユーザーID、後で実際の認証と連携
+          senderId: myUserId  // 認証されたユーザーのID
         }),
       });
       
@@ -141,8 +159,8 @@ export default function ChannelPage() {
     }
   };
 
-  // データ読み込み中の表示
-  if (!isInitialized || !channel) {
+  // データ読み込み中・認証チェック
+  if (authLoading || !isInitialized || !channel || !user || !myUserId) {
     return (
       <div className="flex items-center justify-center h-full">
         <p>読み込み中...</p>
@@ -163,10 +181,12 @@ export default function ChannelPage() {
       <MessageView messages={messages} myUserId={myUserId} />
       
       {/* メッセージ入力フォーム */}
-      <MessageForm 
-        channelDisplayName={`# ${channel.name}`}
-        handleSendMessage={handleSendMessage}
-      />
+      {myUserId && (
+        <MessageForm 
+          channelDisplayName={`# ${channel.name}`}
+          handleSendMessage={handleSendMessage}
+        />
+      )}
     </div>
   );
 }
