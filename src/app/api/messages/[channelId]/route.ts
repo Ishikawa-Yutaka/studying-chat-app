@@ -1,8 +1,6 @@
 // メッセージAPI - 取得と送信
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // メッセージ取得API（GET）
 export async function GET(
@@ -56,15 +54,12 @@ export async function GET(
     
   } catch (error) {
     console.error('❌ メッセージ取得エラー:', error);
-    
+
     return NextResponse.json({
       success: false,
       error: 'メッセージの取得に失敗しました',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-    
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -150,14 +145,11 @@ export async function POST(
     
   } catch (error) {
     console.error('❌ メッセージ送信エラー:', error);
-    
+
     return NextResponse.json({
       success: false,
       error: 'メッセージの送信に失敗しました',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-    
-  } finally {
-    await prisma.$disconnect();
   }
 }

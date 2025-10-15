@@ -1,12 +1,13 @@
-// ダッシュボード統計情報取得API
+// デバッグ用：ダッシュボードAPI詳細ログ
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// ダッシュボード統計情報取得API（GET）
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const userId = url.searchParams.get('userId');
+    
+    console.log('🔍 DEBUG Dashboard - userId:', userId);
     
     if (!userId) {
       return NextResponse.json({
@@ -15,24 +16,24 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
     
-    console.log(`📊 ダッシュボード統計取得 - ユーザーID: ${userId}`);
-    
-    // SupabaseのauthIdからPrismaのユーザー内部IDを取得
+    // Step 1: ユーザー検索
+    console.log('Step 1: ユーザー検索開始');
     const user = await prisma.user.findFirst({
       where: { authId: userId }
     });
     
+    console.log('Step 1 結果:', user);
+    
     if (!user) {
       return NextResponse.json({
         success: false,
-        error: 'ユーザーが見つかりません'
+        error: 'ユーザーが見つかりません',
+        debug: { userId, step: 'user_not_found' }
       }, { status: 404 });
     }
     
-    console.log(`👤 Prismaユーザー確認: ${user.name} (内部ID: ${user.id})`);
-    
-    // データを順次取得（エラー特定のため）
-    console.log('📊 Step 1: チャンネルメンバー取得開始');
+    // Step 2: チャンネルメンバー検索
+    console.log('Step 2: チャンネルメンバー検索開始 - userId:', user.id);
     const userChannels = await prisma.channelMember.findMany({
       where: { userId: user.id },
       include: {
@@ -57,19 +58,25 @@ export async function GET(request: NextRequest) {
         }
       }
     });
-    console.log('✅ Step 1完了:', userChannels.length, '件');
     
-    console.log('📊 Step 2: メッセージ数カウント開始');
+    console.log('Step 2 結果 - チャンネル数:', userChannels.length);
+    
+    // Step 3: メッセージ数カウント
+    console.log('Step 3: メッセージ数カウント開始');
     const userMessageCount = await prisma.message.count({
       where: { senderId: user.id }
     });
-    console.log('✅ Step 2完了:', userMessageCount, '件');
     
-    console.log('📊 Step 3: 全ユーザー数カウント開始');
+    console.log('Step 3 結果 - メッセージ数:', userMessageCount);
+    
+    // Step 4: 全ユーザー数カウント
+    console.log('Step 4: 全ユーザー数カウント開始');
     const totalUserCount = await prisma.user.count();
-    console.log('✅ Step 3完了:', totalUserCount, '人');
     
-    // チャンネルとDMを分離
+    console.log('Step 4 結果 - 全ユーザー数:', totalUserCount);
+    
+    // Step 5: チャンネル分類
+    console.log('Step 5: チャンネル分類開始');
     const channels = [];
     const directMessages = [];
     
@@ -77,7 +84,6 @@ export async function GET(request: NextRequest) {
       const channel = userChannel.channel;
       
       if (channel.type === 'channel') {
-        // 通常のチャンネル
         channels.push({
           id: channel.id,
           name: channel.name,
@@ -85,7 +91,6 @@ export async function GET(request: NextRequest) {
           memberCount: channel.members.length
         });
       } else if (channel.type === 'dm') {
-        // DM - 相手のユーザー情報を取得
         const partner = channel.members.find(member => member.userId !== user.id);
         if (partner) {
           directMessages.push({
@@ -98,6 +103,8 @@ export async function GET(request: NextRequest) {
       }
     }
     
+    console.log('Step 5 結果 - channels:', channels.length, 'DMs:', directMessages.length);
+    
     const stats = {
       channelCount: channels.length,
       dmCount: directMessages.length,
@@ -106,22 +113,31 @@ export async function GET(request: NextRequest) {
       totalUserCount: totalUserCount
     };
     
-    console.log(`✅ ダッシュボード統計取得成功`, stats);
-    
     return NextResponse.json({
       success: true,
-      stats: stats,
-      channels: channels,
-      directMessages: directMessages
+      debug: {
+        inputUserId: userId,
+        foundUser: user,
+        steps: {
+          userChannels: userChannels.length,
+          userMessageCount,
+          totalUserCount,
+          channelsProcessed: channels.length,
+          dmsProcessed: directMessages.length
+        }
+      },
+      stats,
+      channels,
+      directMessages
     });
     
   } catch (error) {
-    console.error('❌ ダッシュボード統計取得エラー:', error);
-
+    console.error('❌ DEBUG Dashboard Error:', error);
     return NextResponse.json({
       success: false,
-      error: 'ダッシュボード統計の取得に失敗しました',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'デバッグエラー',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     }, { status: 500 });
   }
 }

@@ -1,8 +1,6 @@
 // テストデータ作成API
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function POST() {
   try {
@@ -179,14 +177,11 @@ export async function POST() {
     
   } catch (error) {
     console.error('❌ テストデータ作成エラー:', error);
-    
+
     return NextResponse.json({
       success: false,
       error: 'テストデータの作成に失敗しました',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-    
-  } finally {
-    await prisma.$disconnect();
   }
 }

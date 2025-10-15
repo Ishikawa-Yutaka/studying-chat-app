@@ -1,8 +1,6 @@
 // 単一チャンネル情報取得API
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // チャンネル情報取得API（GET）
 export async function GET(
@@ -55,14 +53,11 @@ export async function GET(
     
   } catch (error) {
     console.error('❌ チャンネル情報取得エラー:', error);
-    
+
     return NextResponse.json({
       success: false,
       error: 'チャンネル情報の取得に失敗しました',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-    
-  } finally {
-    await prisma.$disconnect();
   }
 }

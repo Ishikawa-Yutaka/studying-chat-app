@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import AppLogo from '@/components/workspace/appLogo';
 import ChannelList from '@/components/workspace/channelList';
 import DirectMessageList from '@/components/workspace/directMessageList';
+import UserManagement from '@/components/workspace/userManagement';
 import UserProfileBar from '@/components/workspace/userProfileBar';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -26,8 +27,18 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
   const { user, loading: authLoading, isAuthenticated, signOut } = useAuth();
   
   // データベース状態管理
-  const [channels, setChannels] = useState<any[]>([]);
-  const [directMessages, setDirectMessages] = useState<any[]>([]);
+  const [channels, setChannels] = useState<Array<{
+    id: string;
+    name: string;
+    description?: string;
+    memberCount: number;
+  }>>([]);
+  const [directMessages, setDirectMessages] = useState<Array<{
+    id: string;
+    partnerId: string;
+    partnerName: string;
+    partnerEmail: string;
+  }>>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // 認証チェック
@@ -39,44 +50,46 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
     }
   }, [authLoading, isAuthenticated, router]);
 
+  // サイドバーデータ更新関数
+  const updateSidebarData = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      console.log('🔄 サイドバーデータ更新開始...');
+      setIsLoading(true);
+      
+      const response = await fetch(`/api/channels?userId=${user.id}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'チャンネル取得に失敗しました');
+      }
+      
+      if (data.success) {
+        console.log(`✅ サイドバーデータ更新成功:`, data.counts);
+        setChannels(data.channels);
+        setDirectMessages(data.directMessages);
+      } else {
+        throw new Error(data.error);
+      }
+      
+    } catch (error) {
+      console.error('❌ サイドバーデータ更新エラー:', error);
+      // エラー時は空配列を設定
+      setChannels([]);
+      setDirectMessages([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
   // データベースからチャンネル・DM一覧を取得
   useEffect(() => {
     // 認証が完了していない場合は実行しない
     if (!user) return;
 
-    const fetchData = async () => {
-      try {
-        console.log('📋 サイドバーデータ取得開始...', user.email);
-        
-        const response = await fetch(`/api/channels?userId=${user.id}`);
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'チャンネル取得に失敗しました');
-        }
-        
-        if (data.success) {
-          console.log(`✅ サイドバーデータ取得成功:`, data.counts);
-          console.log('チャンネル:', data.channels);
-          console.log('DM:', data.directMessages);
-          setChannels(data.channels);
-          setDirectMessages(data.directMessages);
-        } else {
-          throw new Error(data.error);
-        }
-        
-      } catch (error) {
-        console.error('❌ サイドバーデータ取得エラー:', error);
-        // エラー時は空配列を設定
-        setChannels([]);
-        setDirectMessages([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user]);
+    updateSidebarData();
+  }, [user, updateSidebarData]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -98,6 +111,8 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
               <ChannelList channels={channels} pathname={pathname} />
               <Separator className="my-2" />
               <DirectMessageList directMessages={directMessages} pathname={pathname} />
+              <Separator className="my-2" />
+              <UserManagement onUserUpdate={updateSidebarData} />
             </div>
             <Separator />
             <div className="p-4">
@@ -132,6 +147,8 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
                 <ChannelList channels={channels} pathname={pathname} />
                 <Separator className="my-2" />
                 <DirectMessageList directMessages={directMessages} pathname={pathname} />
+                <Separator className="my-2" />
+                <UserManagement onUserUpdate={updateSidebarData} />
               </>
             )}
           </div>

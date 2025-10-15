@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
-  // 空のinterfaceでもコメントを追加してESLintエラーを回避
+  // 追加のpropsが必要な場合はここに定義
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(

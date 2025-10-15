@@ -1,8 +1,6 @@
 // チャンネル一覧取得API
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // チャンネル一覧取得API（GET）
 export async function GET(request: NextRequest) {
@@ -33,6 +31,7 @@ export async function GET(request: NextRequest) {
     
     console.log(`👤 Prismaユーザー確認: ${user.name} (内部ID: ${user.id})`);
     
+    console.log('📋 チャンネルメンバー検索開始...');
     // ユーザーが参加しているチャンネルを取得
     const userChannels = await prisma.channelMember.findMany({
       where: {
@@ -60,6 +59,8 @@ export async function GET(request: NextRequest) {
         }
       }
     });
+    
+    console.log('✅ チャンネルメンバー検索完了:', userChannels.length, '件');
     
     // 通常のチャンネルとDMを分離
     const channels = [];
@@ -104,14 +105,11 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     console.error('❌ チャンネル取得エラー:', error);
-    
+
     return NextResponse.json({
       success: false,
       error: 'チャンネルの取得に失敗しました',
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
-    
-  } finally {
-    await prisma.$disconnect();
   }
 }
