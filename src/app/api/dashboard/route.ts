@@ -59,27 +59,43 @@ export async function GET(request: NextRequest) {
       }
     });
     console.log('✅ Step 1完了:', userChannels.length, '件');
-    
-    console.log('📊 Step 2: メッセージ数カウント開始');
-    const userMessageCount = await prisma.message.count({
-      where: { senderId: user.id }
-    });
-    console.log('✅ Step 2完了:', userMessageCount, '件');
-    
-    console.log('📊 Step 3: 全ユーザー数カウント開始');
+
+    console.log('📊 Step 2: 全ユーザー数カウント開始');
     const totalUserCount = await prisma.user.count();
-    console.log('✅ Step 3完了:', totalUserCount, '人');
-    
-    // チャンネルとDMを分離
-    const channels = [];
+    console.log('✅ Step 2完了:', totalUserCount, '人');
+
+    console.log('📊 Step 3: 全チャンネル取得開始');
+    const allChannels = await prisma.channel.findMany({
+      where: {
+        type: 'channel' // 通常のチャンネルのみ（DM以外）
+      },
+      include: {
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                authId: true
+              }
+            }
+          }
+        }
+      }
+    });
+    console.log('✅ Step 3完了:', allChannels.length, '件');
+
+    // 参加チャンネルとDMを分離（ユーザーが参加しているもののみ）
+    const myChannels = [];
     const directMessages = [];
-    
+
     for (const userChannel of userChannels) {
       const channel = userChannel.channel;
-      
+
       if (channel.type === 'channel') {
-        // 通常のチャンネル
-        channels.push({
+        // 自分が参加している通常のチャンネル（統計用）
+        myChannels.push({
           id: channel.id,
           name: channel.name,
           description: channel.description,
@@ -98,22 +114,65 @@ export async function GET(request: NextRequest) {
         }
       }
     }
+
+    console.log('📊 Step 4: DM相手ごとのメッセージ数を集計開始');
+    // DM相手ごとのメッセージ統計を取得
+    const dmStats = [];
+    for (const dm of directMessages) {
+      // このDMチャンネル内の自分が送信したメッセージ数
+      const sentCount = await prisma.message.count({
+        where: {
+          channelId: dm.id,
+          senderId: user.id
+        }
+      });
+
+      // このDMチャンネル内の相手が送信したメッセージ数
+      const receivedCount = await prisma.message.count({
+        where: {
+          channelId: dm.id,
+          senderId: { not: user.id }
+        }
+      });
+
+      dmStats.push({
+        partnerId: dm.partnerId,
+        partnerName: dm.partnerName,
+        partnerEmail: dm.partnerEmail,
+        sentCount: sentCount,        // 自分が送信したメッセージ数
+        receivedCount: receivedCount, // 相手から受信したメッセージ数
+        totalCount: sentCount + receivedCount // 合計メッセージ数
+      });
+    }
+    console.log('✅ Step 4完了:', dmStats.length, '件');
+
+    // ダッシュボード表示用: 全チャンネル（参加・未参加問わず）
+    const allChannelsForDisplay = allChannels.map(channel => ({
+      id: channel.id,
+      name: channel.name,
+      description: channel.description,
+      memberCount: channel.members.length
+    }));
     
+    // 統計情報を作成
+    // - channelCount: 自分が参加しているチャンネル数（DM以外）
+    // - dmPartnerCount: DM相手の人数
+    // - totalUserCount: ワークスペース全体のメンバー数
     const stats = {
-      channelCount: channels.length,
-      dmCount: directMessages.length,
-      totalRoomsCount: channels.length + directMessages.length,
-      userMessageCount: userMessageCount,
+      channelCount: myChannels.length,
+      dmPartnerCount: directMessages.length,
       totalUserCount: totalUserCount
     };
-    
+
     console.log(`✅ ダッシュボード統計取得成功`, stats);
-    
+
     return NextResponse.json({
       success: true,
       stats: stats,
-      channels: channels,
-      directMessages: directMessages
+      allChannels: allChannelsForDisplay, // 全チャンネル（ダッシュボード表示用）
+      myChannels: myChannels, // 自分が参加しているチャンネル（統計用）
+      directMessages: directMessages, // DM一覧（サイドバー用）
+      dmStats: dmStats // DM相手ごとのメッセージ統計（ダッシュボード表示用）
     });
     
   } catch (error) {

@@ -9,9 +9,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Hash, Plus } from 'lucide-react';
+import { Hash, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CreateChannelDialog from './createChannelDialog';
+import JoinChannelDialog from '@/components/channel/joinChannelDialog';
 
 // チャンネル型（Prismaと連携）
 interface Channel {
@@ -28,21 +29,33 @@ interface ChannelListProps {
 
 export default function ChannelList({ channels, pathname, onChannelCreated }: ChannelListProps) {
   // モーダルの開閉状態管理
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
 
   return (
     <div className="px-2 py-2">
       <div className="flex items-center justify-between mb-2">
         <h2 className="px-2 text-sm font-semibold text-muted-foreground">チャンネル</h2>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 hover:bg-accent hover:text-accent-foreground text-foreground"
-          onClick={() => setIsDialogOpen(true)}
-          title="新しいチャンネルを作成"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 hover:bg-accent hover:text-accent-foreground text-foreground"
+            onClick={() => setIsJoinDialogOpen(true)}
+            title="チャンネルを探す"
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 hover:bg-accent hover:text-accent-foreground text-foreground"
+            onClick={() => setIsCreateDialogOpen(true)}
+            title="新しいチャンネルを作成"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       <div className="space-y-1">
         {channels.map((channel) => {
@@ -69,9 +82,16 @@ export default function ChannelList({ channels, pathname, onChannelCreated }: Ch
 
       {/* チャンネル作成モーダル */}
       <CreateChannelDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
         onChannelCreated={onChannelCreated}
+      />
+
+      {/* チャンネル参加モーダル */}
+      <JoinChannelDialog
+        open={isJoinDialogOpen}
+        onOpenChange={setIsJoinDialogOpen}
+        onChannelJoined={onChannelCreated}
       />
     </div>
   );

@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Hash, MessageSquare, Users, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,11 +36,18 @@ interface DirectMessage {
   partnerEmail: string;
 }
 
+interface DmStat {
+  partnerId: string;
+  partnerName: string;
+  partnerEmail: string;
+  sentCount: number;
+  receivedCount: number;
+  totalCount: number;
+}
+
 interface DashboardStats {
   channelCount: number;
-  dmCount: number;
-  totalRoomsCount: number;
-  userMessageCount: number;
+  dmPartnerCount: number;
   totalUserCount: number;
 }
 
@@ -52,18 +59,22 @@ export default function WorkspacePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [initialStats, setInitialStats] = useState<DashboardStats | null>(null);
   const [initialChannels, setInitialChannels] = useState<Channel[]>([]);
+  const [allChannels, setAllChannels] = useState<Channel[]>([]); // 全チャンネル（参加・未参加問わず）
   const [initialDirectMessages, setInitialDirectMessages] = useState<DirectMessage[]>([]);
+  const [dmStats, setDmStats] = useState<DmStat[]>([]); // DM統計情報
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
   const [isStartDmOpen, setIsStartDmOpen] = useState(false);
   const [isJoinChannelOpen, setIsJoinChannelOpen] = useState(false);
+
+  // 「さらに表示」機能用の状態
+  const [showAllChannels, setShowAllChannels] = useState(false);
+  const [showAllDmStats, setShowAllDmStats] = useState(false);
   
   // リアルタイムダッシュボードフック：自動的に統計情報がリアルタイム更新される
-  const { stats, channels, directMessages } = useRealtimeDashboard({
+  const { stats } = useRealtimeDashboard({
     initialStats: initialStats || {
       channelCount: 0,
-      dmCount: 0,
-      totalRoomsCount: 0,
-      userMessageCount: 0,
+      dmPartnerCount: 0,
       totalUserCount: 0
     },
     initialChannels,
@@ -90,8 +101,10 @@ export default function WorkspacePage() {
         if (data.success) {
           console.log('✅ ダッシュボードデータ取得成功:', data.stats);
           setInitialStats(data.stats);
-          setInitialChannels(data.channels);
+          setInitialChannels(data.myChannels || []); // 参加チャンネル（統計用）
+          setAllChannels(data.allChannels || []); // 全チャンネル（表示用）
           setInitialDirectMessages(data.directMessages);
+          setDmStats(data.dmStats || []); // DM統計情報
         } else {
           throw new Error(data.error);
         }
@@ -101,13 +114,13 @@ export default function WorkspacePage() {
         // エラー時は空のデータを設定
         setInitialStats({
           channelCount: 0,
-          dmCount: 0,
-          totalRoomsCount: 0,
-          userMessageCount: 0,
+          dmPartnerCount: 0,
           totalUserCount: 0
         });
         setInitialChannels([]);
+        setAllChannels([]);
         setInitialDirectMessages([]);
+        setDmStats([]);
       } finally {
         setIsLoading(false);
       }
@@ -126,11 +139,11 @@ export default function WorkspacePage() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 pb-[50vh]">
       {/* ヘッダー */}
-      <div className="flex items-center justify-between">
+      <div className="space-y-4">
         <h2 className="text-3xl font-bold tracking-tight">ダッシュボード</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setIsJoinChannelOpen(true)}>
             <Search className="mr-2 h-4 w-4" />
             チャンネルを探す
@@ -166,58 +179,77 @@ export default function WorkspacePage() {
 
       {/* 統計情報カード */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
+        <Card
+          className="cursor-pointer transition-colors hover:bg-accent/50"
+          onClick={() => {
+            const element = document.getElementById('channel-list');
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">チャンネル・DM</CardTitle>
+            <CardTitle className="text-sm font-medium">参加チャンネル</CardTitle>
             <Hash className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalRoomsCount}</div>
-            <p className="text-xs text-muted-foreground">参加しているチャンネル・DM 数</p>
+            <div className="text-2xl font-bold">{stats.channelCount}</div>
+            <p className="text-xs text-muted-foreground">参加しているチャンネル数（クリックで一覧へ）</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer transition-colors hover:bg-accent/50"
+          onClick={() => {
+            const element = document.getElementById('dm-stats');
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">メッセージ</CardTitle>
+            <CardTitle className="text-sm font-medium">DM相手</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.userMessageCount}</div>
-            <p className="text-xs text-muted-foreground">自分が投稿したメッセージ数</p>
+            <div className="text-2xl font-bold">{stats.dmPartnerCount}</div>
+            <p className="text-xs text-muted-foreground">やり取りしている相手の人数（クリックで統計へ）</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className="cursor-pointer transition-colors hover:bg-accent/50"
+          onClick={() => setIsStartDmOpen(true)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">メンバー</CardTitle>
+            <CardTitle className="text-sm font-medium">全メンバー</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalUserCount}</div>
-            <p className="text-xs text-muted-foreground">ワークスペース全体のメンバー数</p>
+            <p className="text-xs text-muted-foreground">ワークスペース全体のメンバー数（クリックで一覧へ）</p>
           </CardContent>
         </Card>
       </div>
 
       {/* チャンネル・DM一覧 */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="space-y-4 md:grid md:gap-4 md:grid-cols-2 md:space-y-0">
         {/* チャンネル一覧 */}
-        <Card className="col-span-1">
+        <Card id="channel-list">
           <CardHeader>
             <CardTitle>チャンネル一覧</CardTitle>
-            <CardDescription>参加しているチャンネル一覧</CardDescription>
+            <CardDescription>全てのチャンネル</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {channels.map((channel) => (
+              {allChannels.slice(0, showAllChannels ? undefined : 5).map((channel) => (
                 <div key={channel.id} className="flex items-center">
                   <div className="mr-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
                     <Hash className="h-5 w-5 text-primary" />
                   </div>
                   <div className="space-y-1 flex-1">
-                    <Link 
-                      href={`/workspace/channel/${channel.id}`} 
+                    <Link
+                      href={`/workspace/channel/${channel.id}`}
                       className="font-medium hover:underline block"
                     >
                       {channel.name}
@@ -228,45 +260,71 @@ export default function WorkspacePage() {
                   </div>
                 </div>
               ))}
-              {channels.length === 0 && (
+              {allChannels.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  まだチャンネルに参加していません
+                  チャンネルがありません
                 </p>
+              )}
+              {allChannels.length > 5 && (
+                <Button
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={() => setShowAllChannels(!showAllChannels)}
+                >
+                  {showAllChannels ? '表示を減らす' : `さらに表示 (${allChannels.length - 5}件)`}
+                </Button>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* DM一覧 */}
-        <Card className="col-span-1">
+        {/* DMメッセージ統計 */}
+        <Card id="dm-stats">
           <CardHeader>
-            <CardTitle>DM 一覧</CardTitle>
-            <CardDescription>ダイレクトメッセージ一覧</CardDescription>
+            <CardTitle>DMメッセージ統計</CardTitle>
+            <CardDescription>各ユーザーとのメッセージ数</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {directMessages.map((dm) => (
-                <div key={dm.id} className="flex items-center">
-                  <div className="mr-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                    <span className="font-medium text-primary">
-                      {dm.partnerName.charAt(0)}
-                    </span>
+              {dmStats.slice(0, showAllDmStats ? undefined : 5).map((stat) => (
+                <div key={stat.partnerId} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                      <span className="font-medium text-primary">
+                        {stat.partnerName.charAt(0)}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <Link
+                        href={`/workspace/dm/${stat.partnerId}`}
+                        className="font-medium hover:underline block"
+                      >
+                        {stat.partnerName}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">
+                        送信: {stat.sentCount} / 受信: {stat.receivedCount}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-1 flex-1">
-                    <Link 
-                      href={`/workspace/dm/${dm.partnerId}`} 
-                      className="font-medium hover:underline block"
-                    >
-                      {dm.partnerName}
-                    </Link>
-                    <p className="text-sm text-muted-foreground">ダイレクトメッセージ</p>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold">{stat.totalCount}</p>
+                    <p className="text-xs text-muted-foreground">合計</p>
                   </div>
                 </div>
               ))}
-              {directMessages.length === 0 && (
+              {dmStats.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   まだDMがありません
                 </p>
+              )}
+              {dmStats.length > 5 && (
+                <Button
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={() => setShowAllDmStats(!showAllDmStats)}
+                >
+                  {showAllDmStats ? '表示を減らす' : `さらに表示 (${dmStats.length - 5}件)`}
+                </Button>
               )}
             </div>
           </CardContent>

@@ -7,11 +7,12 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
 // ダッシュボード統計の型定義
+// - channelCount: 自分が参加しているチャンネル数（DM以外）
+// - dmPartnerCount: DM相手の人数
+// - totalUserCount: ワークスペース全体のメンバー数
 interface DashboardStats {
   channelCount: number;
-  dmCount: number;
-  totalRoomsCount: number;
-  userMessageCount: number;
+  dmPartnerCount: number;
   totalUserCount: number;
 }
 
@@ -70,15 +71,18 @@ export function useRealtimeDashboard({
   // 初期データが変更された時の処理（useMemoで安定した比較）
   const hasInitialDataChanged = useMemo(() => {
     return (
-      initialStats.totalRoomsCount !== stats.totalRoomsCount ||
+      initialStats.channelCount !== stats.channelCount ||
+      initialStats.dmPartnerCount !== stats.dmPartnerCount ||
       initialChannels.length !== channels.length ||
       initialDirectMessages.length !== directMessages.length
     );
   }, [
-    initialStats.totalRoomsCount,
+    initialStats.channelCount,
+    initialStats.dmPartnerCount,
     initialChannels.length,
     initialDirectMessages.length,
-    stats.totalRoomsCount,
+    stats.channelCount,
+    stats.dmPartnerCount,
     channels.length,
     directMessages.length
   ]);
