@@ -61,8 +61,7 @@ export async function POST(request: NextRequest) {
     const newMember = await prisma.channelMember.create({
       data: {
         channelId: channelId,
-        userId: targetUser.id,
-        role: 'member' // デフォルトは一般メンバー
+        userId: targetUser.id
       },
       include: {
         user: {

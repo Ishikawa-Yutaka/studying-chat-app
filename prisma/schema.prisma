@@ -61,16 +61,19 @@ model ChannelMember {
 // メッセージモデル
 // チャット内で送信されるメッセージの情報を保存
 model Message {
-  id        String   @id @default(cuid()) // 一意のID（自動生成）
-  content   String                        // メッセージ内容
-  createdAt DateTime @default(now())      // 送信日時（自動設定）
-  updatedAt DateTime @updatedAt           // 更新日時（自動更新）
+  id              String   @id @default(cuid()) // 一意のID（自動生成）
+  content         String                        // メッセージ内容
+  createdAt       DateTime @default(now())      // 送信日時（自動設定）
+  updatedAt       DateTime @updatedAt           // 更新日時（自動更新）
+  parentMessageId String?                       // スレッドの親メッセージID（nullの場合は通常のメッセージ）
 
   // リレーション（外部キー）
-  sender    User    @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  senderId  String  // 送信者のユーザーID
-  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  channelId String  // 送信先チャンネルのID
+  sender         User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  senderId       String    // 送信者のユーザーID
+  channel        Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channelId      String    // 送信先チャンネルのID
+  parentMessage  Message?  @relation("ThreadReplies", fields: [parentMessageId], references: [id], onDelete: Cascade)
+  replies        Message[] @relation("ThreadReplies") // このメッセージへのスレッド返信一覧
 }
 
 // AIチャットモデル

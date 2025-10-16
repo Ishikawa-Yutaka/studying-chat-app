@@ -9,6 +9,7 @@ import { useParams, notFound } from 'next/navigation';
 import ChannelHeader from '@/components/channel/channelHeader';
 import MessageView from '@/components/channel/messageView';
 import MessageForm from '@/components/channel/messageForm';
+import ThreadPanel from '@/components/channel/threadPanel';
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
@@ -27,6 +28,8 @@ interface Message {
   sender: User;
   content: string;
   createdAt: Date | string;
+  replies?: Message[];
+  parentMessageId?: string | null;
 }
 
 interface Channel {
@@ -54,15 +57,20 @@ export default function ChannelPage() {
   
   // 初期メッセージの状態管理（リアルタイムフックの初期値用）
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
-  
+
   // リアルタイムメッセージフック：自動的にメッセージがリアルタイム更新される
   const { messages, addMessage } = useRealtimeMessages({
     channelId,
     initialMessages
   });
-  
+
   // 現在のユーザーID（認証されたユーザー）
   const myUserId = user?.id;
+
+  // スレッドパネルの状態管理
+  const [isThreadOpen, setIsThreadOpen] = useState(false);
+  const [currentThreadParent, setCurrentThreadParent] = useState<Message | null>(null);
+  const [threadReplies, setThreadReplies] = useState<Message[]>([]);
 
   // 認証が完了してからデータ取得を開始するuseEffect
   useEffect(() => {
@@ -124,7 +132,7 @@ export default function ChannelPage() {
 
     try {
       console.log('メッセージ送信:', content, 'by user:', myUserId);
-      
+
       // 実際のAPIにメッセージを送信
       const response = await fetch(`/api/messages/${channelId}`, {
         method: 'POST',
@@ -136,26 +144,96 @@ export default function ChannelPage() {
           senderId: myUserId  // 認証されたユーザーのID
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'メッセージの送信に失敗しました');
       }
-      
+
       if (data.success) {
         console.log('✅ メッセージ送信成功:', data.message);
-        
+
         // 楽観的更新：送信成功時、メッセージリストに新しいメッセージを即座に追加
         // リアルタイム機能により、他のユーザーの画面にも自動的に表示される
         addMessage(data.message);
       } else {
         throw new Error(data.error);
       }
-      
+
     } catch (error) {
       console.error('❌ メッセージの送信に失敗しました:', error);
       alert('メッセージの送信に失敗しました。もう一度お試しください。');
+    }
+  };
+
+  // スレッドパネルを開く処理
+  const handleThreadOpen = async (messageId: string) => {
+    try {
+      console.log('🔄 スレッド取得開始 - メッセージID:', messageId);
+
+      // スレッド情報を取得
+      const response = await fetch(`/api/threads/${messageId}`);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'スレッドの取得に失敗しました');
+      }
+
+      console.log('✅ スレッド取得成功:', data.replies.length, '件の返信');
+
+      setCurrentThreadParent(data.parentMessage);
+      setThreadReplies(data.replies);
+      setIsThreadOpen(true);
+
+    } catch (error) {
+      console.error('❌ スレッドの取得に失敗しました:', error);
+      alert('スレッドの取得に失敗しました。もう一度お試しください。');
+    }
+  };
+
+  // スレッドパネルを閉じる処理
+  const handleThreadClose = () => {
+    setIsThreadOpen(false);
+    setCurrentThreadParent(null);
+    setThreadReplies([]);
+  };
+
+  // スレッド返信送信処理
+  const handleSendReply = async (content: string) => {
+    if (!myUserId || !currentThreadParent) {
+      console.error('❌ ユーザーまたは親メッセージが存在しません');
+      return;
+    }
+
+    try {
+      console.log('🔄 スレッド返信送信:', content);
+
+      const response = await fetch(`/api/threads/${currentThreadParent.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content,
+          senderAuthId: myUserId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'スレッド返信の送信に失敗しました');
+      }
+
+      console.log('✅ スレッド返信送信成功:', data.message);
+
+      // スレッド返信一覧に追加
+      setThreadReplies((prev) => [...prev, data.message]);
+
+    } catch (error) {
+      console.error('❌ スレッド返信の送信に失敗しました:', error);
+      throw error; // ThreadPanelでエラーハンドリング
     }
   };
 
@@ -169,7 +247,7 @@ export default function ChannelPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full relative">
       {/* チャンネルヘッダー */}
       <ChannelHeader
         channelId={channelId}
@@ -177,17 +255,31 @@ export default function ChannelPage() {
         channelDescription={channel.description}
         memberCount={channel.memberCount}
       />
-      
+
       {/* メッセージ表示エリア */}
-      <MessageView messages={messages} myUserId={myUserId} />
-      
+      <MessageView
+        messages={messages}
+        myUserId={myUserId}
+        onThreadOpen={handleThreadOpen}
+      />
+
       {/* メッセージ入力フォーム */}
       {myUserId && (
-        <MessageForm 
+        <MessageForm
           channelDisplayName={`# ${channel.name}`}
           handleSendMessage={handleSendMessage}
         />
       )}
+
+      {/* スレッドパネル */}
+      <ThreadPanel
+        isOpen={isThreadOpen}
+        onClose={handleThreadClose}
+        parentMessage={currentThreadParent}
+        replies={threadReplies}
+        myUserId={myUserId || ''}
+        onSendReply={handleSendReply}
+      />
     </div>
   );
 }

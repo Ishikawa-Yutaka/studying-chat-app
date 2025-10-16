@@ -24,7 +24,7 @@ export async function GET(
       }, { status: 404 });
     }
     
-    // メッセージ取得（送信者情報も含む）
+    // メッセージ取得（送信者情報とスレッド返信も含む）
     const messages = await prisma.message.findMany({
       where: {
         channelId: channelId
@@ -36,6 +36,12 @@ export async function GET(
             name: true,
             email: true,
             authId: true  // SupabaseのAuthIDも含める
+          }
+        },
+        replies: {
+          // スレッド返信の数をカウントするために含める
+          select: {
+            id: true
           }
         }
       },
