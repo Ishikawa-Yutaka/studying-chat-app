@@ -144,6 +144,126 @@ export async function signup(formData: FormData) {
 }
 ```
 
+---
+
+### 問題3: DM一覧からの遷移で404エラー（partnerId問題）
+
+**発生日**: 2025/10/16
+
+#### 症状
+- ユーザー管理からDM作成: ✅ 正常動作
+- DM一覧からユーザークリック: ❌ 「DMの初期化に失敗しました」エラー
+- ブラウザコンソールに404エラー: `GET /api/dm/cmgpu3fri000cj01jb8tig9oy 404`
+
+#### 根本原因
+**APIレスポンスでPrisma内部IDを返していた**
+
+複数のAPIで `partnerId` に **Prisma内部ID** (`cmgpu...`) を返していたため、DMページが間違ったIDでAPIリクエストを送信していた。
+
+```typescript
+// 問題のあったコード
+directMessages.push({
+  id: channel.id,
+  partnerId: partner.user.id,  // ❌ Prisma内部ID (cmgpu...)
+  partnerName: partner.user.name,
+  partnerEmail: partner.user.email
+});
+```
+
+**なぜユーザー管理からは動作したのか？**
+- ユーザー管理コンポーネントは `authId` を直接渡していた
+- DM一覧は `/api/channels` から取得した `partnerId` を使用
+- そのため、一方は動作し、もう一方は失敗していた
+
+#### 修正内容
+
+**影響を受けていたAPI**:
+1. `/api/channels/route.ts` ← DM一覧のデータソース
+2. `/api/dashboard/route.ts` ← ダッシュボードの統計情報
+3. `/api/debug/dashboard/route.ts` ← デバッグ用API
+
+**修正箇所**:
+
+##### 1. `authId` をユーザー情報に含める
+```typescript
+// 修正前
+user: {
+  select: {
+    id: true,
+    name: true,
+    email: true
+  }
+}
+
+// 修正後
+user: {
+  select: {
+    id: true,
+    name: true,
+    email: true,
+    authId: true  // ✅ 追加
+  }
+}
+```
+
+##### 2. `partnerId` に `authId` を使用
+```typescript
+// 修正前
+directMessages.push({
+  id: channel.id,
+  partnerId: partner.user.id,  // ❌ Prisma内部ID
+  partnerName: partner.user.name,
+  partnerEmail: partner.user.email
+});
+
+// 修正後
+directMessages.push({
+  id: channel.id,
+  partnerId: partner.user.authId,  // ✅ Supabase AuthID
+  partnerName: partner.user.name,
+  partnerEmail: partner.user.email
+});
+```
+
+#### 修正したファイル一覧
+
+| ファイル | 修正行 | 内容 |
+|---------|-------|------|
+| `src/app/api/channels/route.ts` | 54行目 | `authId: true` 追加 |
+| | 87行目 | `partnerId: partner.user.authId` に変更 |
+| `src/app/api/dashboard/route.ts` | 52行目 | `authId: true` 追加 |
+| | 94行目 | `partnerId: partner.user.authId` に変更 |
+| `src/app/api/debug/dashboard/route.ts` | 53行目 | `authId: true` 追加 |
+| | 99行目 | `partnerId: partner.user.authId` に変更 |
+
+#### 今後の予防策
+
+**ルール**: **外部に返すユーザーIDは必ず `authId` を使用**
+
+```typescript
+// ✅ Good - 外部APIレスポンス
+{
+  userId: user.authId,      // Supabase AuthID
+  partnerId: partner.authId // Supabase AuthID
+}
+
+// ❌ Bad - 外部APIレスポンス
+{
+  userId: user.id,          // Prisma内部ID（外部に公開しない）
+  partnerId: partner.id     // Prisma内部ID（外部に公開しない）
+}
+
+// ✅ Good - 内部クエリ
+await prisma.channelMember.findMany({
+  where: { userId: user.id } // Prisma内部IDを使用
+});
+```
+
+**チェックリスト**:
+- [ ] 新しいAPIを作成する際、レスポンスに `user.id` が含まれていないか確認
+- [ ] `partnerId`, `userId`, `senderId` などは必ず `authId` を使用
+- [ ] Prisma selectで `authId: true` を含めているか確認
+
 ## 🛠️ 解決手順
 
 ### Step 1: 必要なファイル作成
@@ -366,6 +486,6 @@ if (authData.user) {
 
 ---
 
-**作成日**: 2025/10/13  
-**更新日**: 2025/10/13  
+**作成日**: 2025/10/13
+**更新日**: 2025/10/16 - 問題3（DM一覧からの遷移エラー）追加
 **対象バージョン**: Next.js 15.5.4, Supabase Auth, Prisma 6.16.3

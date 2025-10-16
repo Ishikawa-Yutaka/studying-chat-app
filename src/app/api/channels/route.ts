@@ -50,7 +50,8 @@ export async function GET(request: NextRequest) {
                   select: {
                     id: true,
                     name: true,
-                    email: true
+                    email: true,
+                    authId: true
                   }
                 }
               }
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
         if (partner) {
           directMessages.push({
             id: channel.id,
-            partnerId: partner.user.id,
+            partnerId: partner.user.authId, // Supabase AuthID を使用
             partnerName: partner.user.name,
             partnerEmail: partner.user.email
           });
