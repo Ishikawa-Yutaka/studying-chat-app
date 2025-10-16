@@ -50,7 +50,31 @@ async function main() {
 
     console.log(`✅ チャンネル取得成功: ${devChannel.name}`);
 
-    // 3. 親メッセージを作成（石川から）
+    // 3. 田中と佐藤を開発チャンネルに追加（既に存在する場合はスキップ）
+    console.log('🔄 チャンネルメンバー追加中...');
+
+    for (const user of [tanaka, sato]) {
+      const existingMember = await prisma.channelMember.findFirst({
+        where: {
+          userId: user.id,
+          channelId: devChannel.id
+        }
+      });
+
+      if (!existingMember) {
+        await prisma.channelMember.create({
+          data: {
+            userId: user.id,
+            channelId: devChannel.id
+          }
+        });
+        console.log(`✅ ${user.name} を開発チャンネルに追加しました`);
+      } else {
+        console.log(`ℹ️  ${user.name} は既にメンバーです`);
+      }
+    }
+
+    // 4. 親メッセージを作成（石川から）
     const parentMessage = await prisma.message.create({
       data: {
         content: 'スレッド機能のテストです。この質問に返信してください！',
@@ -61,7 +85,7 @@ async function main() {
 
     console.log(`✅ 親メッセージ作成成功: "${parentMessage.content}"`);
 
-    // 4. スレッド返信を作成（田中から）
+    // 5. スレッド返信を作成（田中から）
     const reply1 = await prisma.message.create({
       data: {
         content: 'わかりました！スレッドで返信しています。',
@@ -73,7 +97,7 @@ async function main() {
 
     console.log(`✅ スレッド返信1作成成功: "${reply1.content}" (by ${tanaka.name})`);
 
-    // 5. スレッド返信を作成（佐藤から）
+    // 6. スレッド返信を作成（佐藤から）
     const reply2 = await prisma.message.create({
       data: {
         content: 'スレッド機能、いいですね！便利です。',
@@ -85,7 +109,7 @@ async function main() {
 
     console.log(`✅ スレッド返信2作成成功: "${reply2.content}" (by ${sato.name})`);
 
-    // 6. さらにスレッド返信を作成（石川から）
+    // 7. さらにスレッド返信を作成（石川から）
     const reply3 = await prisma.message.create({
       data: {
         content: 'ありがとうございます！皆さんの意見が聞けて良かったです。',
@@ -97,7 +121,7 @@ async function main() {
 
     console.log(`✅ スレッド返信3作成成功: "${reply3.content}" (by ${ishikawa.name})`);
 
-    // 7. さらにスレッド返信を作成（田中から）
+    // 8. さらにスレッド返信を作成（田中から）
     const reply4 = await prisma.message.create({
       data: {
         content: '複数人でのスレッド会話もスムーズですね！',
