@@ -7,7 +7,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu } from 'lucide-react';
+import Link from 'next/link';
+import { Menu, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
@@ -133,6 +134,21 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
               <ChannelList channels={channels} pathname={pathname} onChannelCreated={updateSidebarData} />
               <Separator className="my-2" />
               <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} />
+              <Separator className="my-2" />
+              {/* AIチャットリンク */}
+              <div className="px-3 py-2">
+                <Link
+                  href="/workspace/ai-chat"
+                  className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
+                    pathname === '/workspace/ai-chat'
+                      ? 'bg-accent text-accent-foreground font-medium'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  }`}
+                >
+                  <Bot className="h-5 w-5" />
+                  AIアシスタント
+                </Link>
+              </div>
             </div>
             <Separator />
             <div className="p-4">
@@ -167,6 +183,21 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
                 <ChannelList channels={channels} pathname={pathname} onChannelCreated={updateSidebarData} />
                 <Separator className="my-2" />
                 <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} />
+                <Separator className="my-2" />
+                {/* AIチャットリンク */}
+                <div className="px-3 py-2">
+                  <Link
+                    href="/workspace/ai-chat"
+                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
+                      pathname === '/workspace/ai-chat'
+                        ? 'bg-accent text-accent-foreground font-medium'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    <Bot className="h-5 w-5" />
+                    AIアシスタント
+                  </Link>
+                </div>
               </>
             )}
           </div>
