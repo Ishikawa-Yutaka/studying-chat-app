@@ -14,7 +14,6 @@ import { Separator } from '@/components/ui/separator';
 import AppLogo from '@/components/workspace/appLogo';
 import ChannelList from '@/components/workspace/channelList';
 import DirectMessageList from '@/components/workspace/directMessageList';
-import UserManagement from '@/components/workspace/userManagement';
 import UserProfileBar from '@/components/workspace/userProfileBar';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -91,6 +90,29 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
     updateSidebarData();
   }, [user, updateSidebarData]);
 
+  // チャンネル削除・DM退出イベントをリッスン
+  useEffect(() => {
+    const handleChannelDeleted = () => {
+      console.log('📢 チャンネル削除イベント受信 - サイドバー更新');
+      updateSidebarData();
+    };
+
+    const handleDmLeft = () => {
+      console.log('📢 DM退出イベント受信 - サイドバー更新');
+      updateSidebarData();
+    };
+
+    // イベントリスナー登録
+    window.addEventListener('channelDeleted', handleChannelDeleted);
+    window.addEventListener('dmLeft', handleDmLeft);
+
+    // クリーンアップ: コンポーネントがアンマウントされた時にリスナーを削除
+    return () => {
+      window.removeEventListener('channelDeleted', handleChannelDeleted);
+      window.removeEventListener('dmLeft', handleDmLeft);
+    };
+  }, [updateSidebarData]);
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* モバイルナビゲーション */}
@@ -108,11 +130,9 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             </div>
             <Separator />
             <div className="flex-1">
-              <ChannelList channels={channels} pathname={pathname} />
+              <ChannelList channels={channels} pathname={pathname} onChannelCreated={updateSidebarData} />
               <Separator className="my-2" />
-              <DirectMessageList directMessages={directMessages} pathname={pathname} />
-              <Separator className="my-2" />
-              <UserManagement onUserUpdate={updateSidebarData} />
+              <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} />
             </div>
             <Separator />
             <div className="p-4">
@@ -144,11 +164,9 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
               </div>
             ) : (
               <>
-                <ChannelList channels={channels} pathname={pathname} />
+                <ChannelList channels={channels} pathname={pathname} onChannelCreated={updateSidebarData} />
                 <Separator className="my-2" />
-                <DirectMessageList directMessages={directMessages} pathname={pathname} />
-                <Separator className="my-2" />
-                <UserManagement onUserUpdate={updateSidebarData} />
+                <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} />
               </>
             )}
           </div>

@@ -9,9 +9,12 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Hash, MessageSquare, Users, Plus } from 'lucide-react';
+import { Hash, MessageSquare, Users, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import CreateChannelDialog from '@/components/workspace/createChannelDialog';
+import StartDmDialog from '@/components/dm/startDmDialog';
+import JoinChannelDialog from '@/components/channel/joinChannelDialog';
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard';
@@ -50,6 +53,9 @@ export default function WorkspacePage() {
   const [initialStats, setInitialStats] = useState<DashboardStats | null>(null);
   const [initialChannels, setInitialChannels] = useState<Channel[]>([]);
   const [initialDirectMessages, setInitialDirectMessages] = useState<DirectMessage[]>([]);
+  const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
+  const [isStartDmOpen, setIsStartDmOpen] = useState(false);
+  const [isJoinChannelOpen, setIsJoinChannelOpen] = useState(false);
   
   // リアルタイムダッシュボードフック：自動的に統計情報がリアルタイム更新される
   const { stats, channels, directMessages } = useRealtimeDashboard({
@@ -125,16 +131,38 @@ export default function WorkspacePage() {
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">ダッシュボード</h2>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => setIsJoinChannelOpen(true)}>
+            <Search className="mr-2 h-4 w-4" />
+            チャンネルを探す
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsStartDmOpen(true)}>
             <Users className="mr-2 h-4 w-4" />
             新規 DM
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={() => setIsCreateChannelOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             新規チャンネル
           </Button>
         </div>
       </div>
+
+      {/* チャンネル作成モーダル */}
+      <CreateChannelDialog
+        open={isCreateChannelOpen}
+        onOpenChange={setIsCreateChannelOpen}
+      />
+
+      {/* チャンネル参加モーダル */}
+      <JoinChannelDialog
+        open={isJoinChannelOpen}
+        onOpenChange={setIsJoinChannelOpen}
+      />
+
+      {/* DM開始モーダル */}
+      <StartDmDialog
+        open={isStartDmOpen}
+        onOpenChange={setIsStartDmOpen}
+      />
 
       {/* 統計情報カード */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

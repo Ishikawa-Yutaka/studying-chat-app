@@ -1,14 +1,16 @@
 /**
  * ダイレクトメッセージ一覧コンポーネント
- * 
+ *
  * サイドバーに表示されるDM（1対1チャット）の一覧
  */
 
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { User, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import StartDmDialog from '@/components/dm/startDmDialog';
 
 // DM型（APIレスポンスと一致）
 interface DirectMessage {
@@ -21,14 +23,22 @@ interface DirectMessage {
 interface DirectMessageListProps {
   directMessages: DirectMessage[];
   pathname: string;
+  onDmCreated?: () => void; // サイドバー更新用コールバック
 }
 
-export default function DirectMessageList({ directMessages, pathname }: DirectMessageListProps) {
+export default function DirectMessageList({ directMessages, pathname, onDmCreated }: DirectMessageListProps) {
+  // モーダル開閉状態
+  const [isStartDmOpen, setIsStartDmOpen] = useState(false);
   return (
     <div className="px-2 py-2">
       <div className="flex items-center justify-between mb-2">
         <h2 className="px-2 text-sm font-semibold text-muted-foreground">ダイレクトメッセージ</h2>
-        <Button variant="ghost" size="icon" className="h-6 w-6">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 hover:bg-accent hover:text-accent-foreground text-foreground"
+          onClick={() => setIsStartDmOpen(true)}
+        >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
@@ -56,6 +66,13 @@ export default function DirectMessageList({ directMessages, pathname }: DirectMe
           </p>
         )}
       </div>
+
+      {/* DM開始モーダル */}
+      <StartDmDialog
+        open={isStartDmOpen}
+        onOpenChange={setIsStartDmOpen}
+        onDmCreated={onDmCreated}
+      />
     </div>
   );
 }

@@ -171,7 +171,8 @@ export default function ChannelPage() {
   return (
     <div className="flex flex-col h-full">
       {/* チャンネルヘッダー */}
-      <ChannelHeader 
+      <ChannelHeader
+        channelId={channelId}
         channelName={channel.name}
         channelDescription={channel.description}
         memberCount={channel.memberCount}
