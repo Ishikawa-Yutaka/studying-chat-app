@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Hash, MessageSquare, Users, Plus, Search } from 'lucide-react';
+import { Hash, MessageSquare, Users, Plus, Search, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import CreateChannelDialog from '@/components/workspace/createChannelDialog';
@@ -156,6 +156,12 @@ export default function WorkspacePage() {
             <Plus className="mr-2 h-4 w-4" />
             新規チャンネル
           </Button>
+          <Link href="/workspace/ai-chat">
+            <Button variant="outline" size="sm">
+              <Bot className="mr-2 h-4 w-4" />
+              AIチャット
+            </Button>
+          </Link>
         </div>
       </div>
 

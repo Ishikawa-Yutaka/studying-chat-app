@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // リクエストボディを取得
     const body = await request.json();
-    const { message } = body;
+    const { message, sessionId } = body;
 
     // 入力検証
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
@@ -59,7 +59,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('🤖 AI会話リクエスト:', { message, user: authUser.email });
+    if (!sessionId || typeof sessionId !== 'string') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'セッションIDが必要です'
+        },
+        { status: 400 }
+      );
+    }
+
+    console.log('🤖 AI会話リクエスト:', { message, sessionId, user: authUser.email });
 
     // ユーザー情報を取得
     const dbUser = await prisma.user.findFirst({
@@ -71,6 +81,24 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: 'ユーザーが見つかりません'
+        },
+        { status: 404 }
+      );
+    }
+
+    // セッションの存在確認と所有者チェック
+    const session = await prisma.aiChatSession.findFirst({
+      where: {
+        id: sessionId,
+        userId: dbUser.id // 自分のセッションのみ
+      }
+    });
+
+    if (!session) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'セッションが見つかりません'
         },
         { status: 404 }
       );
@@ -101,6 +129,7 @@ export async function POST(request: NextRequest) {
     // データベースに会話履歴を保存
     const aiChat = await prisma.aiChat.create({
       data: {
+        sessionId: sessionId, // セッションIDを含める
         userId: dbUser.id,
         message: message.trim(),
         response: aiResponse
@@ -108,6 +137,20 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`💾 会話履歴保存完了 - ID: ${aiChat.id}`);
+
+    // セッションのタイトル自動生成（最初のメッセージの場合）
+    if (!session.title) {
+      const title = message.length <= 30
+        ? message
+        : message.substring(0, 30) + '...';
+
+      await prisma.aiChatSession.update({
+        where: { id: sessionId },
+        data: { title }
+      });
+
+      console.log(`📝 セッションタイトル自動生成: "${title}"`);
+    }
 
     // 応答を返す
     return NextResponse.json({
@@ -135,68 +178,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * 会話履歴取得エンドポイント（GET）
- */
-export async function GET(request: NextRequest) {
-  try {
-    // 認証チェック
-    const supabase = await createClient();
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !authUser) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: '認証が必要です'
-        },
-        { status: 401 }
-      );
-    }
-
-    // ユーザー情報を取得
-    const dbUser = await prisma.user.findFirst({
-      where: { authId: authUser.id }
-    });
-
-    if (!dbUser) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'ユーザーが見つかりません'
-        },
-        { status: 404 }
-      );
-    }
-
-    // 会話履歴を取得（新しい順）
-    const chatHistory = await prisma.aiChat.findMany({
-      where: {
-        userId: dbUser.id
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      take: 50 // 最新50件を取得
-    });
-
-    console.log(`📜 会話履歴取得: ${chatHistory.length}件`);
-
-    return NextResponse.json({
-      success: true,
-      chatHistory,
-      count: chatHistory.length
-    });
-
-  } catch (error) {
-    console.error('❌ 会話履歴取得エラー:', error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: '会話履歴の取得に失敗しました'
-      },
-      { status: 500 }
-    );
-  }
-}

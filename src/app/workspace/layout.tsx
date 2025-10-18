@@ -117,7 +117,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen flex-col">
       {/* モバイルナビゲーション */}
-      <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b bg-background px-4 lg:hidden">
+      <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b bg-gray-900 text-white px-4 lg:hidden shadow-sm">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" className="lg:hidden">
@@ -146,7 +146,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
                   }`}
                 >
                   <Bot className="h-5 w-5" />
-                  AIアシスタント
+                  AIチャット
                 </Link>
               </div>
             </div>
@@ -195,7 +195,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
                     }`}
                   >
                     <Bot className="h-5 w-5" />
-                    AIアシスタント
+                    AIチャット
                   </Link>
                 </div>
               </>
