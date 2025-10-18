@@ -69,6 +69,12 @@ model Message {
   updatedAt       DateTime @updatedAt           // 更新日時（自動更新）
   parentMessageId String?                       // スレッドの親メッセージID（nullの場合は通常のメッセージ）
 
+  // ファイル添付関連フィールド
+  fileUrl         String?                       // アップロードされたファイルのURL（Supabase Storage）
+  fileName        String?                       // 元のファイル名（例: document.pdf）
+  fileType        String?                       // ファイルのMIMEタイプ（例: image/png, application/pdf）
+  fileSize        Int?                          // ファイルサイズ（バイト単位）
+
   // リレーション（外部キー）
   sender         User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
   senderId       String    // 送信者のユーザーID

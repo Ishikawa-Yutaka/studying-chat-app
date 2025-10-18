@@ -1,7 +1,8 @@
 // 基本的なスタイリングのみで実装（shadcn/ui依存を削除）
 
-import { useLayoutEffect, useRef } from "react";
-import { MessageSquare } from "lucide-react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { MessageSquare, FileText, Download } from "lucide-react";
+import FilePreviewModal from "./filePreviewModal";
 
 // 型定義（仮の型定義）
 interface User {
@@ -17,6 +18,11 @@ interface Message {
   createdAt: Date | string;
   replies?: Message[]; // スレッド返信一覧（オプション）
   parentMessageId?: string | null; // 親メッセージID（nullの場合は通常のメッセージ）
+  // ファイル添付情報（オプション）
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileType?: string | null;
+  fileSize?: number | null;
 }
 
 // MessageViewコンポーネントのprops型定義
@@ -30,6 +36,13 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
   // 最下部の目印用ref
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // ファイルプレビューモーダルの状態管理
+  const [previewFile, setPreviewFile] = useState<{
+    url: string;
+    name: string;
+    type: string;
+  } | null>(null);
 
   // ✅ ページ表示時・メッセージ更新時に最下部を初期表示（LINE風）
   useLayoutEffect(() => {
@@ -52,9 +65,167 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
     return message.replies?.length || 0;
   };
 
+  /**
+   * ファイルタイプが画像かどうかを判定
+   */
+  const isImage = (fileType: string | null | undefined) => {
+    return fileType?.startsWith('image/') || false;
+  };
+
+  /**
+   * ファイルタイプが動画かどうかを判定
+   */
+  const isVideo = (fileType: string | null | undefined) => {
+    return fileType?.startsWith('video/') || false;
+  };
+
+  /**
+   * ファイルサイズを人間が読みやすい形式に変換
+   */
+  const formatFileSize = (bytes: number | null | undefined) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  };
+
+  /**
+   * ファイルを強制的にダウンロードする処理
+   * Supabase Storageなど外部URLからのダウンロードに対応
+   */
+  const handleDownload = async (fileUrl: string, fileName: string) => {
+    try {
+      console.log('📥 ファイルダウンロード開始:', fileName);
+
+      // ファイルをfetchで取得
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+
+      // Blobから一時的なURLを作成
+      const url = window.URL.createObjectURL(blob);
+
+      // 一時的な<a>要素を作成してクリック
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+
+      // クリーンアップ
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      console.log('✅ ファイルダウンロード成功:', fileName);
+    } catch (error) {
+      console.error('❌ ファイルダウンロードエラー:', error);
+      alert('ファイルのダウンロードに失敗しました。');
+    }
+  };
+
+  /**
+   * ファイル添付を表示するコンポーネント
+   */
+  const renderFileAttachment = (message: Message, isOwn: boolean) => {
+    if (!message.fileUrl) return null;
+
+    // 画像ファイルの場合
+    if (isImage(message.fileType)) {
+      return (
+        <div className="mt-2">
+          <div
+            onClick={() =>
+              setPreviewFile({
+                url: message.fileUrl!,
+                name: message.fileName || 'image',
+                type: message.fileType || '',
+              })
+            }
+            className="cursor-pointer"
+          >
+            <img
+              src={message.fileUrl}
+              alt={message.fileName || 'image'}
+              className="max-w-xs max-h-64 rounded-lg object-cover hover:opacity-90 transition-opacity"
+            />
+          </div>
+          <p className="text-xs mt-1 opacity-70">
+            {message.fileName} ({formatFileSize(message.fileSize)})
+          </p>
+        </div>
+      );
+    }
+
+    // 動画ファイルの場合
+    if (isVideo(message.fileType)) {
+      return (
+        <div className="mt-2">
+          <video
+            controls
+            className="max-w-xs max-h-64 rounded-lg"
+            src={message.fileUrl}
+          >
+            お使いのブラウザは動画タグをサポートしていません。
+          </video>
+          <p className="text-xs mt-1 opacity-70">
+            {message.fileName} ({formatFileSize(message.fileSize)})
+          </p>
+        </div>
+      );
+    }
+
+    // その他のファイル（PDF、Officeドキュメントなど）
+    return (
+      <div className="mt-2">
+        <div
+          className={`flex items-center gap-2 p-3 rounded-lg border ${
+            isOwn
+              ? 'bg-blue-600 border-blue-400 text-white'
+              : 'bg-white border-gray-300 text-gray-900'
+          }`}
+        >
+          <FileText className="h-5 w-5 flex-shrink-0" />
+          <div
+            className="flex-1 min-w-0 cursor-pointer"
+            onClick={() =>
+              setPreviewFile({
+                url: message.fileUrl!,
+                name: message.fileName || 'file',
+                type: message.fileType || '',
+              })
+            }
+          >
+            <p className="text-sm font-medium truncate">{message.fileName}</p>
+            <p className="text-xs opacity-70">{formatFileSize(message.fileSize)}</p>
+          </div>
+          {/* ダウンロードボタン */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownload(message.fileUrl!, message.fileName || 'file');
+            }}
+            className={`p-2 rounded hover:bg-opacity-20 hover:bg-gray-500 transition-colors flex-shrink-0`}
+            title="ダウンロード"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div ref={containerRef} className="flex-1 p-4 overflow-y-auto">
-      <div className="space-y-4 py-4">
+    <>
+      {/* ファイルプレビューモーダル */}
+      <FilePreviewModal
+        isOpen={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        fileUrl={previewFile?.url || ''}
+        fileName={previewFile?.name || ''}
+        fileType={previewFile?.type || ''}
+      />
+
+      <div ref={containerRef} className="flex-1 p-4 overflow-y-auto">
+        <div className="space-y-4 py-4">
         {/* メッセージ配列をループして表示（通常のメッセージのみ） */}
         {messages
           .filter((message) => !message.parentMessageId) // スレッド返信は表示しない
@@ -110,6 +281,9 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
                     }`}
                   >
                     <p className="text-sm">{message.content}</p>
+
+                    {/* ファイル添付表示 */}
+                    {renderFileAttachment(message, isMyMessage(message))}
                   </div>
 
                   {/* スレッド返信ボタン（常に表示） */}
@@ -141,7 +315,8 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
           })}
         {/* 最下部の目印 */}
         <div ref={messagesEndRef} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

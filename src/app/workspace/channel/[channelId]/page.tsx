@@ -30,6 +30,11 @@ interface Message {
   createdAt: Date | string;
   replies?: Message[];
   parentMessageId?: string | null;
+  // ファイル添付情報（オプショナル）
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileType?: string | null;
+  fileSize?: number | null;
 }
 
 interface Channel {
@@ -121,8 +126,17 @@ export default function ChannelPage() {
     initData();
   }, [channelId, authLoading, user]); // 認証状態とchannelIdが変更された時に再実行
 
-  // メッセージ送信処理
-  const handleSendMessage = async (content: string) => {
+  /**
+   * メッセージ送信処理
+   * テキストメッセージとファイル情報をAPIに送信する
+   *
+   * @param content - メッセージ内容
+   * @param fileInfo - ファイル情報（オプショナル）
+   */
+  const handleSendMessage = async (
+    content: string,
+    fileInfo?: { url: string; name: string; type: string; size: number }
+  ) => {
     // 認証チェック
     if (!myUserId) {
       console.error('❌ ユーザーが認証されていません');
@@ -132,6 +146,9 @@ export default function ChannelPage() {
 
     try {
       console.log('メッセージ送信:', content, 'by user:', myUserId);
+      if (fileInfo) {
+        console.log('📎 ファイル添付:', fileInfo.name);
+      }
 
       // 実際のAPIにメッセージを送信
       const response = await fetch(`/api/messages/${channelId}`, {
@@ -141,7 +158,12 @@ export default function ChannelPage() {
         },
         body: JSON.stringify({
           content: content,
-          senderId: myUserId  // 認証されたユーザーのID
+          senderId: myUserId,  // 認証されたユーザーのID
+          // ファイル情報（存在する場合のみ）
+          fileUrl: fileInfo?.url,
+          fileName: fileInfo?.name,
+          fileType: fileInfo?.type,
+          fileSize: fileInfo?.size,
         }),
       });
 

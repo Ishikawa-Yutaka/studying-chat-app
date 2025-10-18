@@ -24,7 +24,7 @@ export async function GET(
       }, { status: 404 });
     }
     
-    // メッセージ取得（送信者情報とスレッド返信も含む）
+    // メッセージ取得（送信者情報、ファイル情報、スレッド返信も含む）
     const messages = await prisma.message.findMany({
       where: {
         channelId: channelId
@@ -81,19 +81,20 @@ export async function POST(
     console.log(`📤 メッセージ送信リクエスト - チャンネルID: ${channelId}`, body);
     
     // リクエストボディのバリデーション
-    const { content, senderId } = body;
-    
+    const { content, senderId, fileUrl, fileName, fileType, fileSize } = body;
+
     if (!content || !senderId) {
       return NextResponse.json({
         success: false,
         error: 'メッセージ内容と送信者IDが必要です'
       }, { status: 400 });
     }
-    
-    if (content.trim().length === 0) {
+
+    // ファイルのみの送信は許可（contentが空でもファイルがあればOK）
+    if (content.trim().length === 0 && !fileUrl) {
       return NextResponse.json({
         success: false,
-        error: 'メッセージ内容が空です'
+        error: 'メッセージ内容またはファイルが必要です'
       }, { status: 400 });
     }
     
@@ -123,12 +124,17 @@ export async function POST(
     
     console.log(`👤 送信者確認: ${sender.name} (内部ID: ${sender.id})`);
     
-    // メッセージ作成
+    // メッセージ作成（ファイル情報も含める）
     const newMessage = await prisma.message.create({
       data: {
         content: content.trim(),
         senderId: sender.id, // Prismaの内部IDを使用
-        channelId: channelId
+        channelId: channelId,
+        // ファイル情報（オプショナル）
+        fileUrl: fileUrl || null,
+        fileName: fileName || null,
+        fileType: fileType || null,
+        fileSize: fileSize || null
       },
       include: {
         sender: {
@@ -143,6 +149,9 @@ export async function POST(
     });
     
     console.log(`✅ メッセージ送信成功 - ID: ${newMessage.id}`);
+    if (fileUrl) {
+      console.log(`📎 ファイル添付: ${fileName} (${fileType}, ${fileSize}バイト)`);
+    }
     
     return NextResponse.json({
       success: true,
