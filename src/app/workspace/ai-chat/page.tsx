@@ -229,6 +229,17 @@ export default function AiChatPage() {
     setInputMessage(''); // 即座に入力欄をクリア
     setIsSending(true);
 
+    // 楽観的更新: ユーザーメッセージを即座に表示 + AIが考え中のプレースホルダー
+    const tempId = `temp-${Date.now()}`;
+    const tempMessage: AiChatMessage = {
+      id: tempId,
+      sessionId: currentSessionId,
+      message: userMessage,
+      response: '...', // AI応答待ちのプレースホルダー
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, tempMessage]);
+
     try {
       console.log('🔄 AI会話リクエスト送信中...');
 
@@ -244,16 +255,18 @@ export default function AiChatPage() {
       const data = await response.json();
 
       if (data.success) {
-        // 新しいメッセージを追加
-        const newMessage: AiChatMessage = {
-          id: data.chatId,
-          sessionId: currentSessionId,
-          message: userMessage,
-          response: data.response,
-          createdAt: new Date().toISOString(),
-        };
-
-        setMessages((prev) => [...prev, newMessage]); // 古い順に追加
+        // 仮メッセージを実際のメッセージに置き換え
+        setMessages((prev) => prev.map(msg =>
+          msg.id === tempId
+            ? {
+                id: data.chatId,
+                sessionId: currentSessionId,
+                message: userMessage,
+                response: data.response,
+                createdAt: new Date().toISOString(),
+              }
+            : msg
+        ));
         console.log('✅ AI応答受信成功');
 
         // セッション一覧を更新（タイトルが変わった可能性があるため）
@@ -263,10 +276,14 @@ export default function AiChatPage() {
           setSessions(updatedData.sessions || []);
         }
       } else {
+        // エラー時は仮メッセージを削除
+        setMessages((prev) => prev.filter(msg => msg.id !== tempId));
         console.error('❌ AI応答取得失敗:', data.error);
         alert(`${data.error}`);
       }
     } catch (error) {
+      // エラー時は仮メッセージを削除
+      setMessages((prev) => prev.filter(msg => msg.id !== tempId));
       console.error('❌ AI会話エラー:', error);
       alert('AIとの会話中にエラーが発生しました');
     } finally {
@@ -441,9 +458,18 @@ export default function AiChatPage() {
                         <div className="flex items-start gap-2 max-w-[85%] md:max-w-[70%]">
                           <Bot className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
                           <div className="bg-white border border-gray-200 rounded-lg px-4 py-2 shadow">
-                            <p className="text-sm text-gray-900 whitespace-pre-wrap">
-                              {chat.response}
-                            </p>
+                            {chat.response === '...' ? (
+                              /* AI応答待ちのアニメーション */
+                              <div className="flex items-center gap-1">
+                                <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                                {chat.response}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
