@@ -1,17 +1,58 @@
 /**
  * ログインページ
- * 
+ *
  * ユーザーがメールアドレスとパスワードを入力してログインするページ
- * 美しいフォームデザインとエラーハンドリングを含む
+ * ソーシャル認証（Google、GitHub、Twitter、Facebook）にも対応
  */
 
+'use client'
+
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Chrome, Github, Twitter, Facebook } from 'lucide-react'
+import { signInWithSocial, type SocialProvider, SOCIAL_PROVIDERS } from '@/lib/auth'
 import { login, signup } from './actions'
 
 export default function LoginPage() {
+  const [isLoading, setIsLoading] = useState(false)
+  const [socialProvider, setSocialProvider] = useState<SocialProvider | null>(null)
+
+  /**
+   * ソーシャルログインボタンがクリックされた時の処理
+   */
+  const handleSocialLogin = async (provider: SocialProvider) => {
+    try {
+      setIsLoading(true)
+      setSocialProvider(provider)
+      await signInWithSocial(provider)
+      // 注: この後、プロバイダーの認証画面にリダイレクトされます
+    } catch (error) {
+      console.error('❌ ソーシャルログインエラー:', error)
+      alert('ログインに失敗しました。もう一度お試しください。')
+      setIsLoading(false)
+      setSocialProvider(null)
+    }
+  }
+
+  /**
+   * プロバイダーに応じたアイコンを表示
+   */
+  const getIcon = (provider: SocialProvider) => {
+    const iconClass = "w-5 h-5"
+    switch (provider) {
+      case 'google':
+        return <Chrome className={iconClass} />
+      case 'github':
+        return <Github className={iconClass} />
+      case 'twitter':
+        return <Twitter className={iconClass} />
+      case 'facebook':
+        return <Facebook className={iconClass} />
+    }
+  }
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -31,12 +72,92 @@ export default function LoginPage() {
         {/* ログインフォーム */}
         <Card>
           <CardHeader>
-            <CardTitle>ログイン</CardTitle>
-            <CardDescription>
-              メールアドレスとパスワードを入力してください
+            <CardTitle className="text-gray-900">ログイン</CardTitle>
+            <CardDescription className="text-gray-600">
+              メールアドレスとパスワード、またはソーシャルアカウントでログインできます
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* ソーシャル認証ボタン */}
+            <div className="space-y-3 mb-6">
+              <div className="grid grid-cols-2 gap-3">
+                {/* Googleログインボタン */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={SOCIAL_PROVIDERS.google.color}
+                  onClick={() => handleSocialLogin('google')}
+                  disabled={isLoading}
+                >
+                  {socialProvider === 'google' ? (
+                    <span className="animate-spin">⏳</span>
+                  ) : (
+                    getIcon('google')
+                  )}
+                  <span className="ml-2">Google</span>
+                </Button>
+
+                {/* GitHubログインボタン */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={SOCIAL_PROVIDERS.github.color}
+                  onClick={() => handleSocialLogin('github')}
+                  disabled={isLoading}
+                >
+                  {socialProvider === 'github' ? (
+                    <span className="animate-spin">⏳</span>
+                  ) : (
+                    getIcon('github')
+                  )}
+                  <span className="ml-2">GitHub</span>
+                </Button>
+
+                {/* Twitterログインボタン */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={SOCIAL_PROVIDERS.twitter.color}
+                  onClick={() => handleSocialLogin('twitter')}
+                  disabled={isLoading}
+                >
+                  {socialProvider === 'twitter' ? (
+                    <span className="animate-spin">⏳</span>
+                  ) : (
+                    getIcon('twitter')
+                  )}
+                  <span className="ml-2">Twitter</span>
+                </Button>
+
+                {/* Facebookログインボタン */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={SOCIAL_PROVIDERS.facebook.color}
+                  onClick={() => handleSocialLogin('facebook')}
+                  disabled={isLoading}
+                >
+                  {socialProvider === 'facebook' ? (
+                    <span className="animate-spin">⏳</span>
+                  ) : (
+                    getIcon('facebook')
+                  )}
+                  <span className="ml-2">Facebook</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* 区切り線 */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-600">または</span>
+              </div>
+            </div>
+
+            {/* メール・パスワードログインフォーム */}
             <form className="space-y-4">
               {/* メールアドレス入力 */}
               <div>
