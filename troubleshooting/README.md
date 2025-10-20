@@ -20,13 +20,21 @@
 - **解決策**: プリミティブ値のみを依存関係に使用
 - **学習ポイント**: React依存関係の仕組み、useCallback/useMemo活用法
 
-### 3. [SUPABASE_AUTH_INTEGRATION.md](./SUPABASE_AUTH_INTEGRATION.md) ⭐ **NEW**
+### 3. [SUPABASE_AUTH_INTEGRATION.md](./SUPABASE_AUTH_INTEGRATION.md)
 **Supabase認証システム統合トラブルシューティング**
 
 - **対象**: 認証統合後にチャンネル・データが表示されない問題
 - **主な原因**: Supabase AuthIDとPrisma内部IDの不整合
 - **解決策**: `authId`フィールドによるID変換処理実装
 - **学習ポイント**: マイクロサービス連携、ORMとAuth統合、ユーザーID管理
+
+### 4. [PRISMA_MIGRATION_DRIFT_ERROR.md](./PRISMA_MIGRATION_DRIFT_ERROR.md) ⭐ **NEW**
+**Prismaマイグレーション管理の構築**
+
+- **対象**: "Drift detected" エラー、マイグレーションが実行できない問題
+- **主な原因**: マイグレーション履歴テーブル（`_prisma_migrations`）が存在しない
+- **解決策**: ベースラインマイグレーション作成、既存DBへのマイグレーション管理導入
+- **学習ポイント**: Prismaマイグレーション管理、データベーススキーマ同期、本番デプロイ準備
 
 ## 🎯 活用方法
 
@@ -44,10 +52,11 @@
 
 - **React**: useEffect, useState, useCallback, useMemo
 - **Supabase**: Realtime, Auth, PostgreSQL Publication
-- **Prisma**: ORM, リレーション管理, ユーザーID管理
-- **PostgreSQL**: 論理レプリケーション, システムカタログ
+- **Prisma**: ORM, マイグレーション管理, リレーション管理, ユーザーID管理
+- **PostgreSQL**: 論理レプリケーション, システムカタログ, スキーマ同期
 - **TypeScript**: 型安全性, インターフェース定義
 - **認証システム**: JWT, セッション管理, マイクロサービス連携
+- **データベースマイグレーション**: スキーマバージョン管理, ベースライン作成, 本番デプロイ
 
 ## 📚 参考リンク
 
