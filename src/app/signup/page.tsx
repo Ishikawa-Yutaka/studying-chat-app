@@ -115,38 +115,6 @@ export default function SignupPage() {
                   )}
                   <span className="ml-2">GitHub</span>
                 </Button>
-
-                {/* Twitterサインアップボタン */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={SOCIAL_PROVIDERS.twitter.color}
-                  onClick={() => handleSocialSignup('twitter')}
-                  disabled={isLoading}
-                >
-                  {socialProvider === 'twitter' ? (
-                    <span className="animate-spin">⏳</span>
-                  ) : (
-                    getIcon('twitter')
-                  )}
-                  <span className="ml-2">Twitter</span>
-                </Button>
-
-                {/* Facebookサインアップボタン */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={SOCIAL_PROVIDERS.facebook.color}
-                  onClick={() => handleSocialSignup('facebook')}
-                  disabled={isLoading}
-                >
-                  {socialProvider === 'facebook' ? (
-                    <span className="animate-spin">⏳</span>
-                  ) : (
-                    getIcon('facebook')
-                  )}
-                  <span className="ml-2">Facebook</span>
-                </Button>
               </div>
             </div>
 

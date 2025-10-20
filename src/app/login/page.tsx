@@ -112,38 +112,6 @@ export default function LoginPage() {
                   )}
                   <span className="ml-2">GitHub</span>
                 </Button>
-
-                {/* Twitterログインボタン */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={SOCIAL_PROVIDERS.twitter.color}
-                  onClick={() => handleSocialLogin('twitter')}
-                  disabled={isLoading}
-                >
-                  {socialProvider === 'twitter' ? (
-                    <span className="animate-spin">⏳</span>
-                  ) : (
-                    getIcon('twitter')
-                  )}
-                  <span className="ml-2">Twitter</span>
-                </Button>
-
-                {/* Facebookログインボタン */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={SOCIAL_PROVIDERS.facebook.color}
-                  onClick={() => handleSocialLogin('facebook')}
-                  disabled={isLoading}
-                >
-                  {socialProvider === 'facebook' ? (
-                    <span className="animate-spin">⏳</span>
-                  ) : (
-                    getIcon('facebook')
-                  )}
-                  <span className="ml-2">Facebook</span>
-                </Button>
               </div>
             </div>
 
