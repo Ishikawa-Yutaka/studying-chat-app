@@ -34,7 +34,8 @@ export async function GET(
             id: true,
             name: true,
             email: true,
-            authId: true
+            authId: true,
+            avatarUrl: true  // アバター画像のURL
           }
         }
       }
@@ -62,7 +63,8 @@ export async function GET(
             id: true,
             name: true,
             email: true,
-            authId: true
+            authId: true,
+            avatarUrl: true  // アバター画像のURL
           }
         }
       },
@@ -171,7 +173,8 @@ export async function POST(
             id: true,
             name: true,
             email: true,
-            authId: true
+            authId: true,
+            avatarUrl: true  // アバター画像のURL
           }
         }
       }

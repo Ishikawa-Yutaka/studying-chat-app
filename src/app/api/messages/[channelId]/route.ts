@@ -1,6 +1,7 @@
 // メッセージAPI - 取得と送信
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 
 // メッセージ取得API（GET）
 export async function GET(
@@ -9,20 +10,66 @@ export async function GET(
 ) {
   try {
     const { channelId } = await params;
-    
+
     console.log(`📥 メッセージ取得リクエスト - チャンネルID: ${channelId}`);
-    
-    // チャンネルの存在確認
+
+    // 1. 認証チェック：Supabase認証トークンから現在のユーザーを取得
+    const supabase = await createClient();
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      console.error('❌ 認証エラー:', authError);
+      return NextResponse.json({
+        success: false,
+        error: '認証が必要です。ログインしてください。'
+      }, { status: 401 });
+    }
+
+    console.log(`✅ 認証済みユーザー: ${authUser.id}`);
+
+    // 2. Prismaデータベースからユーザー情報を取得
+    const currentUser = await prisma.user.findFirst({
+      where: { authId: authUser.id }
+    });
+
+    if (!currentUser) {
+      return NextResponse.json({
+        success: false,
+        error: 'ユーザーが見つかりません'
+      }, { status: 404 });
+    }
+
+    console.log(`👤 現在のユーザー: ${currentUser.name} (ID: ${currentUser.id})`);
+
+    // 3. チャンネルの存在確認
     const channel = await prisma.channel.findUnique({
       where: { id: channelId }
     });
-    
+
     if (!channel) {
       return NextResponse.json({
         success: false,
         error: 'チャンネルが見つかりません'
       }, { status: 404 });
     }
+
+    // 4. チャンネルメンバーシップの確認（このユーザーはこのチャンネルのメンバーか？）
+    const membership = await prisma.channelMember.findFirst({
+      where: {
+        channelId: channelId,
+        userId: currentUser.id
+      }
+    });
+
+    if (!membership) {
+      console.error(`❌ アクセス拒否: ユーザー ${currentUser.name} はチャンネル ${channelId} のメンバーではありません`);
+      return NextResponse.json({
+        success: false,
+        error: 'このチャンネルにアクセスする権限がありません'
+      }, { status: 403 });
+    }
+
+    console.log(`✅ チャンネルメンバーシップ確認OK`);
     
     // メッセージ取得（送信者情報、ファイル情報、スレッド返信も含む）
     const messages = await prisma.message.findMany({
@@ -40,9 +87,20 @@ export async function GET(
           }
         },
         replies: {
-          // スレッド返信の数をカウントするために含める
-          select: {
-            id: true
+          // スレッド返信の詳細情報を取得（送信者のアバターも含む）
+          include: {
+            sender: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                authId: true,
+                avatarUrl: true  // アバター画像のURL
+              }
+            }
+          },
+          orderBy: {
+            createdAt: 'asc'  // 返信は古い順
           }
         }
       },

@@ -32,7 +32,7 @@ export default function SettingsMenu({ onAvatarSettingsClick }: SettingsMenuProp
           <Button
             variant="ghost"
             size="icon"
-            className="w-full h-10"
+            className="w-full h-10 hover:bg-accent hover:text-accent-foreground text-foreground"
             title="設定"
           >
             <Settings className="h-5 w-5" />

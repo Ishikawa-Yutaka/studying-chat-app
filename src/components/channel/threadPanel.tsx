@@ -11,12 +11,14 @@
 
 import { useState, useLayoutEffect, useRef } from 'react';
 import { X, Send } from 'lucide-react';
+import { UserAvatar } from '@/components/userAvatar';
 
 // 型定義
 interface User {
   id: string;
   name: string;
   authId?: string;
+  avatarUrl?: string | null;
 }
 
 interface Message {
@@ -119,9 +121,11 @@ export default function ThreadPanel({
             {/* 親メッセージ */}
             <div className="pb-4 border-b">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-sm font-semibold">
-                  {parentMessage.sender.name.charAt(0)}
-                </div>
+                <UserAvatar
+                  name={parentMessage.sender.name}
+                  avatarUrl={parentMessage.sender.avatarUrl}
+                  size="md"
+                />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-semibold text-gray-900">
@@ -146,9 +150,11 @@ export default function ThreadPanel({
             {/* スレッド返信一覧 */}
             {replies.map((reply) => (
               <div key={reply.id} className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-xs font-semibold">
-                  {reply.sender.name.charAt(0)}
-                </div>
+                <UserAvatar
+                  name={reply.sender.name}
+                  avatarUrl={reply.sender.avatarUrl}
+                  size="sm"
+                />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-semibold text-sm text-gray-900">

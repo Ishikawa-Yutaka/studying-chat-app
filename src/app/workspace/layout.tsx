@@ -16,13 +16,16 @@ import AppLogo from '@/components/workspace/appLogo';
 import ChannelList from '@/components/workspace/channelList';
 import DirectMessageList from '@/components/workspace/directMessageList';
 import UserProfileBar from '@/components/workspace/userProfileBar';
+import SettingsMenu from '@/components/workspace/settingsMenu';
+import AvatarSettingsDialog from '@/components/workspace/avatarSettingsDialog';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState<boolean>(false);
-  
+  const [isAvatarSettingsOpen, setIsAvatarSettingsOpen] = useState<boolean>(false);
+
   // 認証状態管理
   const { user, loading: authLoading, isAuthenticated, signOut } = useAuth();
   
@@ -169,6 +172,8 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
               </div>
             </div>
             <Separator />
+            {/* 設定メニュー */}
+            <SettingsMenu onAvatarSettingsClick={() => setIsAvatarSettingsOpen(true)} />
             <div className="p-4">
               <UserProfileBar
                 user={currentUser}
@@ -215,6 +220,8 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
               </>
             )}
           </div>
+          {/* 設定メニュー */}
+          <SettingsMenu onAvatarSettingsClick={() => setIsAvatarSettingsOpen(true)} />
           <div className="sticky bottom-0 border-t bg-background p-4">
             <UserProfileBar
               user={currentUser}
@@ -226,6 +233,18 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
         {/* メインコンテンツ */}
         <main className="flex flex-col h-screen">{children}</main>
       </div>
+
+      {/* アバター設定ダイアログ */}
+      <AvatarSettingsDialog
+        open={isAvatarSettingsOpen}
+        onOpenChange={setIsAvatarSettingsOpen}
+        currentAvatarUrl={currentUser?.avatarUrl}
+        currentUserName={currentUser?.name || ''}
+        onAvatarUpdated={(newUrl) => {
+          // アバターURLを更新
+          setCurrentUser(prev => prev ? { ...prev, avatarUrl: newUrl } : null);
+        }}
+      />
     </div>
   );
 }

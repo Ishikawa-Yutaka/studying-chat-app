@@ -21,6 +21,8 @@ interface User {
   id: string;
   name: string;
   email?: string;
+  authId?: string;
+  avatarUrl?: string | null;  // アバター画像のURL
 }
 
 interface Message {

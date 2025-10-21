@@ -59,7 +59,7 @@ export default function UserProfileBar({ user, onSignOut }: UserProfileBarProps)
         variant="ghost"
         size="icon"
         onClick={handleLogout}
-        className="h-8 w-8"
+        className="h-8 w-8 hover:bg-accent hover:text-accent-foreground text-foreground"
         title="ログアウト"
       >
         <LogOut className="h-4 w-4" />
