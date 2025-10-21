@@ -35,7 +35,8 @@ export async function GET(
             id: true,
             name: true,
             email: true,
-            authId: true  // SupabaseのAuthIDも含める
+            authId: true,     // SupabaseのAuthIDも含める
+            avatarUrl: true   // プロフィール画像のURL
           }
         },
         replies: {
@@ -142,7 +143,8 @@ export async function POST(
             id: true,
             name: true,
             email: true,
-            authId: true  // SupabaseのAuthIDも含める
+            authId: true,     // SupabaseのAuthIDも含める
+            avatarUrl: true   // プロフィール画像のURL
           }
         }
       }

@@ -1,8 +1,8 @@
-# Prismaマイグレーション管理の構築
+# Prisma マイグレーション管理の構築
 
 ## 問題の概要
 
-Prismaでマイグレーションを実行しようとすると以下のエラーが発生する：
+Prisma でマイグレーションを実行しようとすると以下のエラーが発生する：
 
 ```
 Drift detected: Your database schema is not in sync with your migration history.
@@ -47,27 +47,28 @@ We need to reset the "public" schema at "xxx.pooler.supabase.com:5432"
 
 ### 根本原因
 
-**Prismaのマイグレーション管理が一度も使われていない状態で、データベースにテーブルが既に存在している**
+**Prisma のマイグレーション管理が一度も使われていない状態で、データベースにテーブルが既に存在している**
 
 具体的には：
+
 1. データベースに `User`, `Channel`, `Message` などのテーブルが存在
-2. Prismaのマイグレーション履歴テーブル（`_prisma_migrations`）が存在しない
+2. Prisma のマイグレーション履歴テーブル（`_prisma_migrations`）が存在しない
 3. `prisma/migrations/` フォルダーが存在しない
 
-このため、Prismaが「どうやってこれらのテーブルができたのか？」を把握できず、混乱している状態。
+このため、Prisma が「どうやってこれらのテーブルができたのか？」を把握できず、混乱している状態。
 
 ### 発生する状況
 
 - 初期開発で `npx prisma db push` のみを使っていた
-- 手動でSQLを実行してテーブルを作成していた
-- 別のツール（Supabase UI、pgAdmin等）でテーブルを作成していた
+- 手動で SQL を実行してテーブルを作成していた
+- 別のツール（Supabase UI、pgAdmin 等）でテーブルを作成していた
 - マイグレーションファイルを削除してしまった
 
 ---
 
 ## 診断手順
 
-### ステップ1: データベース接続の確認
+### ステップ 1: データベース接続の確認
 
 ```bash
 # ポート接続テスト
@@ -76,7 +77,7 @@ nc -zv your-database-host.supabase.com 5432
 
 **期待される結果**: `Connection succeeded!`
 
-### ステップ2: Prismaでの接続テスト
+### ステップ 2: Prisma での接続テスト
 
 ```bash
 # test_connection.js を作成
@@ -108,7 +109,7 @@ rm test_connection.js
 
 **期待される結果**: 既存のテーブル一覧が表示される
 
-### ステップ3: マイグレーション履歴テーブルの確認
+### ステップ 3: マイグレーション履歴テーブルの確認
 
 ```bash
 cat > check_migrations.js << 'EOF'
@@ -144,11 +145,11 @@ rm check_migrations.js
 
 ## 解決方法
 
-### 方法1: ベースラインマイグレーションを作成（推奨）
+### 方法 1: ベースラインマイグレーションを作成（推奨）
 
 既存のデータベース構造を記録し、今後のマイグレーション管理を開始します。
 
-#### ステップ1: 現在のスキーマを一時保存
+#### ステップ 1: 現在のスキーマを一時保存
 
 ```bash
 # avatarUrlなど、未適用の変更があれば一時的に削除
@@ -159,7 +160,7 @@ cp prisma/schema.prisma prisma/schema.prisma.backup
 sed -i '' '/avatarUrl/d' prisma/schema.prisma
 ```
 
-#### ステップ2: ベースラインマイグレーションを作成
+#### ステップ 2: ベースラインマイグレーションを作成
 
 ```bash
 # ベースラインマイグレーションフォルダを作成
@@ -172,7 +173,7 @@ npx prisma migrate diff \
   --script > prisma/migrations/0_init/migration.sql
 ```
 
-#### ステップ3: ベースラインを適用済みとしてマーク
+#### ステップ 3: ベースラインを適用済みとしてマーク
 
 ```bash
 # データベースに _prisma_migrations テーブルを作成し、
@@ -182,7 +183,7 @@ npx prisma migrate resolve --applied 0_init
 
 **成功メッセージ**: `Migration 0_init marked as applied.`
 
-#### ステップ4: スキーマを元に戻す
+#### ステップ 4: スキーマを元に戻す
 
 ```bash
 # バックアップから復元
@@ -192,7 +193,7 @@ rm prisma/schema.prisma.backup
 
 または手動で `avatarUrl` などを追加し直す。
 
-#### ステップ5: 新しいマイグレーションを実行
+#### ステップ 5: 新しいマイグレーションを実行
 
 ```bash
 # 今度は正常に動作します
@@ -200,6 +201,7 @@ npx prisma migrate dev --name add_user_avatar_url
 ```
 
 **期待される結果**:
+
 ```
 Applying migration `0_init`
 Applying migration `20251020020556_add_user_avatar_url`
@@ -215,7 +217,7 @@ Your database is now in sync with your schema.
 
 ---
 
-### 方法2: データベースをリセットして再構築（開発環境のみ）
+### 方法 2: データベースをリセットして再構築（開発環境のみ）
 
 **警告**: この方法は**全データが削除**されます。本番環境では絶対に使用しないでください。
 
@@ -242,7 +244,7 @@ npx prisma studio
 # → _prisma_migrations テーブルを確認
 ```
 
-### スキーマとDBが同期しているか確認
+### スキーマと DB が同期しているか確認
 
 ```bash
 # Prisma Clientを再生成
@@ -276,27 +278,30 @@ npx prisma migrate dev --name add_user_role
 
 ### 問題: `Can't reach database server`
 
-**原因**: DIRECT_URLの設定が間違っている、またはネットワーク問題
+**原因**: DIRECT_URL の設定が間違っている、またはネットワーク問題
 
 **解決策**:
+
 1. `.env.local` の `DIRECT_URL` を確認
 2. ポート接続テストを実行: `nc -zv <host> 5432`
-3. Supabase Dashboardで接続文字列を再確認
+3. Supabase Dashboard で接続文字列を再確認
 
-### 問題: マイグレーション適用後もPrisma Studioに反映されない
+### 問題: マイグレーション適用後も Prisma Studio に反映されない
 
 **原因**: ブラウザのキャッシュ
 
 **解決策**:
-1. Prisma Studioを再起動
+
+1. Prisma Studio を再起動
 2. ブラウザでスーパーリロード（Cmd+Shift+R / Ctrl+Shift+R）
-3. Prisma Clientを再生成: `npx prisma generate`
+3. Prisma Client を再生成: `npx prisma generate`
 
 ### 問題: `prisma migrate resolve` が失敗する
 
 **原因**: データベース接続の問題
 
 **解決策**:
+
 1. `DATABASE_URL` ではなく `DIRECT_URL` が使用されているか確認
 2. `prisma/schema.prisma` の `datasource` セクションを確認:
    ```prisma
@@ -314,14 +319,17 @@ npx prisma migrate dev --name add_user_role
 ### マイグレーション管理の原則
 
 1. **開発初期からマイグレーションを使用**
+
    - `npx prisma db push` は開発初期のプロトタイピングのみ
    - 本格開発では必ず `npx prisma migrate dev` を使用
 
 2. **マイグレーションファイルを Git で管理**
+
    - `prisma/migrations/` フォルダーを必ずコミット
    - `.gitignore` に `prisma/migrations/` を追加しない
 
 3. **本番環境へのデプロイ**
+
    ```bash
    # 本番環境では migrate deploy を使用（データを保持）
    npx prisma migrate deploy
@@ -335,15 +343,15 @@ npx prisma migrate dev --name add_user_role
 
 ## 関連ドキュメント
 
-- [Prisma公式: 既存DBへのマイグレーション導入](https://www.prisma.io/docs/guides/database/developing-with-prisma-migrate/add-prisma-migrate-to-a-project)
-- [Prisma公式: マイグレーショントラブルシューティング](https://www.prisma.io/docs/guides/database/developing-with-prisma-migrate/troubleshooting-development)
+- [Prisma 公式: 既存 DB へのマイグレーション導入](https://www.prisma.io/docs/guides/database/developing-with-prisma-migrate/add-prisma-migrate-to-a-project)
+- [Prisma 公式: マイグレーショントラブルシューティング](https://www.prisma.io/docs/guides/database/developing-with-prisma-migrate/troubleshooting-development)
 - `troubleshooting/DATABASE_CONNECTION_IPV4_ERROR.md` - データベース接続エラー
 
 ---
 
 ## 解決日
 
-2025-01-20
+2025-10-20
 
 ## 関連する GitHub Issue
 

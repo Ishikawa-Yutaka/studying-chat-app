@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       console.log('✅ ユーザー認証成功:', user.email)
 
       // Prismaデータベースにユーザー情報を同期
-      // ソーシャル認証の場合、user_metadataから名前を取得
+      // ソーシャル認証の場合、user_metadataから名前とアバターURLを取得
       // メール認証の場合は、既存のユーザー情報を保持
       try {
         const userName = user.user_metadata?.name ||
@@ -48,18 +48,27 @@ export async function GET(request: NextRequest) {
                         user.email?.split('@')[0] ||
                         'Unknown User'
 
+        // OAuthプロバイダーからアバターURLを取得
+        // Google: user_metadata.picture
+        // GitHub: user_metadata.avatar_url
+        const avatarUrl = user.user_metadata?.avatar_url ||
+                         user.user_metadata?.picture ||
+                         null
+
         await prisma.user.upsert({
           where: { authId: user.id },
           update: {
-            // 既存ユーザーの場合は名前とメールを更新（空の場合のみ）
+            // 既存ユーザーの場合は名前、メール、アバターを更新
             name: userName,
             email: user.email || '',
+            avatarUrl: avatarUrl, // アバターURLを更新（nullの場合は既存値を保持）
           },
           create: {
             // 新規ユーザーの場合は作成
             authId: user.id,
             name: userName,
             email: user.email || '',
+            avatarUrl: avatarUrl, // 初回ログイン時にアバターURLを設定
           },
         })
 
@@ -67,6 +76,7 @@ export async function GET(request: NextRequest) {
           authId: user.id,
           name: userName,
           email: user.email,
+          avatarUrl: avatarUrl ? '設定済み' : '未設定',
         })
       } catch (dbError) {
         console.error('❌ Prismaユーザー同期エラー:', dbError)

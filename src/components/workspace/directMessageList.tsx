@@ -8,9 +8,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { User, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import StartDmDialog from '@/components/dm/startDmDialog';
+import { UserAvatar } from '@/components/userAvatar';
 
 // DM型（APIレスポンスと一致）
 interface DirectMessage {
@@ -18,6 +19,7 @@ interface DirectMessage {
   partnerId: string;
   partnerName: string;
   partnerEmail: string;
+  partnerAvatarUrl?: string | null;  // プロフィール画像のURL
 }
 
 interface DirectMessageListProps {
@@ -53,9 +55,12 @@ export default function DirectMessageList({ directMessages, pathname, onDmCreate
                 isActive ? 'bg-accent text-accent-foreground' : ''
               }`}
             >
-              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-                <User className="h-3 w-3 text-primary-foreground" />
-              </div>
+              <UserAvatar
+                name={dm.partnerName}
+                avatarUrl={dm.partnerAvatarUrl}
+                size="sm"
+                className="h-6 w-6"
+              />
               <span className="truncate">{dm.partnerName}</span>
             </Link>
           );

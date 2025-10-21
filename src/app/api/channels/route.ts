@@ -6,30 +6,32 @@ import { createClient } from '@/lib/supabase/server';
 // チャンネル一覧取得API（GET）
 export async function GET(request: NextRequest) {
   try {
-    const url = new URL(request.url);
-    const userId = url.searchParams.get('userId');
-    
-    if (!userId) {
+    // 認証チェック：Supabase認証トークンから現在のユーザーを取得
+    const supabase = await createClient();
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      console.error('❌ 認証エラー:', authError);
       return NextResponse.json({
         success: false,
-        error: 'ユーザーIDが必要です'
-      }, { status: 400 });
+        error: '認証が必要です。ログインしてください。'
+      }, { status: 401 });
     }
-    
-    console.log(`📋 チャンネル一覧取得 - ユーザーID: ${userId}`);
-    
+
+    console.log(`📋 チャンネル一覧取得 - 認証ユーザー: ${authUser.email} (AuthID: ${authUser.id})`);
+
     // SupabaseのauthIdからPrismaのユーザー内部IDを取得
     const user = await prisma.user.findFirst({
-      where: { authId: userId }
+      where: { authId: authUser.id }
     });
-    
+
     if (!user) {
       return NextResponse.json({
         success: false,
-        error: 'ユーザーが見つかりません'
+        error: 'ユーザー情報が見つかりません'
       }, { status: 404 });
     }
-    
+
     console.log(`👤 Prismaユーザー確認: ${user.name} (内部ID: ${user.id})`);
     
     console.log('📋 チャンネルメンバー検索開始...');
@@ -52,7 +54,8 @@ export async function GET(request: NextRequest) {
                     id: true,
                     name: true,
                     email: true,
-                    authId: true
+                    authId: true,
+                    avatarUrl: true   // プロフィール画像のURL
                   }
                 }
               }
@@ -85,20 +88,31 @@ export async function GET(request: NextRequest) {
         if (partner) {
           directMessages.push({
             id: channel.id,
-            partnerId: partner.user.authId, // Supabase AuthID を使用
+            partnerId: partner.user.authId,     // Supabase AuthID を使用
             partnerName: partner.user.name,
-            partnerEmail: partner.user.email
+            partnerEmail: partner.user.email,
+            partnerAvatarUrl: partner.user.avatarUrl  // プロフィール画像のURL
           });
         }
       }
     }
     
     console.log(`✅ チャンネル取得成功 - 通常: ${channels.length}件, DM: ${directMessages.length}件`);
-    
+
+    // 現在のユーザー情報も返す（avatarUrlを含む）
+    const currentUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      authId: user.authId,
+      avatarUrl: user.avatarUrl
+    };
+
     return NextResponse.json({
       success: true,
       channels: channels,
       directMessages: directMessages,
+      currentUser: currentUser,  // 現在のユーザー情報（認証トークンから取得）
       counts: {
         channels: channels.length,
         directMessages: directMessages.length

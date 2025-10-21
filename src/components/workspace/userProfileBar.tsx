@@ -6,14 +6,16 @@
 
 'use client';
 
-import { LogOut, User } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { UserAvatar } from '@/components/userAvatar';
 
 // ユーザー型定義
 interface User {
   id: string;
   name: string;
   email?: string;
+  avatarUrl?: string | null;  // プロフィール画像のURL
 }
 
 interface UserProfileBarProps {
@@ -41,9 +43,11 @@ export default function UserProfileBar({ user, onSignOut }: UserProfileBarProps)
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
-          <User className="h-4 w-4 text-primary-foreground" />
-        </div>
+        <UserAvatar
+          name={user.name}
+          avatarUrl={user.avatarUrl}
+          size="sm"
+        />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium truncate">{user.name}</p>
           {user.email && (

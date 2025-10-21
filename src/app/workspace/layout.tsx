@@ -38,7 +38,14 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
     partnerId: string;
     partnerName: string;
     partnerEmail: string;
+    partnerAvatarUrl?: string | null;
   }>>([]);
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // 認証チェック
@@ -53,26 +60,37 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
   // サイドバーデータ更新関数
   const updateSidebarData = useCallback(async () => {
     if (!user) return;
-    
+
     try {
       console.log('🔄 サイドバーデータ更新開始...');
       setIsLoading(true);
-      
-      const response = await fetch(`/api/channels?userId=${user.id}`);
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'チャンネル取得に失敗しました');
+
+      // チャンネル・DM一覧取得（認証トークンから自動的にユーザーを判定）
+      const channelsResponse = await fetch('/api/channels');  // userIdパラメータ削除
+      const channelsData = await channelsResponse.json();
+
+      if (!channelsResponse.ok) {
+        throw new Error(channelsData.error || 'チャンネル取得に失敗しました');
       }
-      
-      if (data.success) {
-        console.log(`✅ サイドバーデータ更新成功:`, data.counts);
-        setChannels(data.channels);
-        setDirectMessages(data.directMessages);
+
+      if (channelsData.success) {
+        console.log(`✅ サイドバーデータ更新成功:`, channelsData.counts);
+        setChannels(channelsData.channels);
+        setDirectMessages(channelsData.directMessages);
+
+        // 現在のユーザー情報も同時に取得（avatarUrlを含む）
+        if (channelsData.currentUser) {
+          setCurrentUser({
+            id: channelsData.currentUser.id,
+            name: channelsData.currentUser.name,
+            email: channelsData.currentUser.email,
+            avatarUrl: channelsData.currentUser.avatarUrl
+          });
+        }
       } else {
-        throw new Error(data.error);
+        throw new Error(channelsData.error);
       }
-      
+
     } catch (error) {
       console.error('❌ サイドバーデータ更新エラー:', error);
       // エラー時は空配列を設定
@@ -152,12 +170,8 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             </div>
             <Separator />
             <div className="p-4">
-              <UserProfileBar 
-                user={user ? {
-                  id: user.id,
-                  name: user.user_metadata?.name || user.email?.split('@')[0] || 'ユーザー',
-                  email: user.email || ''
-                } : null} 
+              <UserProfileBar
+                user={currentUser}
                 onSignOut={signOut}
               />
             </div>
@@ -202,12 +216,8 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             )}
           </div>
           <div className="sticky bottom-0 border-t bg-background p-4">
-            <UserProfileBar 
-              user={user ? {
-                id: user.id,
-                name: user.user_metadata?.name || user.email?.split('@')[0] || 'ユーザー',
-                email: user.email || ''
-              } : null} 
+            <UserProfileBar
+              user={currentUser}
               onSignOut={signOut}
             />
           </div>

@@ -11,7 +11,8 @@ interface User {
   id: string;
   name: string;
   email?: string;
-  authId?: string;  // SupabaseのAuthIDも含める
+  authId?: string;      // SupabaseのAuthIDも含める
+  avatarUrl?: string | null;  // プロフィール画像のURL
 }
 
 interface Message {

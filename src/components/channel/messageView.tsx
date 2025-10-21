@@ -3,12 +3,14 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { MessageSquare, FileText, Download } from "lucide-react";
 import FilePreviewModal from "./filePreviewModal";
+import { UserAvatar } from "@/components/userAvatar";
 
 // 型定義（仮の型定義）
 interface User {
   id: string;
   name: string;
   authId?: string; // SupabaseのAuthIDも含める
+  avatarUrl?: string | null; // プロフィール画像のURL
 }
 
 interface Message {
@@ -241,9 +243,11 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
               >
                 {/* 相手のメッセージの場合のみアバターを左に表示 */}
                 {!isMyMessage(message) && (
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-sm font-semibold">
-                    {message.sender.name.charAt(0)}
-                  </div>
+                  <UserAvatar
+                    name={message.sender.name}
+                    avatarUrl={message.sender.avatarUrl}
+                    size="sm"
+                  />
                 )}
 
                 {/* メッセージ本体 */}
@@ -306,9 +310,11 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
 
                 {/* 自分のメッセージの場合のみアバターを右に表示 */}
                 {isMyMessage(message) && (
-                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-sm font-semibold text-white">
-                    自
-                  </div>
+                  <UserAvatar
+                    name={message.sender.name}
+                    avatarUrl={message.sender.avatarUrl}
+                    size="sm"
+                  />
                 )}
               </div>
             );
