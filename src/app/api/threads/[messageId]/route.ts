@@ -5,27 +5,36 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser, checkChannelMembership } from '@/lib/auth-server';
 
 /**
  * スレッド取得エンドポイント（GET）
  *
- * 処理の流れ:
- * 1. URLパラメータからmessageIdを取得
- * 2. 親メッセージの存在確認
- * 3. そのメッセージに対するスレッド返信を取得
- * 4. 返信一覧を返す
+ * セキュリティ強化版:
+ * 1. 認証チェック：ログインしているユーザーのみアクセス可能
+ * 2. メンバーシップ確認：親メッセージが属するチャンネルのメンバーのみ取得可能
+ * 3. スレッド返信を取得
  */
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ messageId: string }> }
 ) {
   try {
-    // Next.js 15では params を await する必要がある
     const { messageId } = await context.params;
 
     console.log(`🔄 スレッド取得開始 - メッセージID: ${messageId}`);
 
-    // 親メッセージの存在確認
+    // 1. 認証チェック：現在ログインしているユーザーを取得
+    const { user, error: authError, status: authStatus } = await getCurrentUser();
+
+    if (authError || !user) {
+      return NextResponse.json({
+        success: false,
+        error: authError
+      }, { status: authStatus });
+    }
+
+    // 2. 親メッセージの存在確認とチャンネルID取得
     const parentMessage = await prisma.message.findUnique({
       where: { id: messageId },
       include: {
@@ -52,7 +61,20 @@ export async function GET(
       );
     }
 
-    // スレッド返信を取得（parentMessageId が messageId のメッセージ）
+    // 3. メンバーシップ確認：このユーザーが親メッセージのチャンネルのメンバーか確認
+    const { isMember, error: memberError, status: memberStatus } = await checkChannelMembership(
+      user.id,
+      parentMessage.channelId
+    );
+
+    if (!isMember) {
+      return NextResponse.json({
+        success: false,
+        error: memberError
+      }, { status: memberStatus });
+    }
+
+    // 4. スレッド返信を取得（parentMessageId が messageId のメッセージ）
     const replies = await prisma.message.findMany({
       where: {
         parentMessageId: messageId
@@ -96,12 +118,10 @@ export async function GET(
 /**
  * スレッド返信送信エンドポイント（POST）
  *
- * 処理の流れ:
- * 1. リクエストボディからcontent、senderAuthIdを取得
- * 2. 送信者のユーザー情報を取得
- * 3. 親メッセージの存在確認
- * 4. スレッド返信をデータベースに保存
- * 5. 保存したメッセージを返す
+ * セキュリティ強化版:
+ * 1. 認証チェック：ログインしているユーザーのみ送信可能
+ * 2. メンバーシップ確認：親メッセージのチャンネルのメンバーのみ送信可能
+ * 3. スレッド返信をデータベースに保存
  */
 export async function POST(
   request: NextRequest,
@@ -110,37 +130,32 @@ export async function POST(
   try {
     const { messageId } = await context.params;
     const body = await request.json();
-    const { content, senderAuthId } = body;
+    const { content } = body;
 
     console.log(`🔄 スレッド返信送信開始 - 親メッセージID: ${messageId}`);
 
-    // 入力検証
-    if (!content || !senderAuthId) {
+    // 1. 認証チェック：現在ログインしているユーザーを取得
+    const { user, error: authError, status: authStatus } = await getCurrentUser();
+
+    if (authError || !user) {
+      return NextResponse.json({
+        success: false,
+        error: authError
+      }, { status: authStatus });
+    }
+
+    // 2. 入力検証
+    if (!content) {
       return NextResponse.json(
         {
           success: false,
-          error: 'メッセージ内容と送信者IDが必要です'
+          error: 'メッセージ内容が必要です'
         },
         { status: 400 }
       );
     }
 
-    // 送信者のユーザー情報を取得
-    const sender = await prisma.user.findFirst({
-      where: { authId: senderAuthId }
-    });
-
-    if (!sender) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: '送信者が見つかりません'
-        },
-        { status: 404 }
-      );
-    }
-
-    // 親メッセージの存在確認とチャンネルID取得
+    // 3. 親メッセージの存在確認とチャンネルID取得
     const parentMessage = await prisma.message.findUnique({
       where: { id: messageId },
       select: {
@@ -159,11 +174,24 @@ export async function POST(
       );
     }
 
-    // スレッド返信をデータベースに保存
+    // 4. メンバーシップ確認：このユーザーが親メッセージのチャンネルのメンバーか確認
+    const { isMember, error: memberError, status: memberStatus } = await checkChannelMembership(
+      user.id,
+      parentMessage.channelId
+    );
+
+    if (!isMember) {
+      return NextResponse.json({
+        success: false,
+        error: memberError
+      }, { status: memberStatus });
+    }
+
+    // 5. スレッド返信をデータベースに保存
     const newReply = await prisma.message.create({
       data: {
         content,
-        senderId: sender.id,
+        senderId: user.id,  // 認証済みユーザーのIDを使用
         channelId: parentMessage.channelId,
         parentMessageId: messageId // 親メッセージIDを設定
       },

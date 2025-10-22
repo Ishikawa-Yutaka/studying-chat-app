@@ -3,8 +3,8 @@
  *
  * POST /api/avatar/upload
  *
- * 処理の流れ:
- * 1. Supabaseで認証チェック
+ * セキュリティ強化版:
+ * 1. 認証チェック（共通関数を使用）
  * 2. FormDataから画像ファイル取得
  * 3. ファイル検証（サイズ、MIME type）
  * 4. ユニークなファイル名を生成
@@ -16,22 +16,21 @@
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth-server';
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. 認証チェック
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // 1. 認証チェック：現在ログインしているユーザーを取得
+    const { user, error: authError, status: authStatus } = await getCurrentUser();
 
     if (authError || !user) {
-      console.error('❌ 認証エラー:', authError);
-      return NextResponse.json(
-        { success: false, error: '認証が必要です' },
-        { status: 401 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: authError
+      }, { status: authStatus });
     }
 
-    console.log('🔄 アバターアップロード開始:', user.id);
+    console.log('🔄 アバターアップロード開始:', user.authId);
 
     // 2. FormDataから画像ファイル取得
     const formData = await request.formData();
@@ -69,11 +68,12 @@ export async function POST(request: NextRequest) {
 
     // 4. ユニークなファイル名を生成（重複を避ける）
     const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+    const fileName = `${user.authId}-${Date.now()}.${fileExt}`;
 
-    // 5. Supabase Storageにアップロード
+    // 5. Supabase Storageにアップロード（Supabaseクライアントを取得）
     console.log('🔄 Supabase Storageにアップロード中...');
 
+    const supabase = await createClient();
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(fileName, file, {
@@ -101,18 +101,10 @@ export async function POST(request: NextRequest) {
     // 7. Prismaデータベースを更新
     console.log('🔄 Prismaデータベース更新中...');
 
-    const updatedUser = await prisma.user.updateMany({
-      where: { authId: user.id },
+    await prisma.user.update({
+      where: { id: user.id },
       data: { avatarUrl: publicUrl }
     });
-
-    if (updatedUser.count === 0) {
-      console.error('❌ ユーザーが見つかりません:', user.id);
-      return NextResponse.json(
-        { success: false, error: 'ユーザーが見つかりません' },
-        { status: 404 }
-      );
-    }
 
     console.log('✅ Prismaデータベース更新成功');
 

@@ -1,35 +1,29 @@
 // ダッシュボード統計情報取得API
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth-server';
 
-// ダッシュボード統計情報取得API（GET）
+/**
+ * ダッシュボード統計情報取得API（GET）
+ *
+ * セキュリティ強化版:
+ * - URLパラメータではなく認証トークンからユーザーを取得
+ * - ログインしているユーザー自身のデータのみ返す
+ * - 他のユーザーのダッシュボードは絶対に見れない
+ */
 export async function GET(request: NextRequest) {
   try {
-    const url = new URL(request.url);
-    const userId = url.searchParams.get('userId');
-    
-    if (!userId) {
+    console.log(`📊 ダッシュボード統計取得開始`);
+
+    // 認証チェック：現在ログインしているユーザーを取得
+    const { user, error, status } = await getCurrentUser();
+
+    if (error || !user) {
       return NextResponse.json({
         success: false,
-        error: 'ユーザーIDが必要です'
-      }, { status: 400 });
+        error: error
+      }, { status });
     }
-    
-    console.log(`📊 ダッシュボード統計取得 - ユーザーID: ${userId}`);
-    
-    // SupabaseのauthIdからPrismaのユーザー内部IDを取得
-    const user = await prisma.user.findFirst({
-      where: { authId: userId }
-    });
-    
-    if (!user) {
-      return NextResponse.json({
-        success: false,
-        error: 'ユーザーが見つかりません'
-      }, { status: 404 });
-    }
-    
-    console.log(`👤 Prismaユーザー確認: ${user.name} (内部ID: ${user.id})`);
     
     // データを順次取得（エラー特定のため）
     console.log('📊 Step 1: チャンネルメンバー取得開始');

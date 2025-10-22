@@ -1,7 +1,9 @@
 /**
- * ソーシャル認証ヘルパー関数
+ * 認証ヘルパー関数（クライアント側）
  *
- * Google、GitHub、Twitter/X、Facebookでのログインを簡単に実装するための関数を提供
+ * ソーシャル認証（Google、GitHub、Twitter/X、Facebook）のヘルパー関数
+ *
+ * 注: サーバー側のAPI認証関数は src/lib/auth-server.ts を参照
  */
 
 import { createClient } from '@/lib/supabase/client'

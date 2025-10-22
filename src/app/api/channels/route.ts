@@ -1,38 +1,22 @@
 // チャンネル一覧取得・作成API
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth-server';
 
 // チャンネル一覧取得API（GET）
 export async function GET(request: NextRequest) {
   try {
-    // 認証チェック：Supabase認証トークンから現在のユーザーを取得
-    const supabase = await createClient();
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    console.log('📋 チャンネル一覧取得開始');
 
-    if (authError || !authUser) {
-      console.error('❌ 認証エラー:', authError);
+    // 認証チェック：現在ログインしているユーザーを取得
+    const { user, error: authError, status: authStatus } = await getCurrentUser();
+
+    if (authError || !user) {
       return NextResponse.json({
         success: false,
-        error: '認証が必要です。ログインしてください。'
-      }, { status: 401 });
+        error: authError
+      }, { status: authStatus });
     }
-
-    console.log(`📋 チャンネル一覧取得 - 認証ユーザー: ${authUser.email} (AuthID: ${authUser.id})`);
-
-    // SupabaseのauthIdからPrismaのユーザー内部IDを取得
-    const user = await prisma.user.findFirst({
-      where: { authId: authUser.id }
-    });
-
-    if (!user) {
-      return NextResponse.json({
-        success: false,
-        error: 'ユーザー情報が見つかりません'
-      }, { status: 404 });
-    }
-
-    console.log(`👤 Prismaユーザー確認: ${user.name} (内部ID: ${user.id})`);
     
     console.log('📋 チャンネルメンバー検索開始...');
     // ユーザーが参加しているチャンネルを取得
@@ -144,11 +128,21 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔄 チャンネル作成API開始');
 
-    // 1. リクエストボディ取得
+    // 1. 認証チェック：現在ログインしているユーザーを取得
+    const { user, error: authError, status: authStatus } = await getCurrentUser();
+
+    if (authError || !user) {
+      return NextResponse.json({
+        success: false,
+        error: authError
+      }, { status: authStatus });
+    }
+
+    // 2. リクエストボディ取得
     const body = await request.json();
     const { name, description } = body;
 
-    // バリデーション: チャンネル名は必須
+    // 3. バリデーション: チャンネル名は必須
     if (!name || name.trim() === '') {
       return NextResponse.json({
         success: false,
@@ -156,36 +150,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`📝 チャンネル作成リクエスト - 名前: ${name}`);
-
-    // 2. Supabase認証チェック
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      console.error('❌ 認証エラー:', authError);
-      return NextResponse.json({
-        success: false,
-        error: '認証が必要です。ログインしてください。'
-      }, { status: 401 });
-    }
-
-    console.log(`✅ 認証確認: ${user.email} (authId: ${user.id})`);
-
-    // 3. SupabaseのauthIdからPrismaユーザーを取得
-    const prismaUser = await prisma.user.findFirst({
-      where: { authId: user.id }
-    });
-
-    if (!prismaUser) {
-      console.error('❌ Prismaユーザーが見つかりません');
-      return NextResponse.json({
-        success: false,
-        error: 'ユーザー情報が見つかりません'
-      }, { status: 404 });
-    }
-
-    console.log(`👤 Prismaユーザー確認: ${prismaUser.name} (内部ID: ${prismaUser.id})`);
+    console.log(`📝 チャンネル作成リクエスト - 名前: ${name}, ユーザー: ${user.name}`);
 
     // 4. 同名チャンネルが存在しないか確認
     const existingChannel = await prisma.channel.findFirst({
@@ -210,7 +175,7 @@ export async function POST(request: NextRequest) {
         type: 'channel',
         members: {
           create: {
-            userId: prismaUser.id // 作成者を自動的にメンバーに追加
+            userId: user.id // 認証済みユーザーを自動的にメンバーに追加
           }
         }
       },
@@ -241,8 +206,8 @@ export async function POST(request: NextRequest) {
         description: newChannel.description,
         memberCount: newChannel.members.length,
         createdBy: {
-          name: prismaUser.name,
-          email: prismaUser.email
+          name: user.name,
+          email: user.email
         }
       }
     }, { status: 201 });

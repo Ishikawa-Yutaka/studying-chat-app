@@ -1,7 +1,7 @@
 // メッセージAPI - 取得と送信
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser, checkChannelMembership } from '@/lib/auth-server';
 
 // メッセージ取得API（GET）
 export async function GET(
@@ -13,63 +13,25 @@ export async function GET(
 
     console.log(`📥 メッセージ取得リクエスト - チャンネルID: ${channelId}`);
 
-    // 1. 認証チェック：Supabase認証トークンから現在のユーザーを取得
-    const supabase = await createClient();
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    // 1. 認証チェック：現在ログインしているユーザーを取得
+    const { user, error: authError, status: authStatus } = await getCurrentUser();
 
-    if (authError || !authUser) {
-      console.error('❌ 認証エラー:', authError);
+    if (authError || !user) {
       return NextResponse.json({
         success: false,
-        error: '認証が必要です。ログインしてください。'
-      }, { status: 401 });
+        error: authError
+      }, { status: authStatus });
     }
 
-    console.log(`✅ 認証済みユーザー: ${authUser.id}`);
+    // 2. メンバーシップ確認：このユーザーがこのチャンネルのメンバーか確認
+    const { isMember, error: memberError, status: memberStatus } = await checkChannelMembership(user.id, channelId);
 
-    // 2. Prismaデータベースからユーザー情報を取得
-    const currentUser = await prisma.user.findFirst({
-      where: { authId: authUser.id }
-    });
-
-    if (!currentUser) {
+    if (!isMember) {
       return NextResponse.json({
         success: false,
-        error: 'ユーザーが見つかりません'
-      }, { status: 404 });
+        error: memberError
+      }, { status: memberStatus });
     }
-
-    console.log(`👤 現在のユーザー: ${currentUser.name} (ID: ${currentUser.id})`);
-
-    // 3. チャンネルの存在確認
-    const channel = await prisma.channel.findUnique({
-      where: { id: channelId }
-    });
-
-    if (!channel) {
-      return NextResponse.json({
-        success: false,
-        error: 'チャンネルが見つかりません'
-      }, { status: 404 });
-    }
-
-    // 4. チャンネルメンバーシップの確認（このユーザーはこのチャンネルのメンバーか？）
-    const membership = await prisma.channelMember.findFirst({
-      where: {
-        channelId: channelId,
-        userId: currentUser.id
-      }
-    });
-
-    if (!membership) {
-      console.error(`❌ アクセス拒否: ユーザー ${currentUser.name} はチャンネル ${channelId} のメンバーではありません`);
-      return NextResponse.json({
-        success: false,
-        error: 'このチャンネルにアクセスする権限がありません'
-      }, { status: 403 });
-    }
-
-    console.log(`✅ チャンネルメンバーシップ確認OK`);
     
     // メッセージ取得（送信者情報、ファイル情報、スレッド返信も含む）
     const messages = await prisma.message.findMany({
