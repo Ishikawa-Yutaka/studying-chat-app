@@ -1,13 +1,11 @@
 /**
  * ユーザープロフィールバー
- * 
- * サイドバー下部に表示されるユーザー情報とログアウトボタン
+ *
+ * サイドバー下部に表示されるユーザー情報
  */
 
 'use client';
 
-import { LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/userAvatar';
 
 // ユーザー型定義
@@ -20,17 +18,9 @@ interface User {
 
 interface UserProfileBarProps {
   user: User | null;
-  onSignOut?: () => void;
 }
 
-export default function UserProfileBar({ user, onSignOut }: UserProfileBarProps) {
-  const handleLogout = async () => {
-    if (onSignOut) {
-      await onSignOut();
-    }
-    // ログアウト後にログインページにリダイレクト
-    window.location.href = '/login';
-  };
+export default function UserProfileBar({ user }: UserProfileBarProps) {
 
   if (!user) {
     return (
@@ -41,29 +31,18 @@ export default function UserProfileBar({ user, onSignOut }: UserProfileBarProps)
   }
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <UserAvatar
-          name={user.name}
-          avatarUrl={user.avatarUrl}
-          size="sm"
-        />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{user.name}</p>
-          {user.email && (
-            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-          )}
-        </div>
+    <div className="flex items-center gap-3">
+      <UserAvatar
+        name={user.name}
+        avatarUrl={user.avatarUrl}
+        size="sm"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{user.name}</p>
+        {user.email && (
+          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+        )}
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleLogout}
-        className="h-8 w-8 hover:bg-accent hover:text-accent-foreground text-foreground"
-        title="ログアウト"
-      >
-        <LogOut className="h-4 w-4" />
-      </Button>
     </div>
   );
 }

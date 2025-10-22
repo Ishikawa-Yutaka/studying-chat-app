@@ -173,12 +173,9 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             </div>
             <Separator />
             {/* 設定メニュー */}
-            <SettingsMenu onAvatarSettingsClick={() => setIsAvatarSettingsOpen(true)} />
+            <SettingsMenu onAvatarSettingsClick={() => setIsAvatarSettingsOpen(true)} onSignOut={signOut} />
             <div className="p-4">
-              <UserProfileBar
-                user={currentUser}
-                onSignOut={signOut}
-              />
+              <UserProfileBar user={currentUser} />
             </div>
           </SheetContent>
         </Sheet>
@@ -221,12 +218,9 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             )}
           </div>
           {/* 設定メニュー */}
-          <SettingsMenu onAvatarSettingsClick={() => setIsAvatarSettingsOpen(true)} />
+          <SettingsMenu onAvatarSettingsClick={() => setIsAvatarSettingsOpen(true)} onSignOut={signOut} />
           <div className="sticky bottom-0 border-t bg-background p-4">
-            <UserProfileBar
-              user={currentUser}
-              onSignOut={signOut}
-            />
+            <UserProfileBar user={currentUser} />
           </div>
         </aside>
 

@@ -9,7 +9,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings, User, Moon } from 'lucide-react';
+import { Settings, User, Moon, LogOut } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +22,20 @@ import { Button } from '@/components/ui/button';
 
 interface SettingsMenuProps {
   onAvatarSettingsClick: () => void;
+  onSignOut?: () => void;
 }
 
-export default function SettingsMenu({ onAvatarSettingsClick }: SettingsMenuProps) {
+export default function SettingsMenu({ onAvatarSettingsClick, onSignOut }: SettingsMenuProps) {
+  /**
+   * ログアウト処理
+   */
+  const handleLogout = async () => {
+    if (onSignOut) {
+      await onSignOut();
+    }
+    // ログアウト後にログインページにリダイレクト
+    window.location.href = '/login';
+  };
   return (
     <div className="border-t bg-background p-2">
       <DropdownMenu>
@@ -58,6 +69,17 @@ export default function SettingsMenu({ onAvatarSettingsClick }: SettingsMenuProp
           >
             <Moon className="mr-2 h-4 w-4" />
             <span>ダークモード（準備中）</span>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          {/* ログアウト */}
+          <DropdownMenuItem
+            onClick={handleLogout}
+            className="cursor-pointer text-red-600 focus:text-red-600"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>ログアウト</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
