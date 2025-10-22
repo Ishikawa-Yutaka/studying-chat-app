@@ -31,6 +31,11 @@ interface Message {
   sender: User;
   content: string;
   createdAt: Date | string;
+  // ファイル添付情報（オプショナル）
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileType?: string | null;
+  fileSize?: number | null;
 }
 
 export default function DirectMessagePage() {
@@ -123,8 +128,17 @@ export default function DirectMessagePage() {
     return userNames[id] || `ユーザー${id}`;
   }
 
-  // DMメッセージ送信処理
-  const handleSendMessage = async (content: string) => {
+  /**
+   * DMメッセージ送信処理
+   * テキストメッセージとファイル情報をAPIに送信する
+   *
+   * @param content - メッセージ内容
+   * @param fileInfo - ファイル情報（オプショナル）
+   */
+  const handleSendMessage = async (
+    content: string,
+    fileInfo?: { url: string; name: string; type: string; size: number }
+  ) => {
     // 認証チェック
     if (!myUserId) {
       console.error('❌ ユーザーが認証されていません');
@@ -134,12 +148,15 @@ export default function DirectMessagePage() {
 
     try {
       console.log('DMメッセージ送信:', content, 'by user:', myUserId);
-      
+      if (fileInfo) {
+        console.log('📎 ファイル添付:', fileInfo.name);
+      }
+
       if (!dmChannelId) {
         alert('DMチャンネルが初期化されていません。ページをリロードしてください。');
         return;
       }
-      
+
       // 実際のAPIにDMメッセージを送信
       const response = await fetch(`/api/messages/${dmChannelId}`, {
         method: 'POST',
@@ -148,26 +165,31 @@ export default function DirectMessagePage() {
         },
         body: JSON.stringify({
           content: content,
-          senderId: myUserId
+          senderId: myUserId,
+          // ファイル情報（存在する場合のみ）
+          fileUrl: fileInfo?.url,
+          fileName: fileInfo?.name,
+          fileType: fileInfo?.type,
+          fileSize: fileInfo?.size,
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'DMメッセージの送信に失敗しました');
       }
-      
+
       if (data.success) {
         console.log('✅ DMメッセージ送信成功:', data.message);
-        
+
         // 楽観的更新：送信成功時、メッセージリストに新しいメッセージを即座に追加
         // リアルタイム機能により、他のユーザーの画面にも自動的に表示される
         addMessage(data.message);
       } else {
         throw new Error(data.error);
       }
-      
+
     } catch (error) {
       console.error('❌ DMメッセージの送信に失敗しました:', error);
       alert('メッセージの送信に失敗しました。もう一度お試しください。');
@@ -175,7 +197,7 @@ export default function DirectMessagePage() {
   };
 
   // データ読み込み中・認証チェック
-  if (!isInitialized || !dmPartner || !user) {
+  if (!isInitialized || !dmPartner || !user || !myUserId) {
     return (
       <div className="flex items-center justify-center h-full">
         <p>読み込み中...</p>

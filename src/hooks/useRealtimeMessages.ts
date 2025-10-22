@@ -20,6 +20,11 @@ interface Message {
   sender: User;
   content: string;
   createdAt: Date | string;
+  // ファイル添付情報（オプショナル）
+  fileUrl?: string | null;
+  fileName?: string | null;
+  fileType?: string | null;
+  fileSize?: number | null;
 }
 
 interface UseRealtimeMessagesProps {
@@ -77,11 +82,17 @@ export function useRealtimeMessages({ channelId, initialMessages }: UseRealtimeM
         async (payload) => {
           console.log('📨 Realtimeで新しいメッセージを受信:', payload);
           console.log('📨 受信データ詳細:', JSON.stringify(payload, null, 2));
-          
+
           try {
             // データベースから送信されたpayloadをMessage型に変換
             const newMessage = payload.new as any;
-            
+
+            // スレッド返信（parentMessageIdが存在する）は除外
+            if (newMessage.parentMessageId) {
+              console.log('🔄 スレッド返信のため、メインチャットには追加しない:', newMessage.id);
+              return;
+            }
+
             // 送信者の情報を取得
             const response = await fetch(`/api/user/${newMessage.senderId}`);
             let senderInfo = {
@@ -90,20 +101,25 @@ export function useRealtimeMessages({ channelId, initialMessages }: UseRealtimeM
               email: '',
               authId: undefined
             };
-            
+
             if (response.ok) {
               const userData = await response.json();
               if (userData.success) {
                 senderInfo = userData.user;
               }
             }
-            
-            // メッセージにsender情報を追加
+
+            // メッセージにsender情報とファイル情報を追加
             const messageWithSender: Message = {
               id: newMessage.id,
               content: newMessage.content,
               createdAt: newMessage.createdAt,
-              sender: senderInfo
+              sender: senderInfo,
+              // ファイル情報（存在する場合のみ）
+              fileUrl: newMessage.fileUrl || null,
+              fileName: newMessage.fileName || null,
+              fileType: newMessage.fileType || null,
+              fileSize: newMessage.fileSize || null,
             };
 
             addMessage(messageWithSender);

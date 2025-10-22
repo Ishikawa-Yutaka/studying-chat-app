@@ -34,9 +34,11 @@ export async function GET(
     }
     
     // メッセージ取得（送信者情報、ファイル情報、スレッド返信も含む）
+    // 注意: parentMessageIdがnullのもののみ取得（スレッドの返信は除外）
     const messages = await prisma.message.findMany({
       where: {
-        channelId: channelId
+        channelId: channelId,
+        parentMessageId: null  // スレッドの返信は除外（親メッセージのみ取得）
       },
       include: {
         sender: {
