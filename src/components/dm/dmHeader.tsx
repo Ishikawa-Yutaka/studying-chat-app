@@ -1,12 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 // アイコン
-import { Phone, Video, Settings } from 'lucide-react';
+import { Phone, Video } from 'lucide-react';
 
 // shadcn/ui
 import { Button } from '@/components/ui/button';
-import DmSettingsDialog from './dmSettingsDialog';
 
 // DM相手のユーザー情報型
 interface User {
@@ -19,12 +17,10 @@ interface User {
 
 // DmHeaderコンポーネントのprops型定義
 interface DmHeaderProps {
-  channelId: string;  // DMチャンネルID（設定ダイアログ用）
   dmPartner: User;  // DM相手のユーザー情報
 }
 
-export default function DmHeader({ channelId, dmPartner }: DmHeaderProps) {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+export default function DmHeader({ dmPartner }: DmHeaderProps) {
   // 最終ログイン時間の表示フォーマット
   const formatLastSeen = (lastSeen?: Date) => {
     if (!lastSeen) return '';
@@ -113,29 +109,9 @@ export default function DmHeader({ channelId, dmPartner }: DmHeaderProps) {
             >
               <Video className="h-5 w-5" />
             </Button>
-
-            {/* DM設定ボタン */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-gray-100 text-foreground"
-              title="DM設定"
-              onClick={() => setIsSettingsOpen(true)}
-            >
-              <Settings className="h-5 w-5" />
-            </Button>
           </div>
         </div>
       </header>
-
-      {/* DM設定モーダル */}
-      <DmSettingsDialog
-        open={isSettingsOpen}
-        onOpenChange={setIsSettingsOpen}
-        channelId={channelId}
-        partnerName={dmPartner.name}
-        partnerEmail={dmPartner.email || ''}
-      />
     </>
   );
 }

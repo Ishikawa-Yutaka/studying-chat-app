@@ -43,10 +43,10 @@ export default function SettingsMenu({ onAvatarSettingsClick, onSignOut }: Setti
           <Button
             variant="ghost"
             size="icon"
-            className="w-full h-10 hover:bg-accent hover:text-accent-foreground text-foreground"
+            className="h-10 w-10 hover:bg-accent hover:text-accent-foreground text-foreground"
             title="設定"
           >
-            <Settings className="h-5 w-5" />
+            <Settings size={23} strokeWidth={2.5} style={{ width: '23px', height: '23px' }} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">

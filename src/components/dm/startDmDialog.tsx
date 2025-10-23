@@ -20,6 +20,7 @@ import { MessageCircle, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
+import { UserAvatar } from '@/components/userAvatar';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,7 @@ interface User {
   name: string;
   email: string;
   authId: string;
+  avatarUrl?: string | null;
 }
 
 interface StartDmDialogProps {
@@ -174,7 +176,7 @@ export default function StartDmDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>新規 DM</DialogTitle>
+          <DialogTitle>ユーザー検索</DialogTitle>
           <DialogDescription>
             メッセージを送信するユーザーを選択してください
           </DialogDescription>
@@ -217,12 +219,13 @@ export default function StartDmDialog({
                 >
                   {/* ユーザー情報 */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    {/* アバター（イニシャル） */}
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 shrink-0">
-                      <span className="text-sm font-medium text-primary">
-                        {user.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
+                    {/* アバター画像 */}
+                    <UserAvatar
+                      name={user.name}
+                      avatarUrl={user.avatarUrl}
+                      size="md"
+                      className="shrink-0"
+                    />
 
                     {/* 名前・メール */}
                     <div className="flex-1 min-w-0">

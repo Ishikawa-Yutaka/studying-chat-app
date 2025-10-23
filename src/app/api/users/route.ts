@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
         name: true,
         email: true,
         authId: true,
+        avatarUrl: true,
         createdAt: true
       },
       orderBy: {

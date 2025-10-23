@@ -8,9 +8,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import StartDmDialog from '@/components/dm/startDmDialog';
+import DmSettingsDialog from '@/components/dm/dmSettingsDialog';
 import { UserAvatar } from '@/components/userAvatar';
 
 // DM型（APIレスポンスと一致）
@@ -31,6 +32,8 @@ interface DirectMessageListProps {
 export default function DirectMessageList({ directMessages, pathname, onDmCreated }: DirectMessageListProps) {
   // モーダル開閉状態
   const [isStartDmOpen, setIsStartDmOpen] = useState(false);
+  // DM設定ダイアログの状態管理
+  const [settingsDm, setSettingsDm] = useState<DirectMessage | null>(null);
   return (
     <div className="px-2 py-2">
       <div className="flex items-center justify-between mb-2">
@@ -40,29 +43,51 @@ export default function DirectMessageList({ directMessages, pathname, onDmCreate
           size="icon"
           className="h-6 w-6 hover:bg-accent hover:text-accent-foreground text-foreground"
           onClick={() => setIsStartDmOpen(true)}
+          title="ユーザーを検索してDMを開始"
         >
-          <Plus className="h-4 w-4" />
+          <Search className="h-4 w-4" />
         </Button>
       </div>
       <div className="space-y-1">
         {directMessages.map((dm) => {
           const isActive = pathname === `/workspace/dm/${dm.partnerId}`;
           return (
-            <Link
+            <div
               key={dm.id}
-              href={`/workspace/dm/${dm.partnerId}`}
-              className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${
+              className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${
                 isActive ? 'bg-accent text-accent-foreground' : ''
               }`}
             >
-              <UserAvatar
-                name={dm.partnerName}
-                avatarUrl={dm.partnerAvatarUrl}
-                size="sm"
-                className="h-6 w-6"
-              />
-              <span className="truncate">{dm.partnerName}</span>
-            </Link>
+              <Link
+                href={`/workspace/dm/${dm.partnerId}`}
+                className="flex items-center gap-2 flex-1 min-w-0"
+              >
+                <UserAvatar
+                  name={dm.partnerName}
+                  avatarUrl={dm.partnerAvatarUrl}
+                  size="sm"
+                  className="h-6 w-6 flex-shrink-0"
+                />
+                <span className="truncate">{dm.partnerName}</span>
+              </Link>
+              {/* アクションボタンエリア */}
+              <div className="flex items-center gap-0.5">
+                {/* 削除アイコン */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="group/delete h-5 w-5 flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSettingsDm(dm);
+                  }}
+                  title="DM設定"
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-gray-400 group-hover/delete:text-red-500 transition-colors" />
+                </Button>
+              </div>
+            </div>
           );
         })}
         {directMessages.length === 0 && (
@@ -78,6 +103,19 @@ export default function DirectMessageList({ directMessages, pathname, onDmCreate
         onOpenChange={setIsStartDmOpen}
         onDmCreated={onDmCreated}
       />
+
+      {/* DM設定ダイアログ */}
+      {settingsDm && (
+        <DmSettingsDialog
+          open={settingsDm !== null}
+          onOpenChange={(open) => {
+            if (!open) setSettingsDm(null);
+          }}
+          channelId={settingsDm.id}
+          partnerName={settingsDm.partnerName}
+          partnerEmail={settingsDm.partnerEmail}
+        />
+      )}
     </div>
   );
 }

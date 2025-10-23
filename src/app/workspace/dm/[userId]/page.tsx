@@ -213,7 +213,7 @@ export default function DirectMessagePage() {
   return (
     <div className="flex flex-col h-full">
       {/* DM専用ヘッダー */}
-      <DmHeader channelId={dmChannelId} dmPartner={dmPartner} />
+      <DmHeader dmPartner={dmPartner} />
       
       {/* メッセージ表示エリア（チャンネルと同じコンポーネントを再利用） */}
       <MessageView messages={messages} myUserId={myUserId} />

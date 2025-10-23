@@ -34,13 +34,14 @@ interface Channel {
   name: string;
   description?: string | null;
   memberCount: number;
+  isJoined: boolean;  // 参加状態
   createdAt: Date | string;
 }
 
 interface JoinChannelDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onChannelJoined?: () => void; // サイドバー更新用コールバック
+  onChannelJoined?: (channel: { id: string; name: string; description?: string; memberCount: number }) => void; // チャンネル参加時に即座にUIを更新するコールバック
 }
 
 export default function JoinChannelDialog({
@@ -58,45 +59,45 @@ export default function JoinChannelDialog({
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * 参加可能なチャンネル一覧取得
+   * 全チャンネル一覧取得
    *
    * 処理の流れ:
-   * 1. GET /api/channels/available で自分が参加していないチャンネルを取得
+   * 1. GET /api/channels/all で全チャンネルを取得（参加状態を含む）
    * 2. チャンネル一覧を表示
    */
   useEffect(() => {
     // モーダルが開かれていない、または認証されていない場合はスキップ
     if (!open || !currentUser) return;
 
-    const fetchAvailableChannels = async () => {
+    const fetchAllChannels = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        console.log('📋 参加可能なチャンネル一覧取得開始...');
+        console.log('📋 全チャンネル一覧取得開始...');
 
-        const response = await fetch(`/api/channels/available?userId=${currentUser.id}`);
+        const response = await fetch('/api/channels/all');
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || '参加可能なチャンネルの取得に失敗しました');
+          throw new Error(data.error || 'チャンネルの取得に失敗しました');
         }
 
         if (data.success) {
-          console.log(`✅ 参加可能なチャンネル取得成功: ${data.count}件`);
+          console.log(`✅ 全チャンネル取得成功: ${data.count}件`);
           setChannels(data.channels);
         } else {
           throw new Error(data.error);
         }
       } catch (err) {
-        console.error('❌ 参加可能なチャンネル取得エラー:', err);
-        setError(err instanceof Error ? err.message : '参加可能なチャンネルの取得に失敗しました');
+        console.error('❌ チャンネル取得エラー:', err);
+        setError(err instanceof Error ? err.message : 'チャンネルの取得に失敗しました');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchAvailableChannels();
+    fetchAllChannels();
   }, [open, currentUser]);
 
   /**
@@ -152,9 +153,14 @@ export default function JoinChannelDialog({
         // モーダルを閉じる
         onOpenChange(false);
 
-        // サイドバー更新（新しいチャンネルを一覧に反映）
+        // 即座にUIを更新（楽観的更新）
         if (onChannelJoined) {
-          onChannelJoined();
+          onChannelJoined({
+            id: channel.id,
+            name: channel.name,
+            description: channel.description || undefined,
+            memberCount: channel.memberCount + 1  // 自分が参加したので+1
+          });
         }
 
         // チャンネルページに遷移
@@ -175,58 +181,58 @@ export default function JoinChannelDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>チャンネルに参加</DialogTitle>
+          <DialogTitle>チャンネル検索</DialogTitle>
           <DialogDescription>
-            参加するチャンネルを選択してください
+            チャンネルを検索して参加または表示できます
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 overflow-hidden flex-1 flex flex-col min-h-0">
           {/* 検索バー */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="チャンネル名または説明で検索..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 w-full"
             />
           </div>
 
           {/* エラーメッセージ */}
           {error && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
+            <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 shrink-0">
               {error}
             </div>
           )}
 
           {/* チャンネル一覧 */}
-          <div className="max-h-[400px] overflow-y-auto space-y-2">
+          <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
             {isLoading ? (
               <div className="text-center text-sm text-muted-foreground py-8">
                 読み込み中...
               </div>
             ) : filteredChannels.length === 0 ? (
               <div className="text-center text-sm text-muted-foreground py-8">
-                {searchTerm ? '該当するチャンネルが見つかりません' : '参加可能なチャンネルがありません'}
+                {searchTerm ? '該当するチャンネルが見つかりません' : 'チャンネルがありません'}
               </div>
             ) : (
               filteredChannels.map((channel) => (
                 <div
                   key={channel.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent transition-colors"
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-accent transition-colors min-w-0"
                 >
                   {/* チャンネル情報 */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
                     {/* アイコン */}
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 shrink-0">
                       <Hash className="h-5 w-5 text-primary" />
                     </div>
 
                     {/* 名前・説明・メンバー数 */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 overflow-hidden">
                       <div className="text-sm font-medium text-foreground truncate">
                         {channel.name}
                       </div>
@@ -236,22 +242,36 @@ export default function JoinChannelDialog({
                         </div>
                       )}
                       <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                        <Users className="h-3 w-3" />
-                        {channel.memberCount} 人のメンバー
+                        <Users className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{channel.memberCount} 人のメンバー</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* 参加ボタン */}
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => handleJoinChannel(channel)}
-                    disabled={isLoading}
-                    className="shrink-0"
-                  >
-                    参加
-                  </Button>
+                  {/* 参加ボタン / 開くボタン */}
+                  {channel.isJoined ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        onOpenChange(false);
+                        router.push(`/workspace/channel/${channel.id}`);
+                      }}
+                      className="shrink-0"
+                    >
+                      開く
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => handleJoinChannel(channel)}
+                      disabled={isLoading}
+                      className="shrink-0"
+                    >
+                      参加
+                    </Button>
+                  )}
                 </div>
               ))
             )}

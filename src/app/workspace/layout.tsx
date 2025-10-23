@@ -60,6 +60,24 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
     }
   }, [authLoading, isAuthenticated, router]);
 
+  // チャンネル参加時の即座のUI更新
+  const handleChannelJoined = useCallback((channel: { id: string; name: string; description?: string; memberCount: number }) => {
+    console.log('🔄 チャンネルをUIに即座に追加:', channel.name);
+    setChannels((prev) => [...prev, channel]);
+  }, []);
+
+  // チャンネル退出時の即座のUI更新
+  const handleChannelLeft = useCallback((channelId: string) => {
+    console.log('🔄 チャンネルをUIから即座に削除:', channelId);
+    setChannels((prev) => prev.filter((ch) => ch.id !== channelId));
+  }, []);
+
+  // DM退出時の即座のUI更新
+  const handleDmLeft = useCallback((dmId: string) => {
+    console.log('🔄 DMをUIから即座に削除:', dmId);
+    setDirectMessages((prev) => prev.filter((dm) => dm.id !== dmId));
+  }, []);
+
   // サイドバーデータ更新関数
   const updateSidebarData = useCallback(async () => {
     if (!user) return;
@@ -152,7 +170,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             </div>
             <Separator />
             <div className="flex-1">
-              <ChannelList channels={channels} pathname={pathname} onChannelCreated={updateSidebarData} />
+              <ChannelList channels={channels} pathname={pathname} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} />
               <Separator className="my-2" />
               <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} />
               <Separator className="my-2" />
@@ -196,7 +214,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
               </div>
             ) : (
               <>
-                <ChannelList channels={channels} pathname={pathname} onChannelCreated={updateSidebarData} />
+                <ChannelList channels={channels} pathname={pathname} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} />
                 <Separator className="my-2" />
                 <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} />
                 <Separator className="my-2" />
