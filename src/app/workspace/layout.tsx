@@ -35,6 +35,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
     name: string;
     description?: string;
     memberCount: number;
+    creatorId?: string | null;
   }>>([]);
   const [directMessages, setDirectMessages] = useState<Array<{
     id: string;
@@ -170,7 +171,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             </div>
             <Separator />
             <div className="flex-1">
-              <ChannelList channels={channels} pathname={pathname} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} />
+              <ChannelList channels={channels} pathname={pathname} currentUserId={currentUser?.id} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} />
               <Separator className="my-2" />
               <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} />
               <Separator className="my-2" />
@@ -214,7 +215,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
               </div>
             ) : (
               <>
-                <ChannelList channels={channels} pathname={pathname} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} />
+                <ChannelList channels={channels} pathname={pathname} currentUserId={currentUser?.id} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} />
                 <Separator className="my-2" />
                 <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} />
                 <Separator className="my-2" />

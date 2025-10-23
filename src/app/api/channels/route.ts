@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
             name: true,
             description: true,
             type: true,
+            creatorId: true,
             members: {
               include: {
                 user: {
@@ -64,7 +65,8 @@ export async function GET(request: NextRequest) {
           id: channel.id,
           name: channel.name,
           description: channel.description,
-          memberCount: channel.members.length
+          memberCount: channel.members.length,
+          creatorId: channel.creatorId  // チャンネル作成者のID
         });
       } else if (channel.type === 'dm') {
         // DM - 相手のユーザー情報を取得
@@ -173,6 +175,7 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         description: description?.trim() || null,
         type: 'channel',
+        creatorId: user.id, // チャンネル作成者のIDを保存
         members: {
           create: {
             userId: user.id // 認証済みユーザーを自動的にメンバーに追加

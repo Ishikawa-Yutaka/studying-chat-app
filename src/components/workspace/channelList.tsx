@@ -31,17 +31,19 @@ interface Channel {
   id: string;
   name: string;
   description?: string;
+  creatorId?: string | null; // チャンネル作成者のID
 }
 
 interface ChannelListProps {
   channels: Channel[];
   pathname: string;
+  currentUserId?: string; // 現在ログイン中のユーザーID（作成者判定用）
   onChannelCreated?: () => void; // チャンネル作成後にチャンネル一覧を再取得するコールバック
   onChannelJoined?: (channel: { id: string; name: string; description?: string; memberCount: number }) => void; // チャンネル参加時に即座にUIを更新するコールバック
   onChannelLeft?: (channelId: string) => void; // チャンネル退出時に即座にUIを更新するコールバック
 }
 
-export default function ChannelList({ channels, pathname, onChannelCreated, onChannelJoined, onChannelLeft }: ChannelListProps) {
+export default function ChannelList({ channels, pathname, currentUserId, onChannelCreated, onChannelJoined, onChannelLeft }: ChannelListProps) {
   const router = useRouter();
 
   // モーダルの開閉状態管理
@@ -140,9 +142,9 @@ export default function ChannelList({ channels, pathname, onChannelCreated, onCh
                 <span className="truncate">{channel.name}</span>
               </Link>
 
-              {/* アクションボタンエリア */}
+              {/* アクションボタンエリア - 固定幅で常に同じレイアウト */}
               <div className="flex items-center gap-0.5">
-                {/* 退出アイコン */}
+                {/* 退出アイコン（常に表示） */}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -157,17 +159,20 @@ export default function ChannelList({ channels, pathname, onChannelCreated, onCh
                   <LogOut className="h-3.5 w-3.5 text-gray-400 group-hover/leave:text-orange-500 transition-colors" />
                 </Button>
 
-                {/* 削除アイコン */}
+                {/* 削除アイコン（作成者のみ表示、それ以外はスペース確保のため非表示） */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="group/delete h-5 w-5 flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+                  className={`group/delete h-5 w-5 flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity ${
+                    currentUserId && channel.creatorId === currentUserId ? '' : 'invisible pointer-events-none'
+                  }`}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     setSettingsChannel(channel);
                   }}
                   title="チャンネル設定"
+                  disabled={!(currentUserId && channel.creatorId === currentUserId)}
                 >
                   <Trash2 className="h-3.5 w-3.5 text-gray-400 group-hover/delete:text-red-500 transition-colors" />
                 </Button>

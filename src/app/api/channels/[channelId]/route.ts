@@ -3,24 +3,29 @@
  *
  * DELETE /api/channels/[channelId] - 指定したチャンネルを削除
  *
+ * セキュリティ強化版:
+ * - 認証チェック：ログインしているユーザーのみアクセス可能
+ * - 作成者確認：チャンネルを作成したユーザーのみ削除可能
+ *
  * 処理の流れ:
  * 1. チャンネルIDを取得
- * 2. Supabase認証でログインユーザーを確認
- * 3. チャンネルが存在するか確認
- * 4. チャンネルを削除（メンバー・メッセージも自動削除される）
- * 5. 成功レスポンスを返却
+ * 2. 認証チェック：ログインユーザーを確認
+ * 3. チャンネル情報を取得（作成者IDを含む）
+ * 4. 作成者チェック：このユーザーが作成者か確認
+ * 5. チャンネルを削除（メンバー・メッセージも自動削除される）
+ * 6. 成功レスポンスを返却
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth-server';
 
 export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ channelId: string }> }
 ) {
   try {
-    console.log('🔄 チャンネル削除API開始');
+    console.log('🗑️ チャンネル削除API開始');
 
     // 1. チャンネルID取得
     const { channelId } = await context.params;
@@ -34,33 +39,26 @@ export async function DELETE(
 
     console.log(`📝 チャンネル削除リクエスト - ID: ${channelId}`);
 
-    // 2. Supabase認証チェック
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // 2. 認証チェック：現在ログインしているユーザーを取得
+    const { user, error: authError, status: authStatus } = await getCurrentUser();
 
     if (authError || !user) {
-      console.error('❌ 認証エラー:', authError);
       return NextResponse.json({
         success: false,
-        error: '認証が必要です。ログインしてください。'
-      }, { status: 401 });
+        error: authError
+      }, { status: authStatus });
     }
 
-    console.log(`✅ 認証確認: ${user.email} (authId: ${user.id})`);
+    console.log(`✅ 認証確認: ${user.name} (ID: ${user.id})`);
 
-    // 3. チャンネルが存在するか確認
+    // 3. チャンネル情報を取得（作成者IDを含む）
     const channel = await prisma.channel.findUnique({
       where: { id: channelId },
-      include: {
-        members: {
-          include: {
-            user: {
-              select: {
-                authId: true
-              }
-            }
-          }
-        }
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        creatorId: true
       }
     });
 
@@ -72,26 +70,24 @@ export async function DELETE(
       }, { status: 404 });
     }
 
-    // DMは削除できない
+    // DMは削除できない（退出機能を使用）
     if (channel.type === 'dm') {
       return NextResponse.json({
         success: false,
-        error: 'ダイレクトメッセージは削除できません'
-      }, { status: 403 });
+        error: 'ダイレクトメッセージは削除できません。退出機能を使用してください。'
+      }, { status: 400 });
     }
 
-    // 4. ユーザーがこのチャンネルのメンバーか確認（オプション: より厳密にするならチャンネル作成者のみ削除可能にする）
-    const isMember = channel.members.some(member => member.user.authId === user.id);
-
-    if (!isMember) {
-      console.error('❌ このチャンネルのメンバーではありません');
+    // 4. 作成者チェック：このユーザーがチャンネルの作成者か確認
+    if (channel.creatorId !== user.id) {
+      console.error('❌ 作成者ではありません - 作成者ID:', channel.creatorId, 'ユーザーID:', user.id);
       return NextResponse.json({
         success: false,
-        error: 'このチャンネルを削除する権限がありません'
-      }, { status: 403 });
+        error: 'チャンネルを削除する権限がありません。作成者のみが削除できます。'
+      }, { status: 403 }); // 403 Forbidden
     }
 
-    console.log(`🗑️ チャンネル削除実行: ${channel.name}`);
+    console.log(`🔑 作成者確認OK - ユーザー: ${user.name}, チャンネル: ${channel.name}`);
 
     // 5. チャンネル削除（Prismaのcascade設定により、メンバーとメッセージも自動削除される）
     await prisma.channel.delete({
@@ -105,7 +101,7 @@ export async function DELETE(
       success: true,
       message: 'チャンネルを削除しました',
       channelName: channel.name
-    }, { status: 200 });
+    });
 
   } catch (error) {
     console.error('❌ チャンネル削除エラー:', error);

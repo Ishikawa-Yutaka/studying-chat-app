@@ -31,7 +31,12 @@ export async function GET(request: NextRequest) {
       where: {
         type: 'channel'
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        creatorId: true,  // チャンネル作成者のID
+        createdAt: true,
         members: {
           select: {
             userId: true
@@ -49,6 +54,7 @@ export async function GET(request: NextRequest) {
       name: channel.name,
       description: channel.description,
       memberCount: channel.members.length,
+      creatorId: channel.creatorId,  // チャンネル作成者のID
       isJoined: channel.members.some(member => member.userId === user.id),
       createdAt: channel.createdAt
     }));
