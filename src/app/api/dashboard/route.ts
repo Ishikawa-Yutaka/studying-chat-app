@@ -43,7 +43,8 @@ export async function GET(request: NextRequest) {
                     id: true,
                     name: true,
                     email: true,
-                    authId: true
+                    authId: true,
+                    avatarUrl: true
                   }
                 }
               }
@@ -103,7 +104,8 @@ export async function GET(request: NextRequest) {
             id: channel.id,
             partnerId: partner.user.authId, // Supabase AuthID を使用
             partnerName: partner.user.name,
-            partnerEmail: partner.user.email
+            partnerEmail: partner.user.email,
+            partnerAvatarUrl: partner.user.avatarUrl  // アバターURL追加
           });
         }
       }
@@ -133,6 +135,7 @@ export async function GET(request: NextRequest) {
         partnerId: dm.partnerId,
         partnerName: dm.partnerName,
         partnerEmail: dm.partnerEmail,
+        partnerAvatarUrl: dm.partnerAvatarUrl,  // アバターURL追加
         sentCount: sentCount,        // 自分が送信したメッセージ数
         receivedCount: receivedCount, // 相手から受信したメッセージ数
         totalCount: sentCount + receivedCount // 合計メッセージ数

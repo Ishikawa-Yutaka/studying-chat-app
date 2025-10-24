@@ -40,6 +40,7 @@ interface ChannelSettingsDialogProps {
   channelId: string;
   channelName: string;
   channelDescription?: string;
+  onChannelDeleted?: (channelId: string) => void; // チャンネル削除時のコールバック（楽観的更新）
 }
 
 export default function ChannelSettingsDialog({
@@ -47,7 +48,8 @@ export default function ChannelSettingsDialog({
   onOpenChange,
   channelId,
   channelName,
-  channelDescription
+  channelDescription,
+  onChannelDeleted
 }: ChannelSettingsDialogProps) {
   const router = useRouter();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -85,14 +87,14 @@ export default function ChannelSettingsDialog({
       setShowDeleteConfirm(false);
       onOpenChange(false);
 
+      // 楽観的更新: 即座にサイドバーからチャンネルを削除
+      if (onChannelDeleted) {
+        onChannelDeleted(channelId);
+      }
+
       // ワークスペースのトップページに遷移
       // （削除したチャンネルページにはもういられないため）
       router.push('/workspace');
-
-      // 遷移後にサイドバーを更新（少し遅延させる）
-      setTimeout(() => {
-        window.dispatchEvent(new Event('channelDeleted'));
-      }, 100);
 
     } catch (err) {
       console.error('❌ チャンネル削除エラー:', err);

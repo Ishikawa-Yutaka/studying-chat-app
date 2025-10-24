@@ -42,6 +42,7 @@ interface DmSettingsDialogProps {
   channelId: string;
   partnerName: string;
   partnerEmail: string;
+  onDmLeft?: (dmId: string) => void; // DM退出時のコールバック（楽観的更新）
 }
 
 export default function DmSettingsDialog({
@@ -49,7 +50,8 @@ export default function DmSettingsDialog({
   onOpenChange,
   channelId,
   partnerName,
-  partnerEmail
+  partnerEmail,
+  onDmLeft
 }: DmSettingsDialogProps) {
   const router = useRouter();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
@@ -89,14 +91,14 @@ export default function DmSettingsDialog({
       setShowLeaveConfirm(false);
       onOpenChange(false);
 
+      // 楽観的更新: 即座にサイドバーからDMを削除
+      if (onDmLeft) {
+        onDmLeft(channelId);
+      }
+
       // ワークスペースのトップページに遷移
       // （退出したDMページにはもういられないため）
       router.push('/workspace');
-
-      // 遷移後にサイドバーを更新（少し遅延させる）
-      setTimeout(() => {
-        window.dispatchEvent(new Event('dmLeft'));
-      }, 100);
 
     } catch (err) {
       console.error('❌ DM退出エラー:', err);

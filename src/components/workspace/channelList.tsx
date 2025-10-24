@@ -41,14 +41,18 @@ interface ChannelListProps {
   onChannelCreated?: () => void; // チャンネル作成後にチャンネル一覧を再取得するコールバック
   onChannelJoined?: (channel: { id: string; name: string; description?: string; memberCount: number }) => void; // チャンネル参加時に即座にUIを更新するコールバック
   onChannelLeft?: (channelId: string) => void; // チャンネル退出時に即座にUIを更新するコールバック
+  onChannelDeleted?: (channelId: string) => void; // チャンネル削除時に即座にUIを更新するコールバック
 }
 
-export default function ChannelList({ channels, pathname, currentUserId, onChannelCreated, onChannelJoined, onChannelLeft }: ChannelListProps) {
+export default function ChannelList({ channels, pathname, currentUserId, onChannelCreated, onChannelJoined, onChannelLeft, onChannelDeleted }: ChannelListProps) {
   const router = useRouter();
 
   // モーダルの開閉状態管理
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
+
+  // 「さらに表示」機能用の状態
+  const [showAllChannels, setShowAllChannels] = useState(false);
   // チャンネル設定ダイアログの状態管理
   const [settingsChannel, setSettingsChannel] = useState<Channel | null>(null);
   // 退出確認ダイアログの状態管理
@@ -125,12 +129,13 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
         </div>
       </div>
       <div className="space-y-1">
-        {channels.map((channel) => {
+        <div className="max-h-[250px] overflow-y-auto">
+          {channels.slice(0, showAllChannels ? undefined : 5).map((channel) => {
           const isActive = pathname === `/workspace/channel/${channel.id}`;
           return (
             <div
               key={channel.id}
-              className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${
+              className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground mb-1 ${
                 isActive ? 'bg-accent text-accent-foreground' : ''
               }`}
             >
@@ -185,6 +190,17 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
             チャンネルがありません
           </p>
         )}
+        </div>
+        {channels.length > 5 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full mt-2"
+            onClick={() => setShowAllChannels(!showAllChannels)}
+          >
+            {showAllChannels ? '表示を減らす' : `さらに表示 (${channels.length - 5}件)`}
+          </Button>
+        )}
       </div>
 
       {/* チャンネル作成モーダル */}
@@ -211,6 +227,7 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
           channelId={settingsChannel.id}
           channelName={settingsChannel.name}
           channelDescription={settingsChannel.description}
+          onChannelDeleted={onChannelDeleted}
         />
       )}
 

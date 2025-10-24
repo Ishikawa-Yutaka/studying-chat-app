@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import CreateChannelDialog from '@/components/workspace/createChannelDialog';
 import StartDmDialog from '@/components/dm/startDmDialog';
 import JoinChannelDialog from '@/components/channel/joinChannelDialog';
+import { UserAvatar } from '@/components/userAvatar';
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard';
@@ -40,6 +41,7 @@ interface DmStat {
   partnerId: string;
   partnerName: string;
   partnerEmail: string;
+  partnerAvatarUrl?: string | null;
   sentCount: number;
   receivedCount: number;
   totalCount: number;
@@ -184,7 +186,7 @@ export default function WorkspacePage() {
       />
 
       {/* 統計情報カード */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card
           className="cursor-pointer transition-colors hover:bg-accent/50"
           onClick={() => {
@@ -201,25 +203,6 @@ export default function WorkspacePage() {
           <CardContent>
             <div className="text-2xl font-bold">{stats.channelCount}</div>
             <p className="text-xs text-muted-foreground">参加しているチャンネル数（クリックで一覧へ）</p>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="cursor-pointer transition-colors hover:bg-accent/50"
-          onClick={() => {
-            const element = document.getElementById('dm-stats');
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">DM相手</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.dmPartnerCount}</div>
-            <p className="text-xs text-muted-foreground">やり取りしている相手の人数（クリックで統計へ）</p>
           </CardContent>
         </Card>
 
@@ -295,11 +278,11 @@ export default function WorkspacePage() {
               {dmStats.slice(0, showAllDmStats ? undefined : 5).map((stat) => (
                 <div key={stat.partnerId} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                      <span className="font-medium text-primary">
-                        {stat.partnerName.charAt(0)}
-                      </span>
-                    </div>
+                    <UserAvatar
+                      name={stat.partnerName}
+                      avatarUrl={stat.partnerAvatarUrl}
+                      size="sm"
+                    />
                     <div className="space-y-1">
                       <Link
                         href={`/workspace/dm/${stat.partnerId}`}

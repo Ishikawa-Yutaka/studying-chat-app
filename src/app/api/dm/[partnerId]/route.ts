@@ -52,23 +52,16 @@ export async function GET(
     }
     
     console.log(`👤 ユーザー確認 - 自分: ${myUser.name} (${myUser.id}), 相手: ${partner.name} (${partner.id})`);
-    
-    // 既存のDMチャンネルを検索（2人が参加しているDMタイプのチャンネル）
-    const existingDmChannel = await prisma.channel.findFirst({
+
+    // 既存のDMチャンネルを検索
+    // 重要: 自分が退出済みでも、相手がメンバーならチャンネルは存在する
+    // → メッセージ履歴を保持するため、既存チャンネルを再利用する
+    const allDmChannels = await prisma.channel.findMany({
       where: {
         type: 'dm',
-        AND: [
-          {
-            members: {
-              some: { userId: myUser.id }
-            }
-          },
-          {
-            members: {
-              some: { userId: partner.id }
-            }
-          }
-        ]
+        members: {
+          some: { userId: partner.id }  // 相手がメンバーのDMチャンネルを探す
+        }
       },
       include: {
         members: {
@@ -85,21 +78,38 @@ export async function GET(
         }
       }
     });
-    
-    // 2人が参加しているDMチャンネルを確認
-    const validDmChannel = existingDmChannel?.members.length === 2 &&
-      existingDmChannel.members.some(m => m.userId === myUser.id) &&
-      existingDmChannel.members.some(m => m.userId === partner.id) 
-      ? existingDmChannel : null;
-    
-    if (validDmChannel) {
-      console.log(`✅ 既存DMチャンネル発見: ${validDmChannel.id}`);
-      
+
+    // 相手との1対1のDMチャンネルを探す
+    // （相手がメンバーで、かつ自分または相手のみがメンバーのチャンネル）
+    const existingDmChannel = allDmChannels.find(channel => {
+      const memberIds = channel.members.map(m => m.userId);
+      // 相手が必ずメンバーで、メンバーが2人以下（自分が退出済みなら1人）
+      return memberIds.includes(partner.id) &&
+             (memberIds.includes(myUser.id) || memberIds.length === 1);
+    });
+
+    if (existingDmChannel) {
+      const isMember = existingDmChannel.members.some(m => m.userId === myUser.id);
+
+      if (isMember) {
+        // 既に両方がメンバー → そのまま返す
+        console.log(`✅ 既存DMチャンネル発見（参加中）: ${existingDmChannel.id}`);
+      } else {
+        // 自分が退出済み → 再度メンバーに追加
+        console.log(`🔄 既存DMチャンネルに再参加: ${existingDmChannel.id}`);
+        await prisma.channelMember.create({
+          data: {
+            userId: myUser.id,
+            channelId: existingDmChannel.id
+          }
+        });
+      }
+
       return NextResponse.json({
         success: true,
         dmChannel: {
-          id: validDmChannel.id,
-          type: validDmChannel.type,
+          id: existingDmChannel.id,
+          type: existingDmChannel.type,
           partner: partner
         }
       });

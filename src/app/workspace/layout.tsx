@@ -69,7 +69,13 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
 
   // チャンネル退出時の即座のUI更新
   const handleChannelLeft = useCallback((channelId: string) => {
-    console.log('🔄 チャンネルをUIから即座に削除:', channelId);
+    console.log('🔄 チャンネルをUIから即座に削除（退出）:', channelId);
+    setChannels((prev) => prev.filter((ch) => ch.id !== channelId));
+  }, []);
+
+  // チャンネル削除時の即座のUI更新
+  const handleChannelDeleted = useCallback((channelId: string) => {
+    console.log('🔄 チャンネルをUIから即座に削除（削除）:', channelId);
     setChannels((prev) => prev.filter((ch) => ch.id !== channelId));
   }, []);
 
@@ -131,28 +137,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
     updateSidebarData();
   }, [user, updateSidebarData]);
 
-  // チャンネル削除・DM退出イベントをリッスン
-  useEffect(() => {
-    const handleChannelDeleted = () => {
-      console.log('📢 チャンネル削除イベント受信 - サイドバー更新');
-      updateSidebarData();
-    };
-
-    const handleDmLeft = () => {
-      console.log('📢 DM退出イベント受信 - サイドバー更新');
-      updateSidebarData();
-    };
-
-    // イベントリスナー登録
-    window.addEventListener('channelDeleted', handleChannelDeleted);
-    window.addEventListener('dmLeft', handleDmLeft);
-
-    // クリーンアップ: コンポーネントがアンマウントされた時にリスナーを削除
-    return () => {
-      window.removeEventListener('channelDeleted', handleChannelDeleted);
-      window.removeEventListener('dmLeft', handleDmLeft);
-    };
-  }, [updateSidebarData]);
+  // 注: DM退出とチャンネル削除は楽観的更新を使用しているため、イベントリスナーは不要
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -171,9 +156,9 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             </div>
             <Separator />
             <div className="flex-1">
-              <ChannelList channels={channels} pathname={pathname} currentUserId={currentUser?.id} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} />
+              <ChannelList channels={channels} pathname={pathname} currentUserId={currentUser?.id} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} onChannelDeleted={handleChannelDeleted} />
               <Separator className="my-2" />
-              <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} />
+              <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} onDmLeft={handleDmLeft} />
               <Separator className="my-2" />
               {/* AIチャットリンク */}
               <div className="px-3 py-2">
@@ -215,9 +200,9 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
               </div>
             ) : (
               <>
-                <ChannelList channels={channels} pathname={pathname} currentUserId={currentUser?.id} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} />
+                <ChannelList channels={channels} pathname={pathname} currentUserId={currentUser?.id} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} onChannelDeleted={handleChannelDeleted} />
                 <Separator className="my-2" />
-                <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} />
+                <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} onDmLeft={handleDmLeft} />
                 <Separator className="my-2" />
                 {/* AIチャットリンク */}
                 <div className="px-3 py-2">
