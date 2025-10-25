@@ -414,17 +414,40 @@ export default function AiChatPage() {
 
       {/* 右側: チャットエリア（フル幅） */}
       <div className="flex-1 flex flex-col w-full">
+        {/* 常に表示されるヘッダー（メニューボタン） */}
+        <div className="border-b bg-white px-4 py-3 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+            title="会話履歴を開く"
+          >
+            <Menu className="h-5 w-5 text-gray-600" />
+          </button>
+          <div className="flex items-center gap-2 text-gray-700">
+            <Bot className="h-5 w-5" />
+            <span className="font-medium">AIアシスタント</span>
+          </div>
+        </div>
+
         {!currentSessionId ? (
           // セッションが選択されていない場合
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+          <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
             <Bot className="h-16 w-16 mb-4" />
             <p className="text-lg">AIアシスタント</p>
             <p className="text-sm mt-2">新しい会話を始めるか、既存の会話を選択してください</p>
+            <button
+              onClick={handleNewSession}
+              className="mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
+            >
+              <Plus className="h-5 w-5" />
+              新しい会話を始める
+            </button>
           </div>
         ) : (
           <>
             {/* メッセージ表示エリア */}
-            <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-24 lg:pb-4 pt-20 lg:pt-4 space-y-6 bg-gray-50">
+            <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-24 lg:pb-4 pt-4 space-y-6 bg-gray-50">
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center h-full">
                   <p className="text-gray-500">メッセージを読み込み中...</p>
@@ -483,15 +506,6 @@ export default function AiChatPage() {
             {/* メッセージ入力フォーム（モバイル: 画面下部固定、PC: 通常配置） */}
             <div className="fixed lg:static bottom-0 left-0 right-0 border-t bg-white px-4 md:px-6 py-4 pb-safe z-10">
               <form onSubmit={handleSendMessage} className="flex gap-2">
-                {/* ハンバーガーメニュー（メッセージ入力の左側） */}
-                <button
-                  type="button"
-                  onClick={() => setIsSidebarOpen(true)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                >
-                  <Menu className="h-5 w-5 text-gray-600" />
-                </button>
-
                 <input
                   type="text"
                   value={inputMessage}

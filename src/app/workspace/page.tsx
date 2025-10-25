@@ -150,13 +150,13 @@ export default function WorkspacePage() {
             <Search className="mr-2 h-4 w-4" />
             チャンネルを探す
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setIsStartDmOpen(true)}>
-            <Users className="mr-2 h-4 w-4" />
-            新規 DM
-          </Button>
-          <Button size="sm" onClick={() => setIsCreateChannelOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => setIsCreateChannelOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             新規チャンネル
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setIsStartDmOpen(true)}>
+            <Users className="mr-2 h-4 w-4" />
+            ダイレクトメッセージ
           </Button>
           <Link href="/workspace/ai-chat">
             <Button variant="outline" size="sm">
@@ -229,8 +229,8 @@ export default function WorkspacePage() {
             <CardTitle>チャンネル一覧</CardTitle>
             <CardDescription>全てのチャンネル</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="space-y-2">
+            <div className={`space-y-4 ${showAllChannels ? 'max-h-[500px]' : 'max-h-[400px]'} overflow-y-auto transition-all duration-300`}>
               {allChannels.slice(0, showAllChannels ? undefined : 5).map((channel) => (
                 <div key={channel.id} className="flex items-center">
                   <div className="mr-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
@@ -254,16 +254,16 @@ export default function WorkspacePage() {
                   チャンネルがありません
                 </p>
               )}
-              {allChannels.length > 5 && (
-                <Button
-                  variant="outline"
-                  className="w-full mt-2"
-                  onClick={() => setShowAllChannels(!showAllChannels)}
-                >
-                  {showAllChannels ? '表示を減らす' : `さらに表示 (${allChannels.length - 5}件)`}
-                </Button>
-              )}
             </div>
+            {allChannels.length > 5 && (
+              <Button
+                variant="outline"
+                className="w-[280px] mx-auto block"
+                onClick={() => setShowAllChannels(!showAllChannels)}
+              >
+                {showAllChannels ? '表示を減らす' : `さらに表示 (${allChannels.length - 5}件)`}
+              </Button>
+            )}
           </CardContent>
         </Card>
 
@@ -273,8 +273,8 @@ export default function WorkspacePage() {
             <CardTitle>DMメッセージ統計</CardTitle>
             <CardDescription>各ユーザーとのメッセージ数</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="space-y-2">
+            <div className={`space-y-4 ${showAllDmStats ? 'max-h-[500px]' : 'max-h-[400px]'} overflow-y-auto transition-all duration-300`}>
               {dmStats.slice(0, showAllDmStats ? undefined : 5).map((stat) => (
                 <div key={stat.partnerId} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -306,16 +306,16 @@ export default function WorkspacePage() {
                   まだDMがありません
                 </p>
               )}
-              {dmStats.length > 5 && (
-                <Button
-                  variant="outline"
-                  className="w-full mt-2"
-                  onClick={() => setShowAllDmStats(!showAllDmStats)}
-                >
-                  {showAllDmStats ? '表示を減らす' : `さらに表示 (${dmStats.length - 5}件)`}
-                </Button>
-              )}
             </div>
+            {dmStats.length > 5 && (
+              <Button
+                variant="outline"
+                className="w-[280px] mx-auto block"
+                onClick={() => setShowAllDmStats(!showAllDmStats)}
+              >
+                {showAllDmStats ? '表示を減らす' : `さらに表示 (${dmStats.length - 5}件)`}
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

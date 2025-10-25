@@ -10,7 +10,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Menu, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import MobileSidebar from '@/components/workspace/mobileSidebar';
 import { Separator } from '@/components/ui/separator';
 import AppLogo from '@/components/workspace/appLogo';
 import ChannelList from '@/components/workspace/channelList';
@@ -143,57 +143,60 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
     <div className="flex min-h-screen flex-col">
       {/* モバイルナビゲーション */}
       <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b bg-gray-900 text-white px-4 lg:hidden shadow-sm">
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="lg:hidden">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">ナビゲーションメニューを開く</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="flex flex-col p-0">
-            <div className="px-6 py-4">
-              <AppLogo />
-            </div>
-            <Separator />
-            <div className="flex-1">
-              <ChannelList channels={channels} pathname={pathname} currentUserId={currentUser?.id} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} onChannelDeleted={handleChannelDeleted} />
-              <Separator className="my-2" />
-              <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} onDmLeft={handleDmLeft} />
-              <Separator className="my-2" />
-              {/* AIチャットリンク */}
-              <div className="px-3 py-2">
-                <Link
-                  href="/workspace/ai-chat"
-                  className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
-                    pathname === '/workspace/ai-chat'
-                      ? 'bg-accent text-accent-foreground font-medium'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  <Bot className="h-5 w-5" />
-                  AIチャット
-                </Link>
-              </div>
-            </div>
-            <Separator />
-            {/* 設定メニュー */}
-            <SettingsMenu onAvatarSettingsClick={() => setIsAvatarSettingsOpen(true)} onSignOut={signOut} />
-            <div className="p-4">
-              <UserProfileBar user={currentUser} />
-            </div>
-          </SheetContent>
-        </Sheet>
+        <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setOpen(true)}>
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">ナビゲーションメニューを開く</span>
+        </Button>
         <AppLogo />
       </header>
+
+      {/* モバイルサイドバー */}
+      <MobileSidebar open={open} onOpenChange={setOpen}>
+        <div className="flex flex-col h-full">
+          <div className="px-6 py-4 flex-shrink-0">
+            <AppLogo />
+          </div>
+          <Separator className="flex-shrink-0" />
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <ChannelList channels={channels} pathname={pathname} currentUserId={currentUser?.id} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} onChannelDeleted={handleChannelDeleted} onLinkClick={() => setOpen(false)} />
+            <Separator className="my-2" />
+            <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} onDmLeft={handleDmLeft} onLinkClick={() => setOpen(false)} />
+            <Separator className="my-2" />
+            {/* AIチャットリンク */}
+            <div className="px-3 py-2">
+              <Link
+                href="/workspace/ai-chat"
+                className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
+                  pathname === '/workspace/ai-chat'
+                    ? 'bg-accent text-accent-foreground font-medium'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}
+                onClick={() => setOpen(false)}
+              >
+                <Bot className="h-5 w-5" />
+                AIチャット
+              </Link>
+            </div>
+          </div>
+          <Separator className="flex-shrink-0" />
+          {/* 設定メニュー */}
+          <div className="flex-shrink-0">
+            <SettingsMenu onAvatarSettingsClick={() => setIsAvatarSettingsOpen(true)} onSignOut={signOut} />
+          </div>
+          <div className="p-4 flex-shrink-0">
+            <UserProfileBar user={currentUser} />
+          </div>
+        </div>
+      </MobileSidebar>
 
       {/* デスクトップレイアウト */}
       <div className="flex-1 items-start lg:grid lg:grid-cols-[280px_1fr]">
         {/* サイドバー (デスクトップのみ表示) */}
-        <aside className="hidden border-r bg-background lg:flex lg:flex-col lg:justify-between lg:h-screen">
-          <div className="flex h-14 items-center border-b px-6">
+        <aside className="hidden border-r bg-background lg:flex lg:flex-col lg:h-screen overflow-hidden">
+          <div className="flex h-14 items-center border-b px-6 flex-shrink-0">
             <AppLogo />
           </div>
-          <div className="flex-1 py-2">
+          <div className="flex-1 py-2 overflow-y-auto">
             {isLoading ? (
               <div className="p-4 text-center text-sm text-muted-foreground">
                 読み込み中...
@@ -222,8 +225,10 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             )}
           </div>
           {/* 設定メニュー */}
-          <SettingsMenu onAvatarSettingsClick={() => setIsAvatarSettingsOpen(true)} onSignOut={signOut} />
-          <div className="sticky bottom-0 border-t bg-background p-4">
+          <div className="flex-shrink-0">
+            <SettingsMenu onAvatarSettingsClick={() => setIsAvatarSettingsOpen(true)} onSignOut={signOut} />
+          </div>
+          <div className="flex-shrink-0 border-t bg-background p-4">
             <UserProfileBar user={currentUser} />
           </div>
         </aside>

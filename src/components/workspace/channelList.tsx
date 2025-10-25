@@ -42,9 +42,10 @@ interface ChannelListProps {
   onChannelJoined?: (channel: { id: string; name: string; description?: string; memberCount: number }) => void; // チャンネル参加時に即座にUIを更新するコールバック
   onChannelLeft?: (channelId: string) => void; // チャンネル退出時に即座にUIを更新するコールバック
   onChannelDeleted?: (channelId: string) => void; // チャンネル削除時に即座にUIを更新するコールバック
+  onLinkClick?: () => void; // リンククリック時にサイドバーを閉じるコールバック（モバイル用）
 }
 
-export default function ChannelList({ channels, pathname, currentUserId, onChannelCreated, onChannelJoined, onChannelLeft, onChannelDeleted }: ChannelListProps) {
+export default function ChannelList({ channels, pathname, currentUserId, onChannelCreated, onChannelJoined, onChannelLeft, onChannelDeleted, onLinkClick }: ChannelListProps) {
   const router = useRouter();
 
   // モーダルの開閉状態管理
@@ -129,7 +130,7 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
         </div>
       </div>
       <div className="space-y-1">
-        <div className="max-h-[250px] overflow-y-auto">
+        <div className={`${showAllChannels ? 'max-h-[500px]' : 'max-h-[250px]'} overflow-y-auto transition-all duration-300`}>
           {channels.slice(0, showAllChannels ? undefined : 5).map((channel) => {
           const isActive = pathname === `/workspace/channel/${channel.id}`;
           return (
@@ -142,6 +143,7 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
               <Link
                 href={`/workspace/channel/${channel.id}`}
                 className="flex items-center gap-2 flex-1 min-w-0"
+                onClick={onLinkClick}
               >
                 <Hash className="h-4 w-4 flex-shrink-0" />
                 <span className="truncate">{channel.name}</span>
@@ -195,7 +197,7 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
           <Button
             variant="outline"
             size="sm"
-            className="w-full mt-2"
+            className="w-[80%] mx-auto block mt-2"
             onClick={() => setShowAllChannels(!showAllChannels)}
           >
             {showAllChannels ? '表示を減らす' : `さらに表示 (${channels.length - 5}件)`}

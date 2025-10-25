@@ -28,9 +28,10 @@ interface DirectMessageListProps {
   pathname: string;
   onDmCreated?: () => void; // サイドバー更新用コールバック
   onDmLeft?: (dmId: string) => void; // DM退出時に即座にUIを更新するコールバック
+  onLinkClick?: () => void; // リンククリック時にサイドバーを閉じるコールバック（モバイル用）
 }
 
-export default function DirectMessageList({ directMessages, pathname, onDmCreated, onDmLeft }: DirectMessageListProps) {
+export default function DirectMessageList({ directMessages, pathname, onDmCreated, onDmLeft, onLinkClick }: DirectMessageListProps) {
   // モーダル開閉状態
   const [isStartDmOpen, setIsStartDmOpen] = useState(false);
   // DM設定ダイアログの状態管理
@@ -52,7 +53,7 @@ export default function DirectMessageList({ directMessages, pathname, onDmCreate
         </Button>
       </div>
       <div className="space-y-1">
-        <div className="max-h-[200px] overflow-y-auto">
+        <div className={`${showAllDms ? 'max-h-[400px]' : 'max-h-[200px]'} overflow-y-auto transition-all duration-300`}>
           {directMessages.slice(0, showAllDms ? undefined : 5).map((dm) => {
             const isActive = pathname === `/workspace/dm/${dm.partnerId}`;
             return (
@@ -65,6 +66,7 @@ export default function DirectMessageList({ directMessages, pathname, onDmCreate
                 <Link
                   href={`/workspace/dm/${dm.partnerId}`}
                   className="flex items-center gap-2 flex-1 min-w-0"
+                  onClick={onLinkClick}
                 >
                   <UserAvatar
                     name={dm.partnerName}
@@ -104,7 +106,7 @@ export default function DirectMessageList({ directMessages, pathname, onDmCreate
           <Button
             variant="outline"
             size="sm"
-            className="w-full mt-2"
+            className="w-[80%] mx-auto block mt-2"
             onClick={() => setShowAllDms(!showAllDms)}
           >
             {showAllDms ? '表示を減らす' : `さらに表示 (${directMessages.length - 5}件)`}

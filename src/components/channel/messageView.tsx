@@ -147,7 +147,7 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
             <img
               src={message.fileUrl}
               alt={message.fileName || 'image'}
-              className="max-w-xs max-h-64 rounded-lg object-cover hover:opacity-90 transition-opacity"
+              className="max-w-full max-h-64 rounded-lg object-cover hover:opacity-90 transition-opacity"
             />
           </div>
           <p className="text-xs mt-1 opacity-70">
@@ -163,7 +163,7 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
         <div className="mt-2">
           <video
             controls
-            className="max-w-xs max-h-64 rounded-lg"
+            className="max-w-full max-h-64 rounded-lg"
             src={message.fileUrl}
           >
             お使いのブラウザは動画タグをサポートしていません。
@@ -237,7 +237,7 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
             return (
               <div
                 key={message.id}
-                className={`flex items-start gap-4 ${
+                className={`flex items-start gap-2 md:gap-4 ${
                   isMyMessage(message) ? "justify-end" : ""
                 }`}
               >
@@ -247,12 +247,13 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
                     name={message.sender.name}
                     avatarUrl={message.sender.avatarUrl}
                     size="sm"
+                    className="flex-shrink-0"
                   />
                 )}
 
                 {/* メッセージ本体 */}
                 <div
-                  className={`flex flex-col gap-1 ${
+                  className={`flex flex-col gap-1 max-w-[75%] md:max-w-md ${
                     isMyMessage(message) ? "items-end" : "items-start"
                   }`}
                 >
@@ -278,13 +279,13 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
 
                   {/* メッセージ内容 */}
                   <div
-                    className={`px-4 py-2 rounded-lg max-w-xs ${
+                    className={`px-4 py-2 rounded-lg w-fit max-w-full ${
                       isMyMessage(message)
                         ? "bg-blue-500 text-white"
                         : "bg-gray-200 text-gray-900"
                     }`}
                   >
-                    <p className="text-sm">{message.content}</p>
+                    <p className="text-sm break-words">{message.content}</p>
 
                     {/* ファイル添付表示 */}
                     {renderFileAttachment(message, isMyMessage(message))}
@@ -314,6 +315,7 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
                     name={message.sender.name}
                     avatarUrl={message.sender.avatarUrl}
                     size="sm"
+                    className="flex-shrink-0"
                   />
                 )}
               </div>
