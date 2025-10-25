@@ -3,13 +3,14 @@
  *
  * サイドバー下部に表示される設定メニュー（歯車アイコン）
  * - アバター設定
- * - ダークモード切り替え（将来実装）
+ * - ダークモード切り替え
  */
 
 'use client';
 
 import { useState } from 'react';
-import { Settings, User, Moon, LogOut } from 'lucide-react';
+import { Settings, User, Moon, Sun, LogOut } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,15 @@ interface SettingsMenuProps {
 }
 
 export default function SettingsMenu({ onAvatarSettingsClick, onSignOut }: SettingsMenuProps) {
+  const { theme, setTheme } = useTheme();
+
+  /**
+   * テーマ切り替え処理
+   */
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
   /**
    * ログアウト処理
    */
@@ -37,7 +47,7 @@ export default function SettingsMenu({ onAvatarSettingsClick, onSignOut }: Setti
     window.location.href = '/login';
   };
   return (
-    <div className="border-t bg-background p-2">
+    <div className="p-2" style={{ backgroundColor: 'hsl(var(--background))' }}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -49,7 +59,11 @@ export default function SettingsMenu({ onAvatarSettingsClick, onSignOut }: Setti
             <Settings size={23} strokeWidth={2.5} style={{ width: '23px', height: '23px' }} />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuContent
+          align="end"
+          className="w-56 border border-border shadow-lg"
+          style={{ backgroundColor: 'hsl(var(--background))', opacity: 1 }}
+        >
           <DropdownMenuLabel>設定</DropdownMenuLabel>
           <DropdownMenuSeparator />
 
@@ -62,13 +76,22 @@ export default function SettingsMenu({ onAvatarSettingsClick, onSignOut }: Setti
             <span>アバター設定</span>
           </DropdownMenuItem>
 
-          {/* ダークモード切り替え（将来実装） */}
+          {/* ダークモード切り替え */}
           <DropdownMenuItem
-            disabled
-            className="cursor-not-allowed opacity-50"
+            onClick={toggleTheme}
+            className="cursor-pointer"
           >
-            <Moon className="mr-2 h-4 w-4" />
-            <span>ダークモード（準備中）</span>
+            {theme === 'dark' ? (
+              <>
+                <Sun className="mr-2 h-4 w-4" />
+                <span>ライトモード</span>
+              </>
+            ) : (
+              <>
+                <Moon className="mr-2 h-4 w-4" />
+                <span>ダークモード</span>
+              </>
+            )}
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />

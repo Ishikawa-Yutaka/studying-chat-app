@@ -8,6 +8,7 @@ import { useParams, notFound } from 'next/navigation';
 // 既存のコンポーネントを再利用
 import MessageView from '@/components/channel/messageView';
 import MessageForm from '@/components/channel/messageForm';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // DM専用ヘッダー
 import DmHeader from '@/components/dm/dmHeader';
@@ -200,7 +201,7 @@ export default function DirectMessagePage() {
   if (!isInitialized || !dmPartner || !user || !myUserId) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p>読み込み中...</p>
+        <LoadingSpinner size={60} />
       </div>
     );
   }

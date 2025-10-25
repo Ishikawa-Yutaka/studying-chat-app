@@ -135,7 +135,7 @@ export default function DmSettingsDialog({
 
             {/* エラーメッセージ表示 */}
             {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                 {error}
               </div>
             )}
@@ -144,8 +144,7 @@ export default function DmSettingsDialog({
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium text-destructive mb-2">DMから退出</h3>
               <Button
-                variant="destructive"
-                className="w-full"
+                className="w-full bg-orange-600 text-white hover:bg-orange-700"
                 onClick={() => setShowLeaveConfirm(true)}
                 disabled={isLeaving}
               >
@@ -192,7 +191,7 @@ export default function DmSettingsDialog({
             <AlertDialogAction
               onClick={handleLeave}
               disabled={isLeaving}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-orange-600 text-white hover:bg-orange-700"
             >
               {isLeaving ? '退出中...' : '退出する'}
             </AlertDialogAction>

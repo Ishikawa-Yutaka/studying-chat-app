@@ -18,6 +18,7 @@ import DirectMessageList from '@/components/workspace/directMessageList';
 import UserProfileBar from '@/components/workspace/userProfileBar';
 import SettingsMenu from '@/components/workspace/settingsMenu';
 import AvatarSettingsDialog from '@/components/workspace/avatarSettingsDialog';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
@@ -142,7 +143,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen flex-col">
       {/* モバイルナビゲーション */}
-      <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b bg-gray-900 text-white px-4 lg:hidden shadow-sm">
+      <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b px-4 lg:hidden shadow-sm" style={{ backgroundColor: 'hsl(var(--background))' }}>
         <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setOpen(true)}>
           <Menu className="h-5 w-5" />
           <span className="sr-only">ナビゲーションメニューを開く</span>
@@ -192,15 +193,13 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
       {/* デスクトップレイアウト */}
       <div className="flex-1 items-start lg:grid lg:grid-cols-[280px_1fr]">
         {/* サイドバー (デスクトップのみ表示) */}
-        <aside className="hidden border-r bg-background lg:flex lg:flex-col lg:h-screen overflow-hidden">
-          <div className="flex h-14 items-center border-b px-6 flex-shrink-0">
+        <aside className="hidden border-r lg:flex lg:flex-col lg:h-screen overflow-hidden" style={{ backgroundColor: 'hsl(var(--background))' }}>
+          <div className="flex h-14 items-center border-b px-6 flex-shrink-0" style={{ backgroundColor: 'hsl(var(--background))' }}>
             <AppLogo />
           </div>
           <div className="flex-1 py-2 overflow-y-auto">
             {isLoading ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                読み込み中...
-              </div>
+              <LoadingSpinner size={40} />
             ) : (
               <>
                 <ChannelList channels={channels} pathname={pathname} currentUserId={currentUser?.id} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} onChannelDeleted={handleChannelDeleted} />
@@ -228,7 +227,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
           <div className="flex-shrink-0">
             <SettingsMenu onAvatarSettingsClick={() => setIsAvatarSettingsOpen(true)} onSignOut={signOut} />
           </div>
-          <div className="flex-shrink-0 border-t bg-background p-4">
+          <div className="flex-shrink-0 p-4" style={{ backgroundColor: 'hsl(var(--background))' }}>
             <UserProfileBar user={currentUser} />
           </div>
         </aside>

@@ -66,14 +66,15 @@ export default function MobileSidebar({ open, onOpenChange, children }: MobileSi
     <>
       {/* オーバーレイ（背景） */}
       <div
-        className={`fixed inset-0 z-50 bg-black/[0.92] ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
+        className={`fixed inset-0 z-50 bg-black/50 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`}
         onClick={() => onOpenChange(false)}
         aria-hidden="true"
       />
 
       {/* サイドバーコンテンツ */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 h-full w-3/4 max-w-sm bg-background shadow-lg ${isClosing ? 'animate-slide-out-left' : 'animate-slide-in-left'}`}
+        className={`fixed inset-y-0 left-0 z-50 h-full w-3/4 max-w-sm shadow-lg ${isClosing ? 'animate-slide-out-left' : 'animate-slide-in-left'}`}
+        style={{ backgroundColor: 'hsl(var(--background))' }}
         role="dialog"
         aria-modal="true"
         aria-label="ナビゲーションメニュー"
@@ -85,7 +86,7 @@ export default function MobileSidebar({ open, onOpenChange, children }: MobileSi
         <Button
           variant="ghost"
           size="icon"
-          className="absolute right-4 top-4 z-[60] text-white hover:text-gray-200"
+          className="absolute right-4 top-4 z-[60]"
           onClick={() => onOpenChange(false)}
         >
           <X className="h-5 w-5" />

@@ -1,3 +1,5 @@
+
+
 // Prismaの設定ファイル
 // データベースの構造（テーブル設計）を定義します
 
@@ -18,16 +20,12 @@ model User {
   name      String                        // ユーザー名
   email     String   @unique              // メールアドレス（重複不可）
   authId    String   @unique              // Supabaseの認証ID（重複不可）
-  avatarUrl String?                       // プロフィール画像のURL（Supabase Storageまたはソーシャル認証から取得）
   createdAt DateTime @default(now())      // 作成日時（自動設定）
   updatedAt DateTime @updatedAt           // 更新日時（自動更新）
 
   // リレーション（他のテーブルとの関係）
-  messages        Message[]        // このユーザーが送信したメッセージ一覧
-  channels        ChannelMember[]  // このユーザーが参加しているチャンネル一覧
-  createdChannels Channel[]        @relation("ChannelCreator") // このユーザーが作成したチャンネル一覧
-  aiSessions      AiChatSession[]  // このユーザーのAI会話セッション一覧
-  aiChats         AiChat[]         // このユーザーのAI会話履歴
+  messages Message[]        // このユーザーが送信したメッセージ一覧
+  channels ChannelMember[]  // このユーザーが参加しているチャンネル一覧
 }
 
 // チャンネルモデル
@@ -37,12 +35,10 @@ model Channel {
   name        String?                       // チャンネル名（DMの場合はnull）
   description String?                       // チャンネルの説明（DMの場合はnull）
   type        String                        // "channel"（通常）または"dm"（ダイレクトメッセージ）
-  creatorId   String?                       // チャンネル作成者のID（DMの場合はnull）
   createdAt   DateTime @default(now())      // 作成日時（自動設定）
   updatedAt   DateTime @updatedAt           // 更新日時（自動更新）
 
   // リレーション（他のテーブルとの関係）
-  creator  User?            @relation("ChannelCreator", fields: [creatorId], references: [id], onDelete: SetNull) // チャンネル作成者
   messages Message[]        // このチャンネル内のメッセージ一覧
   members  ChannelMember[]  // このチャンネルに参加しているユーザー一覧
 }
@@ -73,12 +69,6 @@ model Message {
   updatedAt       DateTime @updatedAt           // 更新日時（自動更新）
   parentMessageId String?                       // スレッドの親メッセージID（nullの場合は通常のメッセージ）
 
-  // ファイル添付関連フィールド
-  fileUrl         String?                       // アップロードされたファイルのURL（Supabase Storage）
-  fileName        String?                       // 元のファイル名（例: document.pdf）
-  fileType        String?                       // ファイルのMIMEタイプ（例: image/png, application/pdf）
-  fileSize        Int?                          // ファイルサイズ（バイト単位）
-
   // リレーション（外部キー）
   sender         User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
   senderId       String    // 送信者のユーザーID
@@ -88,37 +78,12 @@ model Message {
   replies        Message[] @relation("ThreadReplies") // このメッセージへのスレッド返信一覧
 }
 
-// AI会話セッションモデル
-// AI機能との会話スレッド（セッション）を管理
-model AiChatSession {
-  id        String   @id @default(cuid()) // 一意のID（自動生成）
-  userId    String                        // セッションを作成したユーザーのID
-  title     String?                       // 会話のタイトル（最初のメッセージから自動生成）
-  createdAt DateTime @default(now())      // セッション作成日時（自動設定）
-  updatedAt DateTime @updatedAt           // 最終更新日時（自動更新）
-
-  // リレーション（外部キー）
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages AiChat[]  // このセッションに属するメッセージ一覧
-
-  // インデックス: ユーザーIDと作成日時で検索を高速化
-  @@index([userId, createdAt])
-}
-
 // AIチャットモデル
 // AI機能との会話履歴を保存
 model AiChat {
   id        String   @id @default(cuid()) // 一意のID（自動生成）
-  sessionId String?                       // 所属するセッションのID（移行期間中はオプション）
   userId    String                        // 会話したユーザーのID
-  message   String   @db.Text             // ユーザーのメッセージ
-  response  String   @db.Text             // AIの応答
+  message   String                        // ユーザーのメッセージ
+  response  String                        // AIの応答
   createdAt DateTime @default(now())      // 会話日時（自動設定）
-
-  // リレーション（外部キー）
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session AiChatSession?  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
-  // インデックス: セッションIDと作成日時で検索を高速化
-  @@index([sessionId, createdAt])
 }

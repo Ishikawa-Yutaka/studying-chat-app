@@ -133,7 +133,7 @@ export default function ChannelSettingsDialog({
 
             {/* エラーメッセージ表示 */}
             {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
+              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
                 {error}
               </div>
             )}
@@ -142,8 +142,7 @@ export default function ChannelSettingsDialog({
             <div className="border-t pt-4">
               <h3 className="text-sm font-medium text-destructive mb-2">危険な操作</h3>
               <Button
-                variant="destructive"
-                className="w-full"
+                className="w-full bg-orange-600 text-white hover:bg-orange-700"
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={isDeleting}
               >
@@ -187,7 +186,7 @@ export default function ChannelSettingsDialog({
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-orange-600 text-white hover:bg-orange-700"
             >
               {isDeleting ? '削除中...' : '削除する'}
             </AlertDialogAction>

@@ -19,6 +19,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Send, Bot, User, Plus, MessageSquare, Trash2, Menu, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 /**
  * AIチャットセッションの型定義
@@ -321,35 +322,38 @@ export default function AiChatPage() {
   if (loading || isLoadingSessions) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-500">読み込み中...</p>
+        <LoadingSpinner size={60} />
       </div>
     );
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="relative h-full overflow-hidden">
       {/* オーバーレイ */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="fixed inset-0 bg-black/50 z-40"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* 左側: セッション一覧（常に開閉式） */}
-      <div className={`
-        w-80 border-r bg-background flex flex-col
-        fixed inset-y-0 left-0 z-50
-        transform transition-transform duration-300 ease-in-out
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
+      {/* サイドバー: セッション一覧（オーバーレイ表示） */}
+      <div
+        className={`
+          w-80 border-r flex flex-col
+          fixed inset-y-0 left-0 z-50
+          transform transition-transform duration-300 ease-in-out
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+        style={{ backgroundColor: 'hsl(var(--background))' }}
+      >
         {/* ヘッダー: 新しい会話ボタン + 閉じるボタン */}
-        <div className="p-4 border-b bg-background">
+        <div className="p-4 border-b" style={{ backgroundColor: 'hsl(var(--background))' }}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold">会話履歴</h2>
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-accent rounded-lg transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -366,7 +370,7 @@ export default function AiChatPage() {
         {/* セッション一覧 */}
         <div className="flex-1 overflow-y-auto p-2">
           {sessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 px-4">
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground px-4">
               <MessageSquare className="h-12 w-12 mb-2" />
               <p className="text-sm text-center">
                 まだ会話がありません<br />
@@ -380,7 +384,7 @@ export default function AiChatPage() {
                   key={session.id}
                   onClick={() => {
                     setCurrentSessionId(session.id);
-                    setIsSidebarOpen(false); // モバイルでセッション選択時にサイドバーを閉じる
+                    setIsSidebarOpen(false); // セッション選択時にサイドバーを閉じる
                   }}
                   className={`group relative px-3 py-3 rounded-lg cursor-pointer transition-colors ${
                     currentSessionId === session.id
@@ -412,14 +416,14 @@ export default function AiChatPage() {
         </div>
       </div>
 
-      {/* 右側: チャットエリア（フル幅） */}
-      <div className="flex-1 flex flex-col w-full">
+      {/* チャットエリア（フル幅） */}
+      <div className="flex flex-col h-full w-full" style={{ backgroundColor: 'hsl(var(--background))' }}>
         {/* 常に表示されるヘッダー（メニューボタン） */}
-        <div className="border-b bg-background px-4 py-3 flex items-center gap-3">
+        <div className="border-b px-4 py-3 flex items-center gap-3" style={{ backgroundColor: 'hsl(var(--background))' }}>
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+            className="p-2 hover:bg-accent rounded-lg transition-colors flex-shrink-0"
             title="会話履歴を開く"
           >
             <Menu className="h-5 w-5" />
@@ -432,7 +436,7 @@ export default function AiChatPage() {
 
         {!currentSessionId ? (
           // セッションが選択されていない場合
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
             <Bot className="h-16 w-16 mb-4" />
             <p className="text-lg">AIアシスタント</p>
             <p className="text-sm mt-2">新しい会話を始めるか、既存の会話を選択してください</p>
@@ -450,10 +454,10 @@ export default function AiChatPage() {
             <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-24 lg:pb-4 pt-4 space-y-6">
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-gray-500">メッセージを読み込み中...</p>
+                  <LoadingSpinner size={60} />
                 </div>
               ) : messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                   <Bot className="h-16 w-16 mb-4" />
                   <p className="text-lg">AIアシスタントに質問してみましょう</p>
                   <p className="text-sm mt-2">何でもお気軽にどうぞ</p>
@@ -480,16 +484,16 @@ export default function AiChatPage() {
                       <div className="flex justify-start">
                         <div className="flex items-start gap-2 max-w-[85%] md:max-w-[70%]">
                           <Bot className="h-6 w-6 flex-shrink-0 mt-1" />
-                          <div className="bg-white border border-gray-200 rounded-lg px-4 py-2 shadow">
+                          <div className="bg-card border border-border rounded-lg px-4 py-2 shadow">
                             {chat.response === '...' ? (
                               /* AI応答待ちのアニメーション */
                               <div className="flex items-center gap-1">
-                                <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                <span className="inline-block w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <span className="inline-block w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <span className="inline-block w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                               </div>
                             ) : (
-                              <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                              <p className="text-sm text-card-foreground whitespace-pre-wrap">
                                 {chat.response}
                               </p>
                             )}
@@ -504,7 +508,7 @@ export default function AiChatPage() {
             </div>
 
             {/* メッセージ入力フォーム（モバイル: 画面下部固定、PC: 通常配置） */}
-            <div className="fixed lg:static bottom-0 left-0 right-0 border-t bg-background px-4 md:px-6 py-4 pb-safe z-10">
+            <div className="fixed lg:static bottom-0 left-0 right-0 px-4 md:px-6 py-4 pb-safe z-10" style={{ backgroundColor: 'hsl(var(--background))' }}>
               <form onSubmit={handleSendMessage} className="flex gap-2">
                 <input
                   type="text"
@@ -512,7 +516,8 @@ export default function AiChatPage() {
                   onChange={(e) => setInputMessage(e.target.value)}
                   placeholder="メッセージを入力..."
                   disabled={isSending}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: 'hsl(var(--background))' }}
                 />
                 <button
                   type="submit"

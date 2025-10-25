@@ -181,7 +181,7 @@ export default function JoinChannelDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>チャンネル検索</DialogTitle>
           <DialogDescription>
@@ -189,27 +189,27 @@ export default function JoinChannelDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4 overflow-hidden flex-1 flex flex-col min-h-0">
+        <div className="space-y-4 py-4 overflow-hidden">
           {/* 検索バー */}
-          <div className="relative shrink-0">
+          <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="チャンネル名または説明で検索..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-full"
+              className="pl-10"
             />
           </div>
 
           {/* エラーメッセージ */}
           {error && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 shrink-0">
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
 
           {/* チャンネル一覧 */}
-          <div className="flex-1 overflow-y-auto space-y-2 min-h-0">
+          <div className="max-h-[400px] overflow-y-auto space-y-2">
             {isLoading ? (
               <div className="text-center text-sm text-muted-foreground py-8">
                 読み込み中...

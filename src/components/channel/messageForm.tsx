@@ -141,7 +141,7 @@ export default function MessageForm({
   };
 
   return (
-    <footer className="border-t bg-background p-4">
+    <footer className="bg-background p-4">
       {/* ファイルプレビュー表示 */}
       {selectedFile && (
         <div className="mb-2 flex items-center gap-2 bg-muted p-2 rounded-md">

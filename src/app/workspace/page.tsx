@@ -16,6 +16,7 @@ import CreateChannelDialog from '@/components/workspace/createChannelDialog';
 import StartDmDialog from '@/components/dm/startDmDialog';
 import JoinChannelDialog from '@/components/channel/joinChannelDialog';
 import { UserAvatar } from '@/components/userAvatar';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard';
@@ -135,7 +136,7 @@ export default function WorkspacePage() {
   if (isLoading || !initialStats) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p>読み込み中...</p>
+        <LoadingSpinner size={60} />
       </div>
     );
   }

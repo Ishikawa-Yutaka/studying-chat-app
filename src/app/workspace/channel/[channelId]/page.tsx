@@ -10,6 +10,7 @@ import ChannelHeader from '@/components/channel/channelHeader';
 import MessageView from '@/components/channel/messageView';
 import MessageForm from '@/components/channel/messageForm';
 import ThreadPanel from '@/components/channel/threadPanel';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
@@ -265,7 +266,7 @@ export default function ChannelPage() {
   if (authLoading || !isInitialized || !channel || !user || !myUserId) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p>読み込み中...</p>
+        <LoadingSpinner size={60} />
       </div>
     );
   }

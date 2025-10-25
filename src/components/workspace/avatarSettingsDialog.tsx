@@ -218,7 +218,7 @@ export default function AvatarSettingsDialog({
                 <img
                   src={previewUrl}
                   alt="プレビュー"
-                  className="h-32 w-32 rounded-full object-cover border-4 border-gray-200"
+                  className="h-32 w-32 rounded-full object-cover border-4 border-border"
                 />
               </div>
               <div className="text-xs text-muted-foreground text-center">
