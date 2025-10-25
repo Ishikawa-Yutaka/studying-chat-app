@@ -320,14 +320,14 @@ export default function AiChatPage() {
 
   if (loading || isLoadingSessions) {
     return (
-      <div className="flex items-center justify-center h-screen bg-white">
+      <div className="flex items-center justify-center h-screen">
         <p className="text-gray-500">読み込み中...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex h-full bg-white overflow-hidden">
+    <div className="flex h-full overflow-hidden">
       {/* オーバーレイ */}
       {isSidebarOpen && (
         <div
@@ -338,20 +338,20 @@ export default function AiChatPage() {
 
       {/* 左側: セッション一覧（常に開閉式） */}
       <div className={`
-        w-80 border-r bg-gray-50 flex flex-col
+        w-80 border-r bg-background flex flex-col
         fixed inset-y-0 left-0 z-50
         transform transition-transform duration-300 ease-in-out
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* ヘッダー: 新しい会話ボタン + 閉じるボタン */}
-        <div className="p-4 border-b bg-white">
+        <div className="p-4 border-b bg-background">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-gray-900">会話履歴</h2>
+            <h2 className="text-lg font-semibold">会話履歴</h2>
             <button
               onClick={() => setIsSidebarOpen(false)}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <X className="h-5 w-5 text-gray-600" />
+              <X className="h-5 w-5" />
             </button>
           </div>
           <button
@@ -384,16 +384,16 @@ export default function AiChatPage() {
                   }}
                   className={`group relative px-3 py-3 rounded-lg cursor-pointer transition-colors ${
                     currentSessionId === session.id
-                      ? 'bg-white border border-blue-200 shadow-sm'
-                      : 'hover:bg-white border border-transparent'
+                      ? 'bg-secondary border border-blue-200 shadow-sm'
+                      : 'hover:bg-secondary/50 border border-transparent'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium truncate">
                         {session.title || '新しい会話'}
                       </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {session.messageCount}件 · {formatShortDateTime(session.updatedAt)}
                       </p>
                     </div>
@@ -415,16 +415,16 @@ export default function AiChatPage() {
       {/* 右側: チャットエリア（フル幅） */}
       <div className="flex-1 flex flex-col w-full">
         {/* 常に表示されるヘッダー（メニューボタン） */}
-        <div className="border-b bg-white px-4 py-3 flex items-center gap-3">
+        <div className="border-b bg-background px-4 py-3 flex items-center gap-3">
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             title="会話履歴を開く"
           >
-            <Menu className="h-5 w-5 text-gray-600" />
+            <Menu className="h-5 w-5" />
           </button>
-          <div className="flex items-center gap-2 text-gray-700">
+          <div className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
             <span className="font-medium">AIアシスタント</span>
           </div>
@@ -447,7 +447,7 @@ export default function AiChatPage() {
         ) : (
           <>
             {/* メッセージ表示エリア */}
-            <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-24 lg:pb-4 pt-4 space-y-6 bg-gray-50">
+            <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-24 lg:pb-4 pt-4 space-y-6">
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center h-full">
                   <p className="text-gray-500">メッセージを読み込み中...</p>
@@ -472,14 +472,14 @@ export default function AiChatPage() {
                               {formatDateTime(chat.createdAt)}
                             </p>
                           </div>
-                          <User className="h-6 w-6 text-blue-600 flex-shrink-0 mt-1" />
+                          <User className="h-6 w-6 flex-shrink-0 mt-1" />
                         </div>
                       </div>
 
                       {/* AIの応答（左寄せ） */}
                       <div className="flex justify-start">
                         <div className="flex items-start gap-2 max-w-[85%] md:max-w-[70%]">
-                          <Bot className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+                          <Bot className="h-6 w-6 flex-shrink-0 mt-1" />
                           <div className="bg-white border border-gray-200 rounded-lg px-4 py-2 shadow">
                             {chat.response === '...' ? (
                               /* AI応答待ちのアニメーション */
@@ -504,7 +504,7 @@ export default function AiChatPage() {
             </div>
 
             {/* メッセージ入力フォーム（モバイル: 画面下部固定、PC: 通常配置） */}
-            <div className="fixed lg:static bottom-0 left-0 right-0 border-t bg-white px-4 md:px-6 py-4 pb-safe z-10">
+            <div className="fixed lg:static bottom-0 left-0 right-0 border-t bg-background px-4 md:px-6 py-4 pb-safe z-10">
               <form onSubmit={handleSendMessage} className="flex gap-2">
                 <input
                   type="text"

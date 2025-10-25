@@ -10,6 +10,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { loginSchema } from '@/lib/validations'
 
 /**
  * ログイン処理
@@ -19,10 +20,26 @@ export async function login(formData: FormData) {
   const supabase = await createClient()
 
   // フォームからメールアドレスとパスワードを取得
-  const data = {
+  const rawData = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
   }
+
+  // Zodバリデーション
+  const validation = loginSchema.safeParse(rawData)
+
+  if (!validation.success) {
+    // バリデーションエラー時、最初のエラーメッセージをコンソールに出力
+    const errorMessage = validation.error.issues[0]?.message || 'バリデーションエラー'
+    console.error('❌ ログインバリデーションエラー:', errorMessage, validation.error.issues)
+
+    // TODO: エラーメッセージをユーザーに表示する仕組みを実装
+    // 現時点ではコンソールログとリダイレクトのみ
+    redirect('/error')
+  }
+
+  // バリデーション成功後のデータを使用
+  const data = validation.data
 
   // Supabaseでログイン処理を実行
   const { error } = await supabase.auth.signInWithPassword(data)

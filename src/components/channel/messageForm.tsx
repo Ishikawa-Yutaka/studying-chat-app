@@ -7,6 +7,8 @@ import { Send, Paperclip, X } from 'lucide-react';
 // shadcn/ui コンポーネント
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+// バリデーション
+import { fileSchema, allowedFileTypes } from '@/lib/validations';
 
 // ファイル情報の型定義
 interface FileInfo {
@@ -38,6 +40,9 @@ export default function MessageForm({
   // ファイル入力要素への参照
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 最大文字数
+  const MAX_MESSAGE_LENGTH = 5000;
+
   /**
    * ファイル選択時の処理
    * ユーザーがファイルを選択した時に呼ばれる
@@ -45,10 +50,17 @@ export default function MessageForm({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // ファイルサイズチェック（最大10MB）
-      const maxSize = 10 * 1024 * 1024; // 10MB
-      if (file.size > maxSize) {
-        alert('ファイルサイズは10MB以下にしてください。');
+      // Zodバリデーション
+      const validation = fileSchema.safeParse({
+        type: file.type,
+        size: file.size,
+        name: file.name,
+      });
+
+      if (!validation.success) {
+        // バリデーションエラー時、最初のエラーメッセージを表示
+        const errorMessage = validation.error.issues[0]?.message || 'ファイルが無効です';
+        alert(errorMessage);
         return;
       }
 
@@ -192,6 +204,7 @@ export default function MessageForm({
           type="submit"
           size="icon"
           disabled={(!content.trim() && !selectedFile) || isUploading}
+          className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           {isUploading ? (
             <div className="h-5 w-5 border-2 border-t-transparent border-white rounded-full animate-spin" />

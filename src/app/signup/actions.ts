@@ -11,6 +11,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { signupSchema } from '@/lib/validations'
 
 /**
  * サインアップ処理
@@ -20,11 +21,27 @@ export async function signup(formData: FormData) {
   const supabase = await createClient()
 
   // フォームからユーザー情報を取得
-  const data = {
+  const rawData = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
     name: formData.get('name') as string,
   }
+
+  // Zodバリデーション
+  const validation = signupSchema.safeParse(rawData)
+
+  if (!validation.success) {
+    // バリデーションエラー時、最初のエラーメッセージをコンソールに出力
+    const errorMessage = validation.error.issues[0]?.message || 'バリデーションエラー'
+    console.error('❌ サインアップバリデーションエラー:', errorMessage, validation.error.issues)
+
+    // TODO: エラーメッセージをユーザーに表示する仕組みを実装
+    // 現時点ではコンソールログとリダイレクトのみ
+    redirect('/error')
+  }
+
+  // バリデーション成功後のデータを使用
+  const data = validation.data
 
   // Supabaseでユーザー登録処理を実行
   const { data: authData, error } = await supabase.auth.signUp({

@@ -1,6 +1,7 @@
 // メッセージAPI - 取得と送信
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { messageSchema, messageWithFileSchema } from '@/lib/validations';
 import { getCurrentUser, checkChannelMembership } from '@/lib/auth-server';
 
 // メッセージ取得API（GET）
@@ -100,27 +101,59 @@ export async function POST(
   try {
     const { channelId } = await params;
     const body = await request.json();
-    
+
     console.log(`📤 メッセージ送信リクエスト - チャンネルID: ${channelId}`, body);
-    
-    // リクエストボディのバリデーション
-    const { content, senderId, fileUrl, fileName, fileType, fileSize } = body;
 
-    if (!content || !senderId) {
+    // Zodバリデーション
+    // ファイルありの場合とファイルなしの場合で異なるスキーマを使用
+    const validationData = {
+      content: body.content || '',
+      senderId: body.senderId,
+      channelId: channelId,
+      fileUrl: body.fileUrl,
+      fileName: body.fileName,
+      fileType: body.fileType,
+      fileSize: body.fileSize,
+    };
+
+    // ファイルが添付されている場合とそうでない場合で異なるバリデーションを適用
+    const schema = body.fileUrl ? messageWithFileSchema : messageSchema;
+    const validation = schema.safeParse(validationData);
+
+    if (!validation.success) {
+      // バリデーションエラーの最初のエラーメッセージを返す
+      const errorMessage = validation.error.issues[0]?.message || 'バリデーションエラー';
+      console.log('❌ バリデーションエラー:', validation.error.issues);
       return NextResponse.json({
         success: false,
-        error: 'メッセージ内容と送信者IDが必要です'
+        error: errorMessage,
+        details: validation.error.issues
       }, { status: 400 });
     }
 
-    // ファイルのみの送信は許可（contentが空でもファイルがあればOK）
-    if (content.trim().length === 0 && !fileUrl) {
+    // バリデーション成功後のデータを取得
+    const { content, senderId, fileUrl, fileName, fileType, fileSize } = validation.data;
+
+    // 1. 認証チェック：現在ログインしているユーザーを取得
+    const { user, error: authError, status: authStatus } = await getCurrentUser();
+
+    if (authError || !user) {
       return NextResponse.json({
         success: false,
-        error: 'メッセージ内容またはファイルが必要です'
-      }, { status: 400 });
+        error: authError
+      }, { status: authStatus });
     }
-    
+
+    // 2. メンバーシップ確認：このユーザーがこのチャンネルのメンバーか確認
+    const { isMember, error: memberError, status: memberStatus } = await checkChannelMembership(user.id, channelId);
+
+    if (!isMember) {
+      return NextResponse.json({
+        success: false,
+        error: memberError
+      }, { status: memberStatus });
+    }
+
     // チャンネルの存在確認
     const channel = await prisma.channel.findUnique({
       where: { id: channelId }

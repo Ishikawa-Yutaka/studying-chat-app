@@ -1,102 +1,128 @@
-import Image from "next/image";
+/**
+ * トップページ（ランディングページ）
+ *
+ * アプリの紹介と新規登録・ログインへの導線を提供
+ */
 
-export default function Home() {
+import Link from 'next/link';
+import { ArrowRight, MessageSquare, Users, Bot } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+export default function TopPage() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="flex min-h-screen flex-col">
+      {/* ヘッダー */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between mx-auto px-4 md:px-6">
+          <div className="flex items-center gap-2 font-bold">
+            <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground">
+              S
+            </div>
+            <span>STUDYing Tech Chat</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link href="/login">
+              <Button variant="outline">ログイン</Button>
+            </Link>
+            <Link href="/signup">
+              <Button>新規登録</Button>
+            </Link>
+          </div>
         </div>
+      </header>
+
+      {/* メインコンテンツ */}
+      <main className="flex-1">
+        {/* ヒーローセクション */}
+        <section className="w-full py-12 md:py-24 lg:py-32">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 xl:grid-cols-2 items-center">
+              <div className="flex flex-col justify-center space-y-4">
+                <div className="space-y-2">
+                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
+                    STUDYing Tech Chat
+                  </h1>
+                  <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                    STUDYing Tech Chat
+                    は、チームのコミュニケーションを効率化し、円滑なコミュニケーションを実現するためのアプリです。
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                  <Link href="/signup">
+                    <Button size="lg" className="gap-1.5">
+                      無料で始める
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+              <div className="flex items-center justify-center">
+                <img
+                  alt="STUDYing Tech Chat Dashboard"
+                  className="aspect-video overflow-hidden rounded-xl object-cover object-center"
+                  src="https://images.unsplash.com/photo-1600267204091-5c1ab8b10c02?q=80&w=1000&auto=format&fit=crop"
+                  width={550}
+                  height={310}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 主な機能セクション */}
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">主な機能</h2>
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  STUDYing Tech Chat が提供する主な機能をご紹介します
+                </p>
+              </div>
+            </div>
+            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-3">
+              {/* チャンネル機能 */}
+              <div className="flex flex-col items-center space-y-2 rounded-lg border bg-background p-6 shadow-sm">
+                <div className="rounded-full bg-primary p-3 text-primary-foreground">
+                  <MessageSquare className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold">チャンネル機能</h3>
+                <p className="text-center text-muted-foreground">トピックごとにチャンネルを作成することができます</p>
+              </div>
+
+              {/* ダイレクトメッセージ */}
+              <div className="flex flex-col items-center space-y-2 rounded-lg border bg-background p-6 shadow-sm">
+                <div className="rounded-full bg-primary p-3 text-primary-foreground">
+                  <Users className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold">ダイレクトメッセージ</h3>
+                <p className="text-center text-muted-foreground">
+                  プライベートなコミュニケーションをすることができます
+                </p>
+              </div>
+
+              {/* AI機能 */}
+              <div className="flex flex-col items-center space-y-2 rounded-lg border bg-background p-6 shadow-sm">
+                <div className="rounded-full bg-primary p-3 text-primary-foreground">
+                  <Bot className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold">AI機能</h3>
+                <p className="text-center text-muted-foreground">
+                  AI チャットボットが提供されており、アプリ内で AI との会話ができます
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* フッター */}
+      <footer className="border-t py-6 md:py-0">
+        <div className="container mx-auto flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row px-4 md:px-6">
+          <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
+            &copy; 2025 STUDYing Tech Chat. All rights reserved.
+          </p>
+        </div>
       </footer>
     </div>
   );

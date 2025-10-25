@@ -12,13 +12,14 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Chrome, Github, Twitter, Facebook } from 'lucide-react'
+import { Chrome, Github, Twitter, Facebook, Eye, EyeOff } from 'lucide-react'
 import { signInWithSocial, type SocialProvider, SOCIAL_PROVIDERS } from '@/lib/auth'
 import { signup, login } from './actions'
 
 export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [socialProvider, setSocialProvider] = useState<SocialProvider | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   /**
    * ソーシャル認証でサインアップする時の処理
@@ -142,7 +143,11 @@ export default function SignupPage() {
                   autoComplete="name"
                   required
                   placeholder="あなたの名前"
+                  maxLength={50}
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  50文字以内で入力してください
+                </p>
               </div>
 
               {/* メールアドレス入力 */}
@@ -157,6 +162,7 @@ export default function SignupPage() {
                   autoComplete="email"
                   required
                   placeholder="your-email@example.com"
+                  maxLength={255}
                 />
               </div>
 
@@ -165,17 +171,33 @@ export default function SignupPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                   パスワード
                 </label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  placeholder="パスワードを入力（8文字以上）"
-                  minLength={8}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    required
+                    placeholder="パスワードを入力（8文字以上）"
+                    minLength={8}
+                    maxLength={128}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    aria-label={showPassword ? "パスワードを非表示" : "パスワードを表示"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  8文字以上で入力してください
+                  8〜128文字で入力してください
                 </p>
               </div>
 
