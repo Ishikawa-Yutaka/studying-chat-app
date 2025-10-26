@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
-import { createClient } from '@/utils/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 
 interface AuthState {
   user: User | null;

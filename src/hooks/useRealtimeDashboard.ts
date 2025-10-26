@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 
 // ダッシュボード統計の型定義
 // - channelCount: 自分が参加しているチャンネル数（DM以外）
