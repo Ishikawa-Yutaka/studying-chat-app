@@ -20,6 +20,7 @@ import SettingsMenu from '@/components/workspace/settingsMenu';
 import AvatarSettingsDialog from '@/components/workspace/avatarSettingsDialog';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAuth } from '@/hooks/useAuth';
+import { usePresence } from '@/hooks/usePresence';
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -29,7 +30,15 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
 
   // 認証状態管理
   const { user, loading: authLoading, isAuthenticated, signOut } = useAuth();
-  
+
+  // Presenceでリアルタイムオンライン状態を追跡
+  // ユーザーがワークスペースにいる間、自動的にオンラインとして登録
+  // タブを閉じると自動的にオフラインに
+  usePresence({
+    userId: user?.id || null,
+    enabled: isAuthenticated,
+  });
+
   // データベース状態管理
   const [channels, setChannels] = useState<Array<{
     id: string;

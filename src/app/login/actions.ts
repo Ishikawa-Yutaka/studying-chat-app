@@ -10,6 +10,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
 import { loginSchema } from '@/lib/validations'
 
 /**
@@ -59,7 +60,7 @@ export async function login(prevState: ActionResult | null, formData: FormData):
   const data = validation.data
 
   // Supabaseでログイン処理を実行
-  const { error } = await supabase.auth.signInWithPassword(data)
+  const { data: authData, error } = await supabase.auth.signInWithPassword(data)
 
   if (error) {
     // Supabaseのエラーメッセージを日本語に変換して返す
@@ -77,6 +78,23 @@ export async function login(prevState: ActionResult | null, formData: FormData):
     }
 
     return { error: errorMessage }
+  }
+
+  // ログイン成功時: オンライン状態を更新
+  if (authData.user) {
+    try {
+      await prisma.user.update({
+        where: { authId: authData.user.id },
+        data: {
+          isOnline: true,
+          lastSeen: new Date(),
+        },
+      })
+      console.log('✅ ユーザーのオンライン状態を更新しました:', authData.user.email)
+    } catch (dbError) {
+      console.error('❌ オンライン状態の更新に失敗しました:', dbError)
+      // DB更新失敗してもログインは成功とする（致命的ではない）
+    }
   }
 
   // ログイン成功時はページを更新してワークスペースにリダイレクト

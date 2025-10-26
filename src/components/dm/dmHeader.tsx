@@ -5,6 +5,7 @@ interface User {
   id: string;
   name: string;
   email?: string;
+  avatarUrl?: string | null;
   isOnline?: boolean;
   lastSeen?: Date;
 }
@@ -44,12 +45,22 @@ export default function DmHeader({ dmPartner }: DmHeaderProps) {
           <div className="flex items-center gap-3">
             {/* ユーザーアバター */}
             <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-lg font-semibold">
-                {dmPartner.name.charAt(0)}
-              </div>
+              {dmPartner.avatarUrl ? (
+                // アバター画像がある場合
+                <img
+                  src={dmPartner.avatarUrl}
+                  alt={dmPartner.name}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              ) : (
+                // アバター画像がない場合はイニシャル表示
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-lg font-semibold">
+                  {dmPartner.name.charAt(0)}
+                </div>
+              )}
               {/* オンライン状態インジケーター */}
               {dmPartner.isOnline && (
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full" />
               )}
             </div>
 

@@ -95,15 +95,30 @@ export function useAuth() {
   const signOut = async () => {
     try {
       setAuthState(prev => ({ ...prev, loading: true }));
-      
+
+      // ログアウト前にオンライン状態をfalseに更新
+      try {
+        await fetch('/api/user/update-online-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ isOnline: false }),
+        });
+        console.log('✅ オフライン状態に更新しました');
+      } catch (updateError) {
+        console.error('⚠️ オンライン状態の更新に失敗しましたが、ログアウトは続行します:', updateError);
+        // エラーが出てもログアウトは続行
+      }
+
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) {
         throw error;
       }
-      
+
       console.log('👋 ログアウト成功');
-      
+
     } catch (error: any) {
       console.error('❌ ログアウトエラー:', error);
       setAuthState(prev => ({

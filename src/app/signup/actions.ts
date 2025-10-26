@@ -100,6 +100,8 @@ export async function signup(prevState: ActionResult | null, formData: FormData)
           authId: authData.user.id,     // Supabaseユーザーの ID
           email: data.email,
           name: data.name,
+          isOnline: true,                // サインアップ直後はオンライン
+          lastSeen: new Date(),          // 現在時刻を設定
         },
       })
       console.log('✅ Prisma User created successfully')

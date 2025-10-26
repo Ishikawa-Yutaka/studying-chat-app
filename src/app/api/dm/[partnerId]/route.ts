@@ -40,7 +40,10 @@ export async function GET(
         id: true,
         name: true,
         email: true,
-        authId: true
+        authId: true,
+        avatarUrl: true,
+        isOnline: true,
+        lastSeen: true
       }
     });
     
