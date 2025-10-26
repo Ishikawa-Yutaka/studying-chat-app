@@ -1,11 +1,5 @@
 'use client';
 
-// アイコン
-import { Phone, Video } from 'lucide-react';
-
-// shadcn/ui
-import { Button } from '@/components/ui/button';
-
 // DM相手のユーザー情報型
 interface User {
   id: string;
@@ -24,7 +18,7 @@ export default function DmHeader({ dmPartner }: DmHeaderProps) {
   // 最終ログイン時間の表示フォーマット
   const formatLastSeen = (lastSeen?: Date) => {
     if (!lastSeen) return '';
-    
+
     const now = new Date();
     const diff = now.getTime() - lastSeen.getTime();
     const minutes = Math.floor(diff / (1000 * 60));
@@ -35,27 +29,18 @@ export default function DmHeader({ dmPartner }: DmHeaderProps) {
     if (minutes < 60) return `${minutes}分前`;
     if (hours < 24) return `${hours}時間前`;
     if (days < 7) return `${days}日前`;
-    
+
     return lastSeen.toLocaleDateString('ja-JP', {
       month: 'short',
       day: 'numeric'
     });
   };
 
-  // 将来実装予定の機能（現在は仮実装）
-  const handleVoiceCall = () => {
-    alert('🎤 音声通話機能は今後実装予定です\n\nWebRTC APIを使用してリアルタイム音声通話を実現予定');
-  };
-
-  const handleVideoCall = () => {
-    alert('📹 ビデオ通話機能は今後実装予定です\n\nWebRTC APIを使用してリアルタイムビデオ通話を実現予定');
-  };
-
   return (
     <>
       <header className="border-b bg-background">
-        <div className="h-16 flex items-center justify-between px-4">
-          {/* 左側: ユーザー情報 */}
+        <div className="h-16 flex items-center px-4">
+          {/* ユーザー情報 */}
           <div className="flex items-center gap-3">
             {/* ユーザーアバター */}
             <div className="relative">
@@ -84,31 +69,6 @@ export default function DmHeader({ dmPartner }: DmHeaderProps) {
                 </span>
               </div>
             </div>
-          </div>
-
-          {/* 右側: アクションボタン（将来機能） */}
-          <div className="flex items-center gap-2">
-            {/* 音声通話ボタン */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-gray-100"
-              title="音声通話（今後実装予定）"
-              onClick={handleVoiceCall}
-            >
-              <Phone className="h-5 w-5" />
-            </Button>
-
-            {/* ビデオ通話ボタン */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-gray-100"
-              title="ビデオ通話（今後実装予定）"
-              onClick={handleVideoCall}
-            >
-              <Video className="h-5 w-5" />
-            </Button>
           </div>
         </div>
       </header>
