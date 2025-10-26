@@ -4,11 +4,37 @@
  * アプリの紹介と新規登録・ログインへの導線を提供
  */
 
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, MessageSquare, Users, Bot } from 'lucide-react';
+import { ArrowRight, MessageSquare, Users, Bot, Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 
 export default function TopPage() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleThemeChange = (checked: boolean) => {
+    const newTheme = checked ? 'dark' : 'light';
+
+    // View Transition APIが使えるかチェック
+    if ((document as any).startViewTransition) {
+      (document as any).startViewTransition(() => {
+        setTheme(newTheme);
+      });
+    } else {
+      // フォールバック
+      setTheme(newTheme);
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* ヘッダー */}
@@ -21,6 +47,16 @@ export default function TopPage() {
             <span>STUDYing Tech Chat</span>
           </div>
           <div className="flex items-center gap-4">
+            {mounted && (
+              <div className="flex items-center gap-2">
+                <Sun className="h-4 w-4 text-muted-foreground" />
+                <Switch
+                  checked={theme === 'dark'}
+                  onCheckedChange={handleThemeChange}
+                />
+                <Moon className="h-4 w-4 text-muted-foreground" />
+              </div>
+            )}
             <Link href="/login">
               <Button variant="outline">ログイン</Button>
             </Link>
