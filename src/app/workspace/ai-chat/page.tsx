@@ -470,9 +470,9 @@ export default function AiChatPage() {
                       {/* ユーザーのメッセージ（右寄せ） */}
                       <div className="flex justify-end">
                         <div className="flex items-start gap-2 max-w-[85%] md:max-w-[70%]">
-                          <div className="bg-blue-600 text-white rounded-lg px-4 py-2 shadow">
+                          <div className="bg-blue-500 text-white rounded-lg px-4 py-2">
                             <p className="text-sm whitespace-pre-wrap">{chat.message}</p>
-                            <p className="text-xs text-blue-100 mt-1">
+                            <p className="text-xs opacity-70 mt-1">
                               {formatDateTime(chat.createdAt)}
                             </p>
                           </div>
@@ -484,16 +484,16 @@ export default function AiChatPage() {
                       <div className="flex justify-start">
                         <div className="flex items-start gap-2 max-w-[85%] md:max-w-[70%]">
                           <Bot className="h-6 w-6 flex-shrink-0 mt-1" />
-                          <div className="bg-card border border-border rounded-lg px-4 py-2 shadow">
+                          <div className="bg-gray-200 text-gray-900 rounded-lg px-4 py-2">
                             {chat.response === '...' ? (
                               /* AI応答待ちのアニメーション */
                               <div className="flex items-center gap-1">
-                                <span className="inline-block w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <span className="inline-block w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <span className="inline-block w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                <span className="inline-block w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <span className="inline-block w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <span className="inline-block w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                               </div>
                             ) : (
-                              <p className="text-sm text-card-foreground whitespace-pre-wrap">
+                              <p className="text-sm whitespace-pre-wrap">
                                 {chat.response}
                               </p>
                             )}
@@ -516,8 +516,7 @@ export default function AiChatPage() {
                   onChange={(e) => setInputMessage(e.target.value)}
                   placeholder="メッセージを入力..."
                   disabled={isSending}
-                  className="flex-1 px-4 py-2 border border-input rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: 'hsl(var(--background))' }}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <button
                   type="submit"

@@ -187,7 +187,7 @@ export default function ThreadPanel({
               onChange={(e) => setReplyContent(e.target.value)}
               placeholder="スレッドに返信..."
               disabled={isSending}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button
               type="submit"

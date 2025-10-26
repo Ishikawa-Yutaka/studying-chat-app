@@ -108,17 +108,17 @@ export default function SignupPage() {
     }
   }
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* ページタイトル */}
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-3xl font-extrabold text-foreground">
             新規アカウント作成
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-4 text-base text-muted-foreground">
             既にアカウントをお持ちの場合は{' '}
-            <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-              ログイン
+            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-700">
+              ログインはこちら
             </Link>
           </p>
         </div>
@@ -126,8 +126,8 @@ export default function SignupPage() {
         {/* サインアップフォーム */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-gray-900">アカウント作成</CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardTitle>アカウント作成</CardTitle>
+            <CardDescription>
               メールアドレス・パスワード、またはソーシャルアカウントで登録できます
             </CardDescription>
           </CardHeader>
@@ -172,10 +172,10 @@ export default function SignupPage() {
             {/* 区切り線 */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-300" />
+                <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-600">または</span>
+                <span className="bg-card px-2 text-muted-foreground">または</span>
               </div>
             </div>
 
@@ -191,7 +191,7 @@ export default function SignupPage() {
 
               {/* ユーザー名入力 */}
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1">
                   ユーザー名
                 </label>
                 <Input
@@ -203,14 +203,14 @@ export default function SignupPage() {
                   placeholder="あなたの名前"
                   maxLength={50}
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   50文字以内で入力してください
                 </p>
               </div>
 
               {/* メールアドレス入力 */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
                   メールアドレス
                 </label>
                 <Input
@@ -226,7 +226,7 @@ export default function SignupPage() {
 
               {/* パスワード入力 */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
                   パスワード
                 </label>
                 <div className="relative">
@@ -244,7 +244,7 @@ export default function SignupPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     aria-label={showPassword ? "パスワードを非表示" : "パスワードを表示"}
                   >
                     {showPassword ? (
@@ -254,7 +254,7 @@ export default function SignupPage() {
                     )}
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-muted-foreground">
                   8〜128文字で入力してください
                 </p>
               </div>
@@ -268,7 +268,7 @@ export default function SignupPage() {
 
             {/* ログインリンク（フォーム外） */}
             <Link href="/login" className="block w-full mt-4">
-              <Button type="button" variant="outline" className="w-full">
+              <Button type="button" variant="outline" className="w-full bg-gray-500 hover:bg-gray-600 text-white">
                 ログインはこちら
               </Button>
             </Link>

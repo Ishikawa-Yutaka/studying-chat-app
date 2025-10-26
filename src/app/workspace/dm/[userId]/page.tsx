@@ -49,6 +49,7 @@ export default function DirectMessagePage() {
   
   // 初期化状態とメッセージ管理
   const [isInitialized, setIsInitialized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
   const [dmPartner, setDmPartner] = useState<User | null>(null);
   const [dmChannelId, setDmChannelId] = useState<string>('');
@@ -109,7 +110,7 @@ export default function DirectMessagePage() {
         
       } catch (error) {
         console.error('❌ DM初期化エラー:', error);
-        alert('DMの初期化に失敗しました。ページをリロードしてください。');
+        setError(error instanceof Error ? error.message : 'DMの初期化に失敗しました');
       } finally {
         setIsInitialized(true);
       }
@@ -198,7 +199,7 @@ export default function DirectMessagePage() {
   };
 
   // データ読み込み中・認証チェック
-  if (!isInitialized || !dmPartner || !user || !myUserId) {
+  if (!isInitialized) {
     return (
       <div className="flex items-center justify-center h-full">
         <LoadingSpinner size={60} />
@@ -206,9 +207,34 @@ export default function DirectMessagePage() {
     );
   }
 
+  // エラーが発生した場合の表示
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center space-y-4 max-w-md px-4">
+          <div className="text-red-600 text-6xl">⚠️</div>
+          <h2 className="text-2xl font-bold text-foreground">エラー</h2>
+          <p className="text-muted-foreground">{error}</p>
+          <div className="pt-4">
+            <a
+              href="/workspace"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              ダッシュボードに戻る
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ユーザーが見つからない場合
-  if (!dmPartner) {
-    return notFound();
+  if (!dmPartner || !user || !myUserId) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <LoadingSpinner size={60} />
+      </div>
+    );
   }
 
   return (

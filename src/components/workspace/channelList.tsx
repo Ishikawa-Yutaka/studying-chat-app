@@ -107,7 +107,7 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
   return (
     <div className="px-2 py-2">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="px-2 text-sm font-semibold text-muted-foreground">チャンネル</h2>
+        <h2 className="px-2 text-sm font-semibold text-muted-foreground">参加チャンネル</h2>
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
@@ -197,7 +197,7 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
           <Button
             variant="outline"
             size="sm"
-            className="w-[80%] mx-auto block mt-2"
+            className="w-[80%] mx-auto block mt-2 border-2"
             onClick={() => setShowAllChannels(!showAllChannels)}
           >
             {showAllChannels ? '表示を減らす' : `さらに表示 (${channels.length - 5}件)`}

@@ -106,7 +106,7 @@ export default function DirectMessageList({ directMessages, pathname, onDmCreate
           <Button
             variant="outline"
             size="sm"
-            className="w-[80%] mx-auto block mt-2"
+            className="w-[80%] mx-auto block mt-2 border-2"
             onClick={() => setShowAllDms(!showAllDms)}
           >
             {showAllDms ? '表示を減らす' : `さらに表示 (${directMessages.length - 5}件)`}

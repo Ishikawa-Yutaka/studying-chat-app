@@ -147,20 +147,20 @@ export default function WorkspacePage() {
       <div className="space-y-4">
         <h2 className="text-3xl font-bold tracking-tight">ダッシュボード</h2>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setIsJoinChannelOpen(true)}>
+          <Button variant="outline" size="sm" className="border-2" onClick={() => setIsJoinChannelOpen(true)}>
             <Search className="mr-2 h-4 w-4" />
             チャンネルを探す
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setIsCreateChannelOpen(true)}>
+          <Button variant="outline" size="sm" className="border-2" onClick={() => setIsCreateChannelOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             新規チャンネル
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setIsStartDmOpen(true)}>
+          <Button variant="outline" size="sm" className="border-2" onClick={() => setIsStartDmOpen(true)}>
             <Users className="mr-2 h-4 w-4" />
             ダイレクトメッセージ
           </Button>
           <Link href="/workspace/ai-chat">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="border-2">
               <Bot className="mr-2 h-4 w-4" />
               AIチャット
             </Button>
@@ -259,7 +259,7 @@ export default function WorkspacePage() {
             {allChannels.length > 5 && (
               <Button
                 variant="outline"
-                className="w-[280px] mx-auto block"
+                className="w-[280px] mx-auto block border-2"
                 onClick={() => setShowAllChannels(!showAllChannels)}
               >
                 {showAllChannels ? '表示を減らす' : `さらに表示 (${allChannels.length - 5}件)`}
@@ -311,7 +311,7 @@ export default function WorkspacePage() {
             {dmStats.length > 5 && (
               <Button
                 variant="outline"
-                className="w-[280px] mx-auto block"
+                className="w-[280px] mx-auto block border-2"
                 onClick={() => setShowAllDmStats(!showAllDmStats)}
               >
                 {showAllDmStats ? '表示を減らす' : `さらに表示 (${dmStats.length - 5}件)`}
