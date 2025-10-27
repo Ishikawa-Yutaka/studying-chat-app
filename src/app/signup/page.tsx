@@ -13,7 +13,7 @@ import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Github, Twitter, Facebook, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react'
+import { Github, Twitter, Facebook, Eye, EyeOff, AlertCircle, Loader2, Mail, CheckCircle } from 'lucide-react'
 import { signInWithSocial, type SocialProvider, SOCIAL_PROVIDERS } from '@/lib/auth'
 import { signup } from './actions'
 
@@ -181,11 +181,50 @@ export default function SignupPage() {
 
             {/* メール・パスワードサインアップフォーム */}
             <form action={formAction} className="space-y-4">
+              {/* メール確認メッセージ表示 */}
+              {state?.requiresEmailConfirmation && (
+                <div className="rounded-md bg-blue-50 dark:bg-blue-950 p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-2">
+                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                        確認メールを送信しました
+                      </p>
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        ご登録いただいたメールアドレスに確認メールを送信しました。
+                        メール内のリンクをクリックして、アカウントを有効化してください。
+                      </p>
+                      <div className="mt-3 space-y-1">
+                        <div className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            メールが届かない場合は、迷惑メールフォルダをご確認ください
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            確認後、ログインページからログインできます
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <Link href="/login" className="block">
+                      <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                        ログインページへ
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               {/* エラーメッセージ表示 */}
               {state?.error && (
-                <div className="rounded-md bg-red-50 p-3 flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-600">{state.error}</p>
+                <div className="rounded-md bg-red-50 dark:bg-red-950 p-3 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
                 </div>
               )}
 

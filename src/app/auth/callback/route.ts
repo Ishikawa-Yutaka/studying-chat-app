@@ -42,26 +42,35 @@ export async function GET(request: NextRequest) {
       // Prismaデータベースにユーザー情報を同期
       // ソーシャル認証の場合、user_metadataから名前とアバターURLを取得
       // メール認証の場合は、既存のユーザー情報を保持
+      const userName = user.user_metadata?.name ||
+                      user.user_metadata?.full_name ||
+                      user.email?.split('@')[0] ||
+                      'Unknown User'
+
+      // OAuthプロバイダーからアバターURLを取得
+      // Google: user_metadata.picture
+      // GitHub: user_metadata.avatar_url
+      const avatarUrl = user.user_metadata?.avatar_url ||
+                       user.user_metadata?.picture ||
+                       null
+
+      console.log('🔄 Prismaユーザー同期開始:', {
+        authId: user.id,
+        email: user.email,
+        userName,
+        avatarUrl: avatarUrl ? '有り' : '無し',
+      })
+
       try {
-        const userName = user.user_metadata?.name ||
-                        user.user_metadata?.full_name ||
-                        user.email?.split('@')[0] ||
-                        'Unknown User'
-
-        // OAuthプロバイダーからアバターURLを取得
-        // Google: user_metadata.picture
-        // GitHub: user_metadata.avatar_url
-        const avatarUrl = user.user_metadata?.avatar_url ||
-                         user.user_metadata?.picture ||
-                         null
-
-        await prisma.user.upsert({
+        const prismaUser = await prisma.user.upsert({
           where: { authId: user.id },
           update: {
-            // 既存ユーザーの場合は名前、メール、アバターを更新
+            // 既存ユーザーの場合は名前、メール、アバター、オンライン状態を更新
             name: userName,
             email: user.email || '',
             avatarUrl: avatarUrl, // アバターURLを更新（nullの場合は既存値を保持）
+            isOnline: true,       // ログイン時はオンライン
+            lastSeen: new Date(), // 最終ログイン時刻を更新
           },
           create: {
             // 新規ユーザーの場合は作成
@@ -69,19 +78,30 @@ export async function GET(request: NextRequest) {
             name: userName,
             email: user.email || '',
             avatarUrl: avatarUrl, // 初回ログイン時にアバターURLを設定
+            isOnline: true,       // 初回ログイン時はオンライン
+            lastSeen: new Date(), // 初回ログイン時刻を設定
           },
         })
 
-        console.log('✅ Prismaにユーザー情報を同期:', {
-          authId: user.id,
-          name: userName,
-          email: user.email,
-          avatarUrl: avatarUrl ? '設定済み' : '未設定',
+        console.log('✅ Prismaにユーザー情報を同期成功:', {
+          id: prismaUser.id,
+          authId: prismaUser.authId,
+          name: prismaUser.name,
+          email: prismaUser.email,
         })
-      } catch (dbError) {
-        console.error('❌ Prismaユーザー同期エラー:', dbError)
-        // データベースエラーでもログインは成功させる
-        // （次回アクセス時に再度同期を試みる）
+      } catch (dbError: any) {
+        console.error('❌ Prismaユーザー同期エラー（詳細）:', {
+          error: dbError,
+          message: dbError.message,
+          code: dbError.code,
+          meta: dbError.meta,
+        })
+
+        // データベースエラーの場合、ログインページにリダイレクト
+        // ユーザーにエラーメッセージを表示
+        return NextResponse.redirect(
+          `${origin}/login?error=データベース同期エラーが発生しました。再度お試しください。`
+        )
       }
 
       // ログイン成功：ワークスペースページにリダイレクト

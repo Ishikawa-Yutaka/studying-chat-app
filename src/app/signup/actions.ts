@@ -17,10 +17,13 @@ import { signupSchema } from '@/lib/validations'
  * Server Actionの戻り値の型定義
  *
  * エラーがある場合: errorプロパティにメッセージを設定
- * 成功した場合: errorはundefined
+ * 成功した場合: successプロパティにメッセージを設定
+ * メール確認が必要な場合: requiresEmailConfirmation を true に設定
  */
 type ActionResult = {
   error?: string
+  success?: string
+  requiresEmailConfirmation?: boolean
 }
 
 /**
@@ -92,7 +95,31 @@ export async function signup(prevState: ActionResult | null, formData: FormData)
     return { error: errorMessage }
   }
 
-  // Supabaseユーザー作成成功時、Prismaにもユーザーレコードを作成
+  /**
+   * メール確認が必要かどうかをチェック
+   *
+   * Supabaseの設定でメール確認が有効な場合:
+   * - authData.session が null になる
+   * - ユーザーにメール確認を促す必要がある
+   *
+   * メール確認が不要な場合:
+   * - authData.session にセッション情報が入る
+   * - すぐにログイン状態になる
+   */
+  const requiresEmailConfirmation = !authData.session
+
+  if (requiresEmailConfirmation) {
+    // メール確認が必要な場合
+    console.log('📧 メール確認が必要です:', data.email)
+
+    return {
+      success: '確認メールを送信しました',
+      requiresEmailConfirmation: true
+    }
+  }
+
+  // メール確認が不要な場合（または既に確認済みの場合）
+  // Prismaにユーザーレコードを作成
   if (authData.user) {
     try {
       await prisma.user.create({

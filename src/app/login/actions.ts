@@ -80,19 +80,43 @@ export async function login(prevState: ActionResult | null, formData: FormData):
     return { error: errorMessage }
   }
 
-  // ログイン成功時: オンライン状態を更新
+  // ログイン成功時: Prismaユーザーを作成/更新
   if (authData.user) {
     try {
-      await prisma.user.update({
+      // ユーザー名を取得（メタデータまたはメールアドレスから生成）
+      const userName = authData.user.user_metadata?.name ||
+                      authData.user.user_metadata?.full_name ||
+                      authData.user.email?.split('@')[0] ||
+                      'Unknown User'
+
+      // アバターURLを取得
+      const avatarUrl = authData.user.user_metadata?.avatar_url ||
+                       authData.user.user_metadata?.picture ||
+                       null
+
+      await prisma.user.upsert({
         where: { authId: authData.user.id },
-        data: {
+        update: {
+          // 既存ユーザーの場合はオンライン状態を更新
+          isOnline: true,
+          lastSeen: new Date(),
+        },
+        create: {
+          // 新規ユーザーの場合は作成（メール確認後の初回ログイン）
+          authId: authData.user.id,
+          name: userName,
+          email: authData.user.email || '',
+          avatarUrl: avatarUrl,
           isOnline: true,
           lastSeen: new Date(),
         },
       })
-      console.log('✅ ユーザーのオンライン状態を更新しました:', authData.user.email)
-    } catch (dbError) {
-      console.error('❌ オンライン状態の更新に失敗しました:', dbError)
+      console.log('✅ Prismaユーザーを作成/更新しました:', authData.user.email)
+    } catch (dbError: any) {
+      console.error('❌ Prismaユーザー作成/更新エラー:', {
+        message: dbError.message,
+        code: dbError.code,
+      })
       // DB更新失敗してもログインは成功とする（致命的ではない）
     }
   }
