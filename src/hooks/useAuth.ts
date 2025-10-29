@@ -96,18 +96,17 @@ export function useAuth() {
     try {
       setAuthState(prev => ({ ...prev, loading: true }));
 
-      // ログアウト前にオンライン状態をfalseに更新
+      // ログアウト前に最終オンライン時刻を更新
       try {
         await fetch('/api/user/update-online-status', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ isOnline: false }),
         });
-        console.log('✅ オフライン状態に更新しました');
+        console.log('✅ 最終オンライン時刻を更新しました');
       } catch (updateError) {
-        console.error('⚠️ オンライン状態の更新に失敗しましたが、ログアウトは続行します:', updateError);
+        console.error('⚠️ 最終オンライン時刻の更新に失敗しましたが、ログアウトは続行します:', updateError);
         // エラーが出てもログアウトは続行
       }
 

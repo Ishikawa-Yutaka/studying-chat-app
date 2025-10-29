@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
+import { userBasicSelect } from '@/lib/prisma-selectors';
 
 export async function GET(request: NextRequest) {
   try {
@@ -96,10 +97,7 @@ export async function GET(request: NextRequest) {
         members: {
           include: {
             user: {
-              select: {
-                id: true,
-                name: true
-              }
+              select: userBasicSelect
             }
           }
         }

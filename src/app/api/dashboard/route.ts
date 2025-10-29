@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-server';
+import { channelMemberUserSelect, userBasicSelect } from '@/lib/prisma-selectors';
 
 /**
  * ダッシュボード統計情報取得API（GET）
@@ -39,13 +40,7 @@ export async function GET(request: NextRequest) {
             members: {
               include: {
                 user: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    authId: true,
-                    avatarUrl: true
-                  }
+                  select: channelMemberUserSelect
                 }
               }
             }
@@ -68,12 +63,7 @@ export async function GET(request: NextRequest) {
         members: {
           include: {
             user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                authId: true
-              }
+              select: userBasicSelect
             }
           }
         }

@@ -20,6 +20,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard';
+import { usePresence } from '@/hooks/usePresence';
 // 認証フック
 import { useAuth } from '@/hooks/useAuth';
 
@@ -85,6 +86,12 @@ export default function WorkspacePage() {
     currentUserId: user?.id || ''
   });
 
+  // Presenceでリアルタイムオンライン状態を追跡
+  const { isUserOnline } = usePresence({
+    userId: user?.id || null,
+    enabled: !!user,
+  });
+
   // データ取得
   useEffect(() => {
     // 認証が完了していない場合は実行しない
@@ -140,6 +147,12 @@ export default function WorkspacePage() {
       </div>
     );
   }
+
+  // DM統計にオンライン状態を追加
+  const dmStatsWithOnlineStatus = dmStats.map(stat => ({
+    ...stat,
+    isOnline: isUserOnline(stat.partnerId)
+  }));
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 pb-[50vh]">
@@ -276,13 +289,15 @@ export default function WorkspacePage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div className={`space-y-4 ${showAllDmStats ? 'max-h-[500px]' : 'max-h-[400px]'} overflow-y-auto transition-all duration-300`}>
-              {dmStats.slice(0, showAllDmStats ? undefined : 5).map((stat) => (
+              {dmStatsWithOnlineStatus.slice(0, showAllDmStats ? undefined : 5).map((stat) => (
                 <div key={stat.partnerId} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <UserAvatar
                       name={stat.partnerName}
                       avatarUrl={stat.partnerAvatarUrl}
                       size="sm"
+                      showOnlineStatus={true}
+                      isOnline={stat.isOnline}
                     />
                     <div className="space-y-1">
                       <Link

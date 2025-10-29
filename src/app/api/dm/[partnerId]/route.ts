@@ -1,6 +1,7 @@
 // DM チャンネル取得・作成API
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { channelMemberUserSelect, userBasicSelect } from '@/lib/prisma-selectors';
 
 // DMチャンネル取得API（GET）
 export async function GET(
@@ -36,15 +37,7 @@ export async function GET(
     // 相手のユーザー情報取得（SupabaseのauthIdからPrisma内部IDに変換）
     const partner = await prisma.user.findFirst({
       where: { authId: partnerId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        authId: true,
-        avatarUrl: true,
-        isOnline: true,
-        lastSeen: true
-      }
+      select: channelMemberUserSelect
     });
     
     if (!partner) {
@@ -70,12 +63,7 @@ export async function GET(
         members: {
           include: {
             user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                authId: true
-              }
+              select: userBasicSelect
             }
           }
         }
@@ -135,12 +123,7 @@ export async function GET(
         members: {
           include: {
             user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                authId: true
-              }
+              select: userBasicSelect
             }
           }
         }

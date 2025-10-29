@@ -97,8 +97,7 @@ export async function login(prevState: ActionResult | null, formData: FormData):
       await prisma.user.upsert({
         where: { authId: authData.user.id },
         update: {
-          // 既存ユーザーの場合はオンライン状態を更新
-          isOnline: true,
+          // 既存ユーザーの場合は最終ログイン時刻を更新
           lastSeen: new Date(),
         },
         create: {
@@ -107,7 +106,6 @@ export async function login(prevState: ActionResult | null, formData: FormData):
           name: userName,
           email: authData.user.email || '',
           avatarUrl: avatarUrl,
-          isOnline: true,
           lastSeen: new Date(),
         },
       })

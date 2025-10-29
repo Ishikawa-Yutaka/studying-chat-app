@@ -20,25 +20,25 @@
 ### 実装した機能
 
 - ユーザーのオンライン/オフライン状態をリアルタイムで表示
-- ログイン時に自動的にオンライン状態に更新
-- ログアウト時にオフライン状態に更新
-- 最終ログイン時刻の記録と表示
+- タブを開いている間は自動的にオンライン状態
+- タブを閉じると自動的にオフライン状態に
+- 最終アクティブ時刻の表示（「5分前にアクティブ」）
 - WebSocketによる即座の状態更新（1秒以内に反映）
 
 ### ユーザーから見た動作
 
 ```
-1. ユーザーAがログイン
-   → データベースに「オンライン」として記録
-   → Supabase Presenceに参加
+1. ユーザーAがワークスペースを開く
+   → Supabase Presenceに自動参加
+   → 他のユーザーに「オンライン」として見える
 
 2. ユーザーBがDM画面を開く
    → ユーザーAのアイコンに緑色の点が表示される
-   → 「オンライン」と表示される
+   → 「アクティブ」と表示される
 
-3. ユーザーAがログアウト
+3. ユーザーAがタブを閉じる or ログアウト
    → 即座にユーザーBの画面で灰色の点に変わる
-   → 「最終ログイン: ○分前」と表示される
+   → 「5分前にアクティブ」と表示される
 ```
 
 ---
@@ -51,76 +51,84 @@
 
 **仕組み**:
 ```
-ユーザーがログイン
+ユーザーがワークスペースを開く
   ↓
 WebSocketでSupabase Presenceチャンネルに接続
   ↓
 自分の存在（Presence）を他のユーザーに通知
   ↓
-他のユーザーの画面に「オンライン」表示
+他のユーザーの画面に「アクティブ」表示
   ↓
-ログアウト or ブラウザを閉じる
+タブを閉じる or ログアウト
   ↓
 WebSocket切断 → 他のユーザーに「オフライン」通知
+  ↓
+lastSeenがローカルで更新される
 ```
 
 **なぜPresenceが必要？**
-- データベースだけでは「今この瞬間にオンラインか」が分からない
 - ユーザーがブラウザを閉じた時、データベースを更新できない
 - Presenceは自動的に接続状態を検知してくれる
+- データベースポーリングよりも低レイテンシ（1秒以内）
 
 ### 2. PostgreSQL（データベース）
 
-**役割**: オンライン状態と最終ログイン時刻を永続的に保存
+**役割**: 最終アクティブ時刻を永続的に保存
 
 **Presenceとの使い分け**:
 | 項目 | Presence | データベース |
 |------|----------|--------------|
-| 更新頻度 | リアルタイム（1秒以内） | ログイン/ログアウト時のみ |
+| 更新頻度 | リアルタイム（1秒以内） | ログイン時のみ |
 | 保存期間 | 接続中のみ | 永続的 |
-| 用途 | 「今オンラインか」の判定 | 「最終ログイン時刻」の記録 |
+| 用途 | 「今オンラインか」の判定 | 「最終アクティブ時刻」の記録 |
 
 ---
 
 ## 実装の全体像
 
+### アーキテクチャの原則
+
+**重要な設計判断**: データベースからオンライン状態（`isOnline`）フィールドを削除し、**Presenceのみ**でオンライン判定を行う。
+
+**理由**:
+1. データベースは「最後に更新された状態」しか保持できない
+2. ユーザーがブラウザを閉じた時、データベース更新が間に合わない
+3. Presenceは接続が切れた瞬間に自動で検知できる
+
 ### システムフロー図
 
 ```
-[ログイン処理]
+[ワークスペース表示]
   ↓
-1. Supabase Auth でログイン
+1. useAuth でログイン状態確認
   ↓
-2. Prisma でデータベース更新
-   - isOnline = true
-   - lastSeen = 現在時刻
+2. layout.tsx で usePresence 実行
   ↓
-3. ページ遷移（/workspace）
+3. Supabase Presence チャンネル 'online-users' に接続
   ↓
-4. usePresence フックが実行される
+4. 自分のPresenceを送信
+   { user_id: "authId", online_at: "2025-10-29T..." }
   ↓
-5. Supabase Presence チャンネルに接続
+5. 他のユーザーのPresence状態を受信
   ↓
-6. 自分のPresenceを送信
-   { user_id: "xxx", online_at: "2025-10-26T..." }
+6. isUserOnline 関数で任意のユーザーのオンライン状態を確認可能
   ↓
-[他のユーザーが即座に「オンライン」を確認できる]
+[DirectMessageList や DMページで表示]
 
 
-[ログアウト処理]
+[タブを閉じた時]
   ↓
-1. API呼び出し（/api/user/update-online-status）
-   - isOnline = false を送信
+1. WebSocket接続が切断される
   ↓
-2. Prisma でデータベース更新
-   - isOnline = false
-   - lastSeen = 現在時刻
+2. Presenceから自動的に削除される
   ↓
-3. Supabase Auth でログアウト
+3. 'leave' イベントが発火
   ↓
-4. WebSocket接続が切断される
+4. DirectMessageList が leave イベントを検知
   ↓
-5. Presenceから自動的に削除される
+5. ローカル状態の lastSeen を現在時刻に更新
+  ↓
+6. データベースには次回ログイン時に反映
   ↓
 [他のユーザーが即座に「オフライン」を確認できる]
 ```
@@ -129,7 +137,7 @@ WebSocket切断 → 他のユーザーに「オフライン」通知
 
 ## データベース設計
 
-### Userテーブルに追加したフィールド
+### Userテーブルの構造
 
 ```prisma
 model User {
@@ -139,10 +147,8 @@ model User {
   authId    String   @unique
   avatarUrl String?                       // プロフィール画像のURL
 
-  // ↓↓↓ 新しく追加したフィールド ↓↓↓
-  isOnline  Boolean  @default(false)      // オンライン状態
-  lastSeen  DateTime @default(now())      // 最終ログイン時刻
-  // ↑↑↑ 新しく追加したフィールド ↑↑↑
+  // オンライン状態管理
+  lastSeen  DateTime @default(now())      // 最終アクティブ時刻（Presenceのleaveイベントで更新）
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -157,19 +163,21 @@ model User {
 
 | フィールド名 | 型 | デフォルト値 | 説明 |
 |------------|----|-----------|----|
-| `isOnline` | Boolean | false | ユーザーが現在オンラインかどうか |
-| `lastSeen` | DateTime | 現在時刻 | 最後にログインした日時 |
+| `lastSeen` | DateTime | 現在時刻 | 最後にアクティブだった日時 |
 
-### マイグレーション実行コマンド
+**重要**: `isOnline` フィールドは**削除しました**。Presenceのみでオンライン判定を行います。
+
+### マイグレーション履歴
 
 ```bash
-npx prisma migrate dev --name add_online_status_fields
+# isOnlineフィールドを削除
+npx prisma migrate dev --name remove_isOnline
 ```
 
-このコマンドを実行すると：
-1. `prisma/migrations/` フォルダに新しいマイグレーションファイルが作成される
-2. データベースに`isOnline`と`lastSeen`カラムが追加される
-3. Prisma Clientが再生成され、TypeScript型定義が更新される
+実行内容:
+1. `isOnline` カラムをデータベースから削除
+2. Prisma Clientを再生成
+3. TypeScript型定義を更新
 
 ---
 
@@ -181,260 +189,235 @@ npx prisma migrate dev --name add_online_status_fields
 
 **使い方**:
 ```typescript
-// コンポーネント内で使用
+// layout.tsx（親コンポーネント）で使用
 const { isUserOnline } = usePresence({
-  userId: user?.id || null,  // 現在ログインしているユーザーのID
-  enabled: !!user,           // ログインしている場合のみ有効化
+  userId: user?.id || null,  // 現在ログインしているユーザーのauthId
+  enabled: isAuthenticated,  // ログインしている場合のみ有効化
 });
 
-// 特定のユーザーがオンラインか確認
-const isPartnerOnline = isUserOnline('相手のユーザーID');
-```
-
-**コード解説**:
-
-```typescript
-'use client';
-
-import { useEffect, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import type { RealtimeChannel } from '@supabase/supabase-js';
-
-// Presenceに保存するデータの型定義
-interface PresenceState {
-  user_id: string;      // ユーザーID
-  online_at: string;    // オンラインになった日時
-}
-
-export function usePresence({
-  userId,   // 自分のユーザーID
-  enabled = true,  // フックを有効化するかどうか
-}: {
-  userId: string | null;
-  enabled?: boolean;
-}) {
-  // オンラインユーザーのIDリスト
-  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
-
-  /**
-   * 特定のユーザーがオンラインか判定する関数
-   *
-   * @param targetUserId - 確認したいユーザーのID
-   * @returns true: オンライン, false: オフライン
-   */
-  const isUserOnline = useCallback(
-    (targetUserId: string) => {
-      return onlineUsers.includes(targetUserId);
-    },
-    [onlineUsers]  // onlineUsersが変更されたら関数を再生成
-  );
-
-  useEffect(() => {
-    // ログインしていない場合は何もしない
-    if (!enabled || !userId) return;
-
-    // Supabaseクライアントを作成
-    const supabase = createClient();
-
-    /**
-     * Presenceチャンネルの作成
-     *
-     * チャンネル名: 'online-users'（全ユーザー共通）
-     * key: 自分のユーザーID（重複参加を防ぐ）
-     */
-    const presenceChannel = supabase.channel('online-users', {
-      config: {
-        presence: {
-          key: userId,  // このユーザーの一意なキー
-        },
-      },
-    });
-
-    presenceChannel
-      /**
-       * イベント: sync
-       * タイミング: Presenceの状態が変化した時（誰かが参加/退出した時）
-       *
-       * 処理内容:
-       * 1. 現在のPresence状態を取得
-       * 2. 全ユーザーIDを抽出
-       * 3. 重複を削除してonlineUsersに保存
-       */
-      .on('presence', { event: 'sync' }, () => {
-        const state = presenceChannel.presenceState<PresenceState>();
-
-        // state の構造例:
-        // {
-        //   "user-123": [{ user_id: "user-123", online_at: "2025-10-26..." }],
-        //   "user-456": [{ user_id: "user-456", online_at: "2025-10-26..." }]
-        // }
-
-        const users = Object.keys(state).flatMap((key) => {
-          const presences = state[key];
-          return presences.map((p) => p.user_id);
-        });
-
-        // 重複を削除
-        const uniqueUsers = Array.from(new Set(users));
-        setOnlineUsers(uniqueUsers);
-      })
-
-      /**
-       * イベント: join
-       * タイミング: 新しいユーザーがオンラインになった時
-       */
-      .on('presence', { event: 'join' }, ({ newPresences }) => {
-        console.log('✅ ユーザーがオンラインになりました:', newPresences);
-      })
-
-      /**
-       * イベント: leave
-       * タイミング: ユーザーがオフラインになった時
-       */
-      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
-        console.log('👋 ユーザーがオフラインになりました:', leftPresences);
-      })
-
-      /**
-       * チャンネルに接続してPresenceを送信
-       */
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          // 自分のPresenceを送信
-          await presenceChannel.track({
-            user_id: userId,
-            online_at: new Date().toISOString(),
-          });
-        }
-      });
-
-    /**
-     * クリーンアップ関数
-     * コンポーネントがアンマウントされた時に実行
-     */
-    return () => {
-      presenceChannel.unsubscribe();  // チャンネルから退出
-      supabase.removeChannel(presenceChannel);  // チャンネルを削除
-    };
-  }, [userId, enabled]);
-
-  return { onlineUsers, isUserOnline };
-}
+// 子コンポーネントにisUserOnline関数を渡す
+<DirectMessageList isUserOnline={isUserOnline} ... />
 ```
 
 **重要なポイント**:
 
-1. **useCallbackの使用**
+1. **グローバルチャンネル 'online-users'**
    ```typescript
-   const isUserOnline = useCallback((targetUserId: string) => {
-     return onlineUsers.includes(targetUserId);
-   }, [onlineUsers]);
+   const presenceChannel = supabase.channel('online-users', {
+     config: {
+       presence: {
+         key: userId,  // authId をキーとして使用
+       },
+     },
+   });
    ```
-   - `useCallback`を使わないと、毎回新しい関数が生成される
-   - 依存配列に`onlineUsers`を指定することで、必要な時だけ再生成
+   - すべてのユーザーが同じチャンネルに参加
+   - `key`に`authId`を指定することで、同じユーザーの重複参加を防ぐ
 
-2. **クリーンアップの重要性**
+2. **イベントハンドラー**
+   ```typescript
+   .on('presence', { event: 'sync' }, () => {
+     const state = presenceChannel.presenceState<PresenceState>();
+     const users = Object.keys(state).flatMap((key) => {
+       const presences = state[key];
+       return presences.map((p) => p.user_id);
+     });
+     const uniqueUsers = Array.from(new Set(users));
+     setOnlineUsers(uniqueUsers);
+   })
+   ```
+   - `sync`: Presence状態が変化した時（join/leave）
+   - オンラインユーザーのIDリストを更新
+
+3. **クリーンアップの重要性**
    ```typescript
    return () => {
      presenceChannel.unsubscribe();
      supabase.removeChannel(presenceChannel);
    };
    ```
-   - これがないとメモリリークが発生する
-   - ページ遷移時に古い接続が残り続ける
+   - ページ遷移時に必ず実行
+   - メモリリークを防ぐ
 
 ---
 
-### 2. `src/app/login/actions.ts` - ログイン時の処理
+### 2. `src/app/workspace/layout.tsx` - Presenceの一元管理
 
-**役割**: ログイン成功時にデータベースのオンライン状態を更新
+**役割**: ワークスペース全体でPresenceを管理し、子コンポーネントに状態を渡す
 
-**追加したコード**:
-
-```typescript
-import { prisma } from '@/lib/prisma';
-
-export async function signIn(data: SignInFormData) {
-  // ... Supabaseでログイン処理 ...
-
-  // ログイン成功時: オンライン状態を更新
-  if (authData.user) {
-    try {
-      await prisma.user.update({
-        where: { authId: authData.user.id },  // Supabase AuthのIDで検索
-        data: {
-          isOnline: true,           // オンライン状態にする
-          lastSeen: new Date(),     // 最終ログイン時刻を現在時刻に更新
-        },
-      });
-      console.log('✅ ユーザーのオンライン状態を更新しました:', authData.user.email);
-    } catch (dbError) {
-      console.error('❌ オンライン状態の更新に失敗しました:', dbError);
-      // エラーが出てもログイン自体は成功させる
-    }
-  }
-
-  return { success: true };
-}
-```
-
-**なぜここで更新するのか？**
-- ログイン直後にデータベースに記録することで、Presence接続前でも状態が保存される
-- ログイン履歴として`lastSeen`を残せる
-
----
-
-### 3. `src/app/signup/actions.ts` - サインアップ時の処理
-
-**役割**: 新規ユーザー登録時にオンライン状態を設定
-
-**追加したコード**:
+**実装の要点**:
 
 ```typescript
-export async function signUp(data: SignUpFormData) {
-  // ... Supabase Authでユーザー作成 ...
+export default function WorkspaceLayout({ children }) {
+  const { user, isAuthenticated } = useAuth();
 
-  // Prismaデータベースにユーザー情報を保存
-  const newUser = await prisma.user.create({
-    data: {
-      authId: authData.user.id,
-      name: data.name,
-      email: data.email,
-      isOnline: true,        // 登録直後はオンライン
-      lastSeen: new Date(),  // 登録日時を記録
-    },
+  // Presenceでリアルタイムオンライン状態を追跡
+  const { isUserOnline } = usePresence({
+    userId: user?.id || null,
+    enabled: isAuthenticated,
   });
 
-  return { success: true };
+  // オンライン状態をデータベースに同期
+  useOnlineStatusSync({ enabled: isAuthenticated });
+
+  return (
+    <div>
+      <aside>
+        {/* DirectMessageListにisUserOnline関数を渡す */}
+        <DirectMessageList
+          directMessages={directMessages}
+          isUserOnline={isUserOnline}  // ← ここで渡す
+          ...
+        />
+      </aside>
+      <main>{children}</main>
+    </div>
+  );
 }
 ```
 
+**なぜlayout.tsxで管理するのか？**
+- 1つのPresenceチャンネルで全体を管理
+- 複数のコンポーネントで同じPresence接続を共有
+- パフォーマンスが向上（接続数を最小化）
+
 ---
 
-### 4. `src/app/api/user/update-online-status/route.ts` - ログアウトAPI
+### 3. `src/components/workspace/directMessageList.tsx` - DM一覧での表示
 
-**役割**: ログアウト時にオンライン状態をfalseに更新
+**役割**: サイドバーにDM一覧を表示し、リアルタイムでオンライン状態を反映
 
-**新規作成したファイル**:
+**実装の要点**:
 
 ```typescript
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { prisma } from '@/lib/prisma';
+interface DirectMessageListProps {
+  directMessages: DirectMessage[];
+  isUserOnline: (userId: string) => boolean;  // layout.tsxから受け取る
+  ...
+}
 
-/**
- * オンライン状態更新API（POST）
- *
- * 用途: ログアウト時にオンライン状態をfalseに更新
- *
- * リクエストボディ:
- * {
- *   "isOnline": false
- * }
- */
+export default function DirectMessageList({
+  directMessages,
+  isUserOnline,  // ← propsで受け取る
+  ...
+}: DirectMessageListProps) {
+  // ローカル状態でDM一覧を保持（lastSeenをリアルタイム更新するため）
+  const [localDirectMessages, setLocalDirectMessages] = useState(directMessages);
+
+  // Presence leaveイベントをリッスンしてlastSeenを更新
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase.channel('dm-list-online-users');
+
+    channel
+      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        leftPresences.forEach((presence: any) => {
+          const offlineUserId = presence.user_id;
+
+          // ローカル状態のlastSeenを更新
+          setLocalDirectMessages((prev) =>
+            prev.map((dm) =>
+              dm.partnerId === offlineUserId
+                ? { ...dm, lastSeen: new Date() }
+                : dm
+            )
+          );
+        });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  return (
+    <div>
+      {localDirectMessages.map((dm) => {
+        // Presenceでリアルタイムオンライン状態を取得
+        const isOnline = isUserOnline(dm.partnerId);
+
+        return (
+          <div key={dm.id}>
+            <UserAvatar isOnline={isOnline} ... />
+            <div>
+              <span>{dm.partnerName}</span>
+              {/* オフライン時のみlastSeenを表示 */}
+              {!isOnline && dm.lastSeen && (
+                <span>{formatRelativeTime(dm.lastSeen)}にアクティブ</span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+```
+
+**重要なポイント**:
+
+1. **ローカルステートが必要な理由**
+   - PresenceのleaveイベントでlastSeenをリアルタイム更新するため
+   - データベースに保存するのは次回ログイン時
+
+2. **isUserOnlineをpropsで受け取る**
+   - layout.tsxのusePresenceの結果を再利用
+   - 重複したPresence接続を避ける
+
+---
+
+### 4. `src/hooks/useOnlineStatusSync.ts` - データベース同期
+
+**役割**: タブを閉じた時、ページ遷移時にlastSeenをデータベースに保存
+
+**実装**:
+
+```typescript
+export function useOnlineStatusSync({ enabled }: { enabled: boolean }) {
+  useEffect(() => {
+    if (!enabled) return;
+
+    // beforeunload: タブを閉じる時
+    const handleBeforeUnload = () => {
+      navigator.sendBeacon('/api/user/update-online-status',
+        JSON.stringify({}));
+    };
+
+    // visibilitychange: 別のタブに移動した時
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        navigator.sendBeacon('/api/user/update-online-status',
+          JSON.stringify({}));
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [enabled]);
+}
+```
+
+**sendBeaconを使う理由**:
+- 通常の`fetch`はページ遷移時にキャンセルされる
+- `sendBeacon`は確実にリクエストを送信できる
+
+---
+
+### 5. `src/app/api/user/update-online-status/route.ts` - lastSeen更新API
+
+**役割**: lastSeenを現在時刻に更新（isOnlineフィールドは削除済み）
+
+**実装**:
+
+```typescript
 export async function POST(request: NextRequest) {
   try {
-    // Supabaseで認証状態を確認
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -445,94 +428,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // リクエストボディから isOnline を取得
-    const { isOnline } = await request.json();
-
-    // データベースを更新
+    // lastSeenのみ更新（isOnlineは削除済み）
     await prisma.user.update({
       where: { authId: user.id },
       data: {
-        isOnline: isOnline,      // true または false
-        lastSeen: new Date(),    // 更新日時を記録
+        lastSeen: new Date(),
       },
     });
 
-    console.log(`✅ オンライン状態を更新しました: ${user.email} → ${isOnline ? 'オンライン' : 'オフライン'}`);
+    console.log(`✅ 最終アクティブ時刻を更新しました: ${user.email}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('❌ オンライン状態の更新に失敗しました:', error);
+    console.error('❌ 最終アクティブ時刻の更新に失敗しました:', error);
     return NextResponse.json(
-      { success: false, error: 'オンライン状態の更新に失敗しました' },
+      { success: false, error: '更新に失敗しました' },
       { status: 500 }
     );
   }
 }
 ```
 
-**なぜAPIが必要？**
-- ログアウト処理は`useAuth`フック（クライアント側）で実行される
-- クライアント側からPrismaに直接アクセスできない
-- APIを経由することでサーバー側でデータベースを更新できる
+**変更点**:
+- `isOnline`フィールドの更新を削除
+- `lastSeen`のみ更新
 
 ---
 
-### 5. `src/hooks/useAuth.ts` - ログアウト処理の修正
-
-**役割**: ログアウト時にAPIを呼び出してオンライン状態を更新
-
-**修正した部分**:
-
-```typescript
-const signOut = async () => {
-  try {
-    setAuthState(prev => ({ ...prev, loading: true }));
-
-    // ログアウト前にオンライン状態をfalseに更新
-    try {
-      await fetch('/api/user/update-online-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isOnline: false }),
-      });
-      console.log('✅ オフライン状態に更新しました');
-    } catch (updateError) {
-      console.error('⚠️ オンライン状態の更新に失敗しましたが、ログアウトは続行します');
-      // エラーが出てもログアウトは続行
-    }
-
-    // Supabase Authからログアウト
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-
-    console.log('✅ ログアウトしました');
-    router.push('/login');
-  } catch (error: any) {
-    console.error('❌ ログアウトエラー:', error);
-    setAuthState(prev => ({
-      ...prev,
-      error: error.message || 'ログアウトに失敗しました',
-    }));
-  } finally {
-    setAuthState(prev => ({ ...prev, loading: false }));
-  }
-};
-```
-
-**処理の順序が重要**:
-1. API呼び出し（データベース更新）
-2. Supabase Auth ログアウト（セッション削除）
-3. ページ遷移
-
-この順序を守ることで、ログアウト後もデータベースに状態が残ります。
-
----
-
-### 6. `src/app/workspace/dm/[userId]/page.tsx` - DM画面での表示
+### 6. `src/app/workspace/dm/[userId]/page.tsx` - DMページでの表示
 
 **役割**: DM相手のオンライン状態をリアルタイムで表示
 
-**修正した部分**:
+**実装の要点**:
 
 ```typescript
 export default function DirectMessagePage() {
@@ -541,12 +468,10 @@ export default function DirectMessagePage() {
 
   const [dmPartner, setDmPartner] = useState<User | null>(null);
 
-  /**
-   * Presenceフックで全オンラインユーザーを追跡
-   */
+  // Presenceフックで全オンラインユーザーを追跡
   const { isUserOnline } = usePresence({
-    userId: user?.id || null,  // 自分のユーザーID
-    enabled: !!user,           // ログイン中のみ有効
+    userId: user?.id || null,
+    enabled: !!user,
   });
 
   useEffect(() => {
@@ -556,10 +481,8 @@ export default function DirectMessagePage() {
       const dmData = await dmResponse.json();
 
       if (dmData.success) {
-        // DM相手の情報を設定（APIから取得した実データを使用）
         setDmPartner({
           ...dmData.dmChannel.partner,
-          isOnline: dmData.dmChannel.partner.isOnline ?? false,
           lastSeen: dmData.dmChannel.partner.lastSeen
             ? new Date(dmData.dmChannel.partner.lastSeen)
             : undefined
@@ -570,30 +493,19 @@ export default function DirectMessagePage() {
     initData();
   }, [userId, myUserId]);
 
-  /**
-   * Presenceからリアルタイムオンライン状態を取得
-   *
-   * 重要: userIdは相手のauthId（SupabaseのユーザーID）
-   */
-  const isPartnerOnlineNow = userId ? isUserOnline(userId) : false;
+  // Presenceからリアルタイムオンライン状態を取得
+  const isPartnerOnline = userId ? isUserOnline(userId) : false;
 
-  /**
-   * dmPartnerにリアルタイムオンライン状態を反映
-   *
-   * データベースの状態ではなく、Presenceの状態を優先
-   */
+  // dmPartnerにリアルタイムオンライン状態を反映
   const dmPartnerWithPresence = {
     ...dmPartner,
-    isOnline: isPartnerOnlineNow,  // リアルタイム状態で上書き
+    isOnline: isPartnerOnline,
   };
 
   return (
-    <div className="flex flex-col h-full">
-      {/* DM専用ヘッダー（リアルタイムオンライン状態を反映） */}
+    <div>
       <DmHeader dmPartner={dmPartnerWithPresence} />
-
-      {/* メッセージ表示・入力フォーム */}
-      <MessageView messages={messages} myUserId={myUserId} />
+      <MessageView messages={messages} />
       <MessageForm handleSendMessage={handleSendMessage} />
     </div>
   );
@@ -601,7 +513,7 @@ export default function DirectMessagePage() {
 ```
 
 **なぜPresenceで上書きするのか？**
-- データベースは「最後にログインした時の状態」
+- データベースは「最後に記録された時刻」
 - Presenceは「今この瞬間の状態」
 - リアルタイム性を重視するため、Presenceの値を優先
 
@@ -611,71 +523,28 @@ export default function DirectMessagePage() {
 
 **役割**: ユーザーアバターとオンライン状態を表示
 
-**修正した部分**:
+**実装**:
 
 ```typescript
 export default function DmHeader({ dmPartner }: DmHeaderProps) {
-  /**
-   * 最終ログイン時間のフォーマット
-   *
-   * 例:
-   * - 3分前 → "数分前"
-   * - 30分前 → "30分前"
-   * - 5時間前 → "5時間前"
-   * - 3日前 → "3日前"
-   * - 1週間以上前 → "10月15日"
-   */
-  const formatLastSeen = (lastSeen?: Date) => {
-    if (!lastSeen) return '';
-
-    const now = new Date();
-    const diff = now.getTime() - lastSeen.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 5) return '数分前';
-    if (minutes < 60) return `${minutes}分前`;
-    if (hours < 24) return `${hours}時間前`;
-    if (days < 7) return `${days}日前`;
-
-    return lastSeen.toLocaleDateString('ja-JP', {
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
   return (
     <header className="border-b bg-background">
       <div className="h-16 flex items-center px-4">
         <div className="flex items-center gap-3">
           {/* ユーザーアバター */}
-          <div className="relative">
-            {dmPartner.avatarUrl ? (
-              // アバター画像がある場合
-              <img
-                src={dmPartner.avatarUrl}
-                alt={dmPartner.name}
-                className="w-10 h-10 rounded-full object-cover"
-              />
-            ) : (
-              // アバター画像がない場合はイニシャル表示
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-lg font-semibold">
-                {dmPartner.name.charAt(0)}
-              </div>
-            )}
-
-            {/* オンライン状態インジケーター（緑色の点） */}
-            {dmPartner.isOnline && (
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full" />
-            )}
-          </div>
+          <UserAvatar
+            name={dmPartner.name}
+            avatarUrl={dmPartner.avatarUrl}
+            size="md"
+            showOnlineStatus={true}
+            isOnline={dmPartner.isOnline}
+          />
 
           {/* ユーザー詳細情報 */}
           <div className="flex flex-col">
             <h1 className="font-semibold text-lg">{dmPartner.name}</h1>
             <div className="flex items-center gap-2 text-sm">
-              {/* オンライン状態インジケーター（小さな点） */}
+              {/* オンライン状態インジケーター */}
               <div className={`w-2 h-2 rounded-full ${
                 dmPartner.isOnline ? 'bg-green-500' : 'bg-gray-400'
               }`} />
@@ -683,8 +552,8 @@ export default function DmHeader({ dmPartner }: DmHeaderProps) {
               {/* オンライン状態テキスト */}
               <span className="text-gray-600">
                 {dmPartner.isOnline
-                  ? 'オンライン'
-                  : `最終ログイン: ${formatLastSeen(dmPartner.lastSeen)}`
+                  ? 'アクティブ'
+                  : `${formatRelativeTime(dmPartner.lastSeen)}にアクティブ`
                 }
               </span>
             </div>
@@ -696,116 +565,106 @@ export default function DmHeader({ dmPartner }: DmHeaderProps) {
 }
 ```
 
-**表示の切り替えロジック**:
-```
-dmPartner.isOnline が true の場合:
-  → 緑色の点 + "オンライン"
-
-dmPartner.isOnline が false の場合:
-  → 灰色の点 + "最終ログイン: ○分前"
-```
+**表示例**:
+- オンライン時: 緑色の点 + "アクティブ"
+- オフライン時: 灰色の点 + "5分前にアクティブ"
 
 ---
 
-### 8. `src/app/api/dm/[partnerId]/route.ts` - DM API の修正
+### 8. `src/lib/utils.ts` - 時間フォーマット関数
 
-**役割**: DM相手の情報を取得する際にオンライン状態も返す
+**役割**: 最終アクティブ時刻を人間が読みやすい形式に変換
 
-**修正した部分**:
+**実装**:
 
 ```typescript
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ partnerId: string }> }
-) {
-  // ... ユーザー情報取得 ...
+export function formatRelativeTime(date: Date | string | null | undefined): string {
+  if (!date) return '';
+  const now = new Date();
+  const targetDate = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(targetDate.getTime())) return '';
 
-  // 相手のユーザー情報取得（オンライン状態も含む）
-  const partner = await prisma.user.findFirst({
-    where: { authId: partnerId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      authId: true,
-      avatarUrl: true,      // アバター画像URL
-      isOnline: true,       // オンライン状態
-      lastSeen: true        // 最終ログイン時刻
-    }
-  });
+  const diffMs = now.getTime() - targetDate.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
 
-  // ... DMチャンネル取得・作成 ...
+  if (diffMinutes < 1) return 'たった今';
+  if (diffMinutes < 60) return `${diffMinutes}分前`;
+  if (diffHours < 24) return `${diffHours}時間前`;
+  if (diffDays < 7) return `${diffDays}日前`;
 
-  return NextResponse.json({
-    success: true,
-    dmChannel: {
-      id: existingDmChannel.id,
-      type: existingDmChannel.type,
-      partner: partner  // オンライン状態を含むユーザー情報
-    }
-  });
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const day = String(targetDate.getDate()).padStart(2, '0');
+  return `${year}/${month}/${day}`;
 }
 ```
+
+**表示例**:
+- `たった今` → 1分未満
+- `5分前` → 5分前
+- `3時間前` → 3時間前
+- `2日前` → 2日前
+- `2025/10/15` → 7日以上前
 
 ---
 
 ## 動作の仕組み
 
-### シーケンス図: ログイン時
+### シーケンス図: ワークスペース表示時
 
 ```
-[ユーザーA]           [ログイン画面]         [Supabase Auth]    [Prisma DB]      [Supabase Presence]
-    |                      |                       |                  |                    |
-    |--1. メール/PW入力--->|                       |                  |                    |
-    |                      |---2. signIn()-------->|                  |                    |
-    |                      |<--3. authData---------|                  |                    |
-    |                      |                       |                  |                    |
-    |                      |---4. prisma.user.update()-------------->|                    |
-    |                      |          (isOnline=true, lastSeen=now)  |                    |
-    |                      |<--5. 更新完了--------------------------------|                    |
-    |                      |                       |                  |                    |
-    |<-6. /workspaceへ遷移-|                       |                  |                    |
-    |                      |                       |                  |                    |
-    |---7. usePresence起動------------------------------------------>|                    |
-    |                      |                       |                  |                    |
-    |---8. presenceChannel.track()----------------------------------------------->|
-    |          { user_id: "A", online_at: "..." }                                |
-    |                      |                       |                  |                    |
-    |<--9. SUBSCRIBED確認----------------------------------------------------------|
+[ユーザーA]        [layout.tsx]      [usePresence]    [Supabase Presence]
+    |                    |                  |                    |
+    |--1. /workspaceへ-->|                  |                    |
+    |                    |                  |                    |
+    |                    |---2. usePresence起動-->|              |
+    |                    |   (userId: A)    |                    |
+    |                    |                  |                    |
+    |                    |                  |---3. チャンネル接続->|
+    |                    |                  |   'online-users'   |
+    |                    |                  |                    |
+    |                    |                  |---4. track()------->|
+    |                    |                  |   { user_id: A }   |
+    |                    |                  |                    |
+    |                    |                  |<--5. SUBSCRIBED-----|
+    |                    |                  |                    |
+    |                    |<--6. onlineUsers = [A]----------------|
 
 
 [ユーザーB（別タブ）]
     |
-    |<--10. 'sync'イベント受信--------------------------------------------------------|
-    |          onlineUsers = ["A"]
+    |<--7. 'sync'イベント受信------------------------------------|
+    |          onlineUsers = [A, B]
     |
-    |---11. 画面更新: ユーザーAに緑色の点が表示される
+    |---8. 画面更新: ユーザーAに緑色の点が表示される
 ```
 
-### シーケンス図: ログアウト時
+### シーケンス図: タブを閉じた時
 
 ```
-[ユーザーA]           [useAuth]          [API]            [Prisma DB]      [Supabase Presence]
-    |                      |                 |                  |                    |
-    |--1. ログアウトボタン-->|                 |                  |                    |
-    |                      |                 |                  |                    |
-    |                      |---2. fetch('/api/user/update-online-status')--->|         |
-    |                      |          { isOnline: false }        |                    |
-    |                      |                 |---3. prisma.user.update()-->|          |
-    |                      |                 |   (isOnline=false)         |          |
-    |                      |<--4. 更新完了----|<--------------------|          |
-    |                      |                 |                  |                    |
-    |                      |---5. supabase.auth.signOut()------------------------------->|
-    |                      |                 |                  |         (WebSocket切断)
-    |<--6. /loginへ遷移----|                 |                  |                    |
+[ユーザーA]        [useOnlineStatusSync]    [API]         [Prisma DB]    [Presence]
+    |                        |                 |                |              |
+    |--1. タブを閉じる-------->|                 |                |              |
+    |                        |                 |                |              |
+    |                        |---2. sendBeacon('/api/user/update-online-status')->|
+    |                        |                 |---3. update()-->|              |
+    |                        |                 |   (lastSeen)   |              |
+    |                        |                 |                |              |
+    |                        |                 |                | (WebSocket切断)
+    |                        |                 |                |              |
 
 
-[ユーザーB（別タブ）]
+[DirectMessageList（ユーザーB）]
     |
-    |<--7. 'leave'イベント受信--------------------------------------------------------|
-    |          onlineUsers = []
+    |<--4. 'leave'イベント受信------------------------------------------------|
+    |          { user_id: A }
     |
-    |---8. 画面更新: ユーザーAの点が灰色に変わる
+    |---5. ローカル状態更新
+    |      localDirectMessages[A].lastSeen = new Date()
+    |
+    |---6. 画面更新: ユーザーAの点が灰色に、「5分前にアクティブ」表示
 ```
 
 ---
@@ -828,19 +687,21 @@ export async function GET(
 
 | 手順 | 操作 | 期待される結果 |
 |-----|------|--------------|
-| 1 | ウィンドウAでログイン | データベースの`isOnline`が`true`になる |
-| 2 | ウィンドウBでDM画面を開く（ユーザーAとのDM） | ユーザーAのアイコンに緑色の点が表示される |
-| 3 | ウィンドウAでログアウト | 1秒以内にウィンドウBで灰色の点に変わる |
-| 4 | ウィンドウBの「オンライン」表示を確認 | 「最終ログイン: 数分前」と表示される |
+| 1 | ウィンドウAでログイン | ユーザーBの画面でユーザーAに緑色の点が表示される |
+| 2 | ウィンドウBでDM画面を開く（ユーザーAとのDM） | 「アクティブ」と表示される |
+| 3 | ウィンドウAのタブを閉じる | 1秒以内にウィンドウBで灰色の点に変わる |
+| 4 | オフライン表示を確認 | 「たった今にアクティブ」→「5分前にアクティブ」と変化する |
 
 ### 2. ブラウザコンソールでの確認
 
 **Chromeデベロッパーツール** → **Console** タブで以下のログを確認：
 
 ```
-✅ ユーザーのオンライン状態を更新しました: user@example.com
-✅ ユーザーがオンラインになりました: [{ user_id: "xxx", ... }]
-👋 ユーザーがオフラインになりました: [{ user_id: "xxx", ... }]
+✅ Presenceチャンネルに参加しました: 240ddd9e-...
+📡 オンラインユーザー更新: ['240ddd9e-...', '5797a21b-...']
+✅ ユーザーがオンラインになりました: [{ user_id: '...', ... }]
+👋 ユーザーがオフラインになりました: [{ user_id: '...', ... }]
+👋 DM一覧: ユーザーがオフライン - 5797a21b-...
 ```
 
 ### 3. データベースでの確認
@@ -853,15 +714,10 @@ npx prisma studio
 
 1. `User` テーブルを開く
 2. 対象ユーザーの行を確認
-3. `isOnline` と `lastSeen` の値を確認
+3. `lastSeen` の値を確認（`isOnline`フィールドは削除済み）
 
-**ログイン中**:
-- `isOnline`: `true`
-- `lastSeen`: 最近の日時
-
-**ログアウト後**:
-- `isOnline`: `false`
-- `lastSeen`: ログアウトした日時
+**タブを閉じた後**:
+- `lastSeen`: タブを閉じた日時に更新される
 
 ### 4. ネットワークタブでの確認
 
@@ -877,7 +733,7 @@ npx prisma studio
   "event": "track",
   "payload": {
     "user_id": "5797a21b-...",
-    "online_at": "2025-10-26T..."
+    "online_at": "2025-10-29T..."
   }
 }
 ```
@@ -887,8 +743,21 @@ npx prisma studio
 {
   "event": "sync",
   "payload": {
-    "user-123": [{ "user_id": "user-123", ... }]
+    "240ddd9e-...": [{
+      "user_id": "240ddd9e-...",
+      "online_at": "2025-10-29T..."
+    }]
   }
+}
+```
+
+**受信データ（leave）**:
+```json
+{
+  "event": "leave",
+  "leftPresences": [{
+    "user_id": "5797a21b-..."
+  }]
 }
 ```
 
@@ -896,7 +765,7 @@ npx prisma studio
 
 ## トラブルシューティング
 
-### 問題1: オンライン状態が更新されない
+### 問題1: オンライン状態が表示されない
 
 **症状**: ログインしてもオンライン表示にならない
 
@@ -904,13 +773,28 @@ npx prisma studio
 
 | 原因 | 確認方法 | 解決策 |
 |------|---------|--------|
-| マイグレーションが実行されていない | Prisma Studioで`isOnline`列が存在するか確認 | `npx prisma migrate dev` を実行 |
-| Presence接続に失敗している | コンソールに`SUBSCRIBED`ログがあるか確認 | Supabase URLとAnon Keyを確認 |
-| usePresenceが無効化されている | `enabled: !!user`が正しいか確認 | ログイン状態を確認 |
+| Presenceチャンネルに接続していない | コンソールに`SUBSCRIBED`ログがあるか確認 | Supabase URLとAnon Keyを確認 |
+| usePresenceが無効化されている | `enabled: isAuthenticated`が正しいか確認 | ログイン状態を確認 |
+| authIdが一致していない | Presenceの`user_id`とDMの`partnerId`が一致するか確認 | APIレスポンスを確認 |
 
-### 問題2: リアルタイム更新が遅い
+### 問題2: サイドバーとDMページでオンライン状態が異なる
 
-**症状**: ログアウトから5秒以上経ってから反映される
+**症状**: DMページではオンラインだがサイドバーではオフライン
+
+**原因**: DirectMessageListがlayout.tsxの`isUserOnline`を受け取っていない
+
+**解決策**:
+```typescript
+// layout.tsx
+const { isUserOnline } = usePresence({ ... });
+
+// DirectMessageListに渡す
+<DirectMessageList isUserOnline={isUserOnline} ... />
+```
+
+### 問題3: リアルタイム更新が遅い
+
+**症状**: タブを閉じてから5秒以上経ってから反映される
 
 **原因**: WebSocketの再接続遅延
 
@@ -919,37 +803,19 @@ npx prisma studio
 2. 開発サーバーを再起動
 3. Supabaseダッシュボードで接続数を確認
 
-### 問題3: 「メンバーでないユーザー」エラー
+### 問題4: 「前前にアクティブ」と表示される
 
-**症状**: DMで相手のメッセージが表示されない
+**症状**: 「5分前前にアクティブ」のように「前」が重複
 
-**原因**: DM APIが正しいユーザーIDを返していない
-
-**確認方法**:
-```bash
-node scripts/check-dm-data.mjs
-```
-
-**解決策**:
-1. DM APIのレスポンスを確認
-2. `partner.authId`が正しいか確認
-3. 必要に応じてデータベースをクリーンアップ
-
-### 問題4: ログアウト時にエラーが出る
-
-**症状**: `Failed to fetch /api/user/update-online-status`
-
-**原因**: API認証エラー
+**原因**: `formatRelativeTime`が既に「前」を含むのに、さらに追加している
 
 **解決策**:
 ```typescript
-// useAuth.ts で try-catch を確認
-try {
-  await fetch('/api/user/update-online-status', { ... });
-} catch (updateError) {
-  console.error('⚠️ オンライン状態の更新に失敗');
-  // エラーが出てもログアウトは続行
-}
+// ❌ Bad
+`${formatRelativeTime(dm.lastSeen)}前にアクティブ`
+
+// ✅ Good
+`${formatRelativeTime(dm.lastSeen)}にアクティブ`
 ```
 
 ---
@@ -958,28 +824,28 @@ try {
 
 ### 実装のポイント
 
-1. **データベース（永続化）** と **Presence（リアルタイム）** の組み合わせ
-   - データベース: 最終ログイン時刻の記録
-   - Presence: 今この瞬間のオンライン状態
+1. **Presenceのみでオンライン判定**
+   - データベースの`isOnline`フィールドは削除
+   - リアルタイム性と正確性を向上
 
-2. **クリーンアップの徹底**
-   - `useEffect`の`return`で必ず`unsubscribe`
-   - メモリリークを防ぐ
+2. **Presenceの一元管理**
+   - layout.tsxで1つのusePresenceを実行
+   - 子コンポーネントにisUserOnline関数を渡す
 
-3. **エラーハンドリング**
-   - APIエラーが出てもログイン/ログアウトは続行
-   - ユーザー体験を損なわない
+3. **ローカル状態でlastSeen更新**
+   - Presenceのleaveイベントで即座に反映
+   - データベースは次回ログイン時に同期
 
-4. **型安全性**
-   - TypeScriptの型定義を活用
-   - Prismaが自動生成する型を使用
+4. **sendBeaconで確実な送信**
+   - タブを閉じた時も確実にAPIリクエスト
+   - 通常のfetchよりも信頼性が高い
 
 ### 学んだこと
 
-- Supabase Presenceの仕組み
-- WebSocketのイベント処理
+- Supabase Presenceの仕組みと使い方
+- WebSocketのイベント処理（sync, join, leave）
 - React hooksの正しい使い方（useCallback, useEffect）
-- データベースとリアルタイム機能の連携
+- Presenceとデータベースの適切な使い分け
 
 ### 次のステップ
 
@@ -991,8 +857,8 @@ try {
 2. **通知機能**
    - 相手がオンラインになったら通知
 
-3. **オフライン時の未読表示**
-   - 最終ログイン以降のメッセージ数を表示
+3. **タイピングインジケーター**
+   - 相手が入力中であることを表示
 
 ---
 
@@ -1001,9 +867,10 @@ try {
 - [Supabase Presence 公式ドキュメント](https://supabase.com/docs/guides/realtime/presence)
 - [Prisma Client API リファレンス](https://www.prisma.io/docs/reference/api-reference/prisma-client-reference)
 - [React Hooks ガイド](https://react.dev/reference/react)
+- [Navigator.sendBeacon() - MDN](https://developer.mozilla.org/ja/docs/Web/API/Navigator/sendBeacon)
 
 ---
 
-**作成日**: 2025年10月26日
-**バージョン**: 1.0
+**作成日**: 2025年10月29日
+**バージョン**: 2.0（Presenceのみ版）
 **対象プロジェクト**: リアルタイムチャットアプリ（卒業制作）

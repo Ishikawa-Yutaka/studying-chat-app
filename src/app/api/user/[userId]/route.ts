@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { userWithStatusSelect } from '@/lib/prisma-selectors';
 
 export async function GET(
   request: NextRequest,
@@ -15,18 +16,12 @@ export async function GET(
 
     console.log(`👤 ユーザー情報取得: ${userId}`);
 
-    // ユーザー情報を取得
+    // ユーザー情報を取得（オンライン状態も含む）
     const user = await prisma.user.findUnique({
       where: {
         id: userId
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        authId: true,     // SupabaseのAuthIDも含める
-        avatarUrl: true   // プロフィール画像のURL
-      }
+      select: userWithStatusSelect
     });
 
     if (!user) {

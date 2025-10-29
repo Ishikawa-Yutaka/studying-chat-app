@@ -13,6 +13,7 @@ import { MessageCircle, Search, UserPlus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
+import { UserAvatar } from '@/components/userAvatar';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,9 @@ interface User {
   name: string;
   email: string;
   authId: string;
+  avatarUrl?: string | null;  // プロフィール画像
+  isOnline?: boolean;         // オンライン状態
+  lastSeen?: Date;            // 最終ログイン時刻
 }
 
 interface Channel {
@@ -221,13 +225,36 @@ export default function UserManagement({ onUserUpdate }: UserManagementProps) {
           filteredUsers.map((user) => (
             <div
               key={user.id}
-              className="flex items-center justify-between p-2 rounded-md bg-gray-50 hover:bg-gray-100 border mb-1"
+              className="flex items-center justify-between p-2 rounded-md bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border mb-1"
             >
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                <div className="text-xs text-gray-500">{user.email}</div>
+              {/* ユーザー情報エリア */}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <UserAvatar
+                  name={user.name}
+                  avatarUrl={user.avatarUrl}
+                  size="sm"
+                  className="h-8 w-8"
+                  showOnlineStatus={true}
+                  isOnline={user.isOnline}
+                />
+
+                {/* 名前・メール・オンライン状態テキスト */}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                    {user.email}
+                    {/* オンライン状態テキスト */}
+                    {user.isOnline && (
+                      <>
+                        <span className="text-gray-400">•</span>
+                        <span className="text-green-600 dark:text-green-400 font-medium">オンライン</span>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
-              
+
+              {/* アクションボタン */}
               <div className="flex gap-1">
                 {/* DM作成ボタン */}
                 <Button
@@ -239,7 +266,7 @@ export default function UserManagement({ onUserUpdate }: UserManagementProps) {
                 >
                   <MessageCircle className="h-4 w-4" />
                 </Button>
-                
+
                 {/* チャンネル招待ボタン */}
                 <Button
                   variant="outline"

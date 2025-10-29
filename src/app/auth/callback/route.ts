@@ -65,11 +65,10 @@ export async function GET(request: NextRequest) {
         const prismaUser = await prisma.user.upsert({
           where: { authId: user.id },
           update: {
-            // 既存ユーザーの場合は名前、メール、アバター、オンライン状態を更新
+            // 既存ユーザーの場合は名前、メール、アバター、最終ログイン時刻を更新
             name: userName,
             email: user.email || '',
             avatarUrl: avatarUrl, // アバターURLを更新（nullの場合は既存値を保持）
-            isOnline: true,       // ログイン時はオンライン
             lastSeen: new Date(), // 最終ログイン時刻を更新
           },
           create: {
@@ -78,7 +77,6 @@ export async function GET(request: NextRequest) {
             name: userName,
             email: user.email || '',
             avatarUrl: avatarUrl, // 初回ログイン時にアバターURLを設定
-            isOnline: true,       // 初回ログイン時はオンライン
             lastSeen: new Date(), // 初回ログイン時刻を設定
           },
         })

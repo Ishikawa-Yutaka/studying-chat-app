@@ -21,6 +21,8 @@ import AvatarSettingsDialog from '@/components/workspace/avatarSettingsDialog';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAuth } from '@/hooks/useAuth';
 import { usePresence } from '@/hooks/usePresence';
+import { useOnlineStatusSync } from '@/hooks/useOnlineStatusSync';
+import { createClient } from '@/lib/supabase/client';
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -34,10 +36,15 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
   // Presenceでリアルタイムオンライン状態を追跡
   // ユーザーがワークスペースにいる間、自動的にオンラインとして登録
   // タブを閉じると自動的にオフラインに
-  usePresence({
+  const { isUserOnline } = usePresence({
     userId: user?.id || null,
     enabled: isAuthenticated,
   });
+
+  // オンライン状態をデータベースに同期
+  // タブを閉じる、別のタブに移動する、ページを離れる時に自動的にオフライン状態に更新
+  // 認証されている時のみ有効化
+  useOnlineStatusSync({ enabled: isAuthenticated });
 
   // データベース状態管理
   const [channels, setChannels] = useState<Array<{
@@ -147,7 +154,10 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
     updateSidebarData();
   }, [user, updateSidebarData]);
 
-  // 注: DM退出とチャンネル削除は楽観的更新を使用しているため、イベントリスナーは不要
+  // 注:
+  // - オンライン状態はPresenceで管理（データベースのisOnlineは削除済み）
+  // - Userテーブルのリアルタイム監視は不要（DirectMessageListが個別にPresenceイベントを監視）
+  // - DM退出とチャンネル削除は楽観的更新を使用
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -170,7 +180,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
           <div className="flex-1 overflow-y-auto min-h-0">
             <ChannelList channels={channels} pathname={pathname} currentUserId={currentUser?.id} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} onChannelDeleted={handleChannelDeleted} onLinkClick={() => setOpen(false)} />
             <Separator className="my-2" />
-            <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} onDmLeft={handleDmLeft} onLinkClick={() => setOpen(false)} />
+            <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} onDmLeft={handleDmLeft} onLinkClick={() => setOpen(false)} isUserOnline={isUserOnline} />
             <Separator className="my-2" />
             {/* AIチャットリンク */}
             <div className="px-3 py-2">
@@ -213,7 +223,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
               <>
                 <ChannelList channels={channels} pathname={pathname} currentUserId={currentUser?.id} onChannelCreated={updateSidebarData} onChannelJoined={handleChannelJoined} onChannelLeft={handleChannelLeft} onChannelDeleted={handleChannelDeleted} />
                 <Separator className="my-2" />
-                <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} onDmLeft={handleDmLeft} />
+                <DirectMessageList directMessages={directMessages} pathname={pathname} onDmCreated={updateSidebarData} onDmLeft={handleDmLeft} isUserOnline={isUserOnline} />
                 <Separator className="my-2" />
                 {/* AIチャットリンク */}
                 <div className="px-3 py-2">

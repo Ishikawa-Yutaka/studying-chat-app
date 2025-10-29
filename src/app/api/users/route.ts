@@ -1,6 +1,7 @@
 // ワークスペース内全ユーザー一覧取得API
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { userWithStatusSelect } from '@/lib/prisma-selectors';
 
 // ユーザー一覧取得API（GET）
 export async function GET(request: NextRequest) {
@@ -10,12 +11,8 @@ export async function GET(request: NextRequest) {
     // ワークスペース内の全ユーザーを取得
     const users = await prisma.user.findMany({
       select: {
-        id: true,
-        name: true,
-        email: true,
-        authId: true,
-        avatarUrl: true,
-        createdAt: true
+        ...userWithStatusSelect,
+        createdAt: true  // 作成日時も追加
       },
       orderBy: {
         name: 'asc'

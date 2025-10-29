@@ -11,6 +11,7 @@ interface User {
   name: string;
   authId?: string; // SupabaseのAuthIDも含める
   avatarUrl?: string | null; // プロフィール画像のURL
+  isOnline?: boolean; // オンライン状態
 }
 
 interface Message {
@@ -248,6 +249,8 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
                     avatarUrl={message.sender.avatarUrl}
                     size="sm"
                     className="flex-shrink-0"
+                    showOnlineStatus={true}
+                    isOnline={message.sender.isOnline}
                   />
                 )}
 
@@ -316,6 +319,8 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
                     avatarUrl={message.sender.avatarUrl}
                     size="sm"
                     className="flex-shrink-0"
+                    showOnlineStatus={true}
+                    isOnline={message.sender.isOnline}
                   />
                 )}
               </div>

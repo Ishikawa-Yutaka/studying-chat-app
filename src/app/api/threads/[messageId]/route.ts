@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser, checkChannelMembership } from '@/lib/auth-server';
+import { messageSenderSelect } from '@/lib/prisma-selectors';
 
 /**
  * スレッド取得エンドポイント（GET）
@@ -39,13 +40,7 @@ export async function GET(
       where: { id: messageId },
       include: {
         sender: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            authId: true,
-            avatarUrl: true  // アバター画像のURL
-          }
+          select: messageSenderSelect
         }
       }
     });
@@ -81,13 +76,7 @@ export async function GET(
       },
       include: {
         sender: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            authId: true,
-            avatarUrl: true  // アバター画像のURL
-          }
+          select: messageSenderSelect
         }
       },
       orderBy: {
@@ -197,13 +186,7 @@ export async function POST(
       },
       include: {
         sender: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            authId: true,
-            avatarUrl: true  // アバター画像のURL
-          }
+          select: messageSenderSelect
         }
       }
     });

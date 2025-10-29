@@ -38,6 +38,18 @@ interface UserAvatarProps {
    * Tailwind CSSのクラスを追加可能
    */
   className?: string
+
+  /**
+   * オンライン状態表示を有効にする
+   * trueにすると、アバター右下にオンライン状態のドットが表示される
+   */
+  showOnlineStatus?: boolean
+
+  /**
+   * ユーザーのオンライン状態
+   * showOnlineStatus が true の時のみ有効
+   */
+  isOnline?: boolean
 }
 
 /**
@@ -74,30 +86,59 @@ function getSizeClass(size: 'sm' | 'md' | 'lg'): string {
   }
 }
 
+/**
+ * オンライン状態ドットのサイズを返す
+ */
+function getOnlineIndicatorSize(size: 'sm' | 'md' | 'lg'): string {
+  switch (size) {
+    case 'sm':
+      return 'w-2.5 h-2.5' // 小さいアバター用（10px）
+    case 'md':
+      return 'w-3 h-3' // 中サイズアバター用（12px）
+    case 'lg':
+      return 'w-4 h-4' // 大きいアバター用（16px）
+    default:
+      return 'w-3 h-3'
+  }
+}
+
 export function UserAvatar({
   name,
   avatarUrl,
   size = 'md',
   className = '',
+  showOnlineStatus = false,
+  isOnline = false,
 }: UserAvatarProps) {
   const initials = getInitials(name)
   const sizeClass = getSizeClass(size)
+  const indicatorSize = getOnlineIndicatorSize(size)
 
   return (
-    <Avatar className={`${sizeClass} ${className}`}>
-      {/* アバター画像（URLがある場合のみ表示） */}
-      {avatarUrl && (
-        <AvatarImage
-          src={avatarUrl}
-          alt={`${name}のアバター`}
-          className="object-cover"
+    <div className="relative inline-block">
+      <Avatar className={`${sizeClass} ${className}`}>
+        {/* アバター画像（URLがある場合のみ表示） */}
+        {avatarUrl && (
+          <AvatarImage
+            src={avatarUrl}
+            alt={`${name}のアバター`}
+            className="object-cover"
+          />
+        )}
+
+        {/* フォールバック：画像が読み込めない場合またはURLがない場合 */}
+        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold">
+          {initials}
+        </AvatarFallback>
+      </Avatar>
+
+      {/* オンライン状態インジケーター（右下の緑のドット） */}
+      {showOnlineStatus && isOnline && (
+        <div
+          className={`absolute -bottom-0.5 -right-0.5 ${indicatorSize} bg-green-500 border-2 border-white dark:border-gray-800 rounded-full`}
+          aria-label="オンライン"
         />
       )}
-
-      {/* フォールバック：画像が読み込めない場合またはURLがない場合 */}
-      <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold">
-        {initials}
-      </AvatarFallback>
-    </Avatar>
+    </div>
   )
 }

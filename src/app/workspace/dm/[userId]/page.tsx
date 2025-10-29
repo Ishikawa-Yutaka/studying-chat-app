@@ -247,12 +247,13 @@ export default function DirectMessagePage() {
 
   // Presenceからリアルタイムオンライン状態を取得
   // DM相手のauthIdを使ってオンライン状態を確認
-  const isPartnerOnlineNow = userId ? isUserOnline(userId) : false;
+  const isPartnerOnlineFromPresence = userId ? isUserOnline(userId) : false;
 
   // dmPartnerにリアルタイムオンライン状態を反映
+  // Presenceのみを使用（データベースのisOnlineは削除済み）
   const dmPartnerWithPresence = {
     ...dmPartner,
-    isOnline: isPartnerOnlineNow,
+    isOnline: isPartnerOnlineFromPresence,
   };
 
   return (

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { messageSchema, messageWithFileSchema } from '@/lib/validations';
 import { getCurrentUser, checkChannelMembership } from '@/lib/auth-server';
+import { messageWithDetailsInclude } from '@/lib/prisma-selectors';
 
 // メッセージ取得API（GET）
 export async function GET(
@@ -41,34 +42,7 @@ export async function GET(
         channelId: channelId,
         parentMessageId: null  // スレッドの返信は除外（親メッセージのみ取得）
       },
-      include: {
-        sender: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            authId: true,     // SupabaseのAuthIDも含める
-            avatarUrl: true   // プロフィール画像のURL
-          }
-        },
-        replies: {
-          // スレッド返信の詳細情報を取得（送信者のアバターも含む）
-          include: {
-            sender: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                authId: true,
-                avatarUrl: true  // アバター画像のURL
-              }
-            }
-          },
-          orderBy: {
-            createdAt: 'asc'  // 返信は古い順
-          }
-        }
-      },
+      include: messageWithDetailsInclude,
       orderBy: {
         createdAt: 'asc'  // 古いメッセージから順番に
       }

@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-server';
+import { channelMemberUserSelect } from '@/lib/prisma-selectors';
 
 // チャンネル一覧取得API（GET）
 export async function GET(request: NextRequest) {
@@ -35,13 +36,7 @@ export async function GET(request: NextRequest) {
             members: {
               include: {
                 user: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    authId: true,
-                    avatarUrl: true   // プロフィール画像のURL
-                  }
+                  select: channelMemberUserSelect
                 }
               }
             }
@@ -77,7 +72,8 @@ export async function GET(request: NextRequest) {
             partnerId: partner.user.authId,     // Supabase AuthID を使用
             partnerName: partner.user.name,
             partnerEmail: partner.user.email,
-            partnerAvatarUrl: partner.user.avatarUrl  // プロフィール画像のURL
+            partnerAvatarUrl: partner.user.avatarUrl,  // プロフィール画像のURL
+            lastSeen: partner.user.lastSeen     // 最終ログイン時刻（オンライン状態はPresenceで取得）
           });
         }
       }

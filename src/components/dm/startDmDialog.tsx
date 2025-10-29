@@ -36,6 +36,8 @@ interface User {
   email: string;
   authId: string;
   avatarUrl?: string | null;
+  isOnline?: boolean;         // オンライン状態
+  lastSeen?: Date;            // 最終ログイン時刻
 }
 
 interface StartDmDialogProps {
@@ -219,21 +221,28 @@ export default function StartDmDialog({
                 >
                   {/* ユーザー情報 */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    {/* アバター画像 */}
                     <UserAvatar
                       name={user.name}
                       avatarUrl={user.avatarUrl}
                       size="md"
-                      className="shrink-0"
+                      showOnlineStatus={true}
+                      isOnline={user.isOnline}
                     />
 
-                    {/* 名前・メール */}
+                    {/* 名前・メール・オンライン状態 */}
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-foreground truncate">
                         {user.name}
                       </div>
-                      <div className="text-xs text-muted-foreground truncate">
+                      <div className="text-xs text-muted-foreground truncate flex items-center gap-1.5">
                         {user.email}
+                        {/* オンライン状態テキスト */}
+                        {user.isOnline && (
+                          <>
+                            <span className="text-gray-400">•</span>
+                            <span className="text-green-600 dark:text-green-400 font-medium">オンライン</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
