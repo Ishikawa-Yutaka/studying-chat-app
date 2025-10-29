@@ -20,11 +20,11 @@ import SettingsMenu from '@/components/workspace/settingsMenu';
 import AvatarSettingsDialog from '@/components/workspace/avatarSettingsDialog';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAuth } from '@/hooks/useAuth';
-import { usePresence } from '@/hooks/usePresence';
+import { usePresenceContext, PresenceProvider } from '@/contexts/PresenceContext';
 import { useOnlineStatusSync } from '@/hooks/useOnlineStatusSync';
 import { createClient } from '@/lib/supabase/client';
 
-export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
+function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState<boolean>(false);
@@ -33,13 +33,9 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
   // 認証状態管理
   const { user, loading: authLoading, isAuthenticated, signOut } = useAuth();
 
-  // Presenceでリアルタイムオンライン状態を追跡
-  // ユーザーがワークスペースにいる間、自動的にオンラインとして登録
-  // タブを閉じると自動的にオフラインに
-  const { isUserOnline } = usePresence({
-    userId: user?.id || null,
-    enabled: isAuthenticated,
-  });
+  // PresenceContextからオンライン状態取得
+  // Presenceは PresenceProvider で一元管理
+  const { isUserOnline } = usePresenceContext();
 
   // オンライン状態をデータベースに同期
   // タブを閉じる、別のタブに移動する、ページを離れる時に自動的にオフライン状態に更新
@@ -267,5 +263,19 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
         }}
       />
     </div>
+  );
+}
+
+/**
+ * WorkspaceLayout
+ *
+ * PresenceProviderでラップして、全ての子コンポーネントで
+ * Presence状態を共有できるようにする
+ */
+export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <PresenceProvider>
+      <WorkspaceLayoutInner>{children}</WorkspaceLayoutInner>
+    </PresenceProvider>
   );
 }

@@ -20,6 +20,7 @@ import { MessageCircle, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
+import { usePresenceContext } from '@/contexts/PresenceContext';
 import { UserAvatar } from '@/components/userAvatar';
 import {
   Dialog,
@@ -36,7 +37,6 @@ interface User {
   email: string;
   authId: string;
   avatarUrl?: string | null;
-  isOnline?: boolean;         // オンライン状態
   lastSeen?: Date;            // 最終ログイン時刻
 }
 
@@ -53,6 +53,9 @@ export default function StartDmDialog({
 }: StartDmDialogProps) {
   const router = useRouter();
   const { user: currentUser } = useAuth();
+
+  // PresenceContextからオンライン状態取得
+  const { isUserOnline } = usePresenceContext();
 
   // 状態管理
   const [users, setUsers] = useState<User[]>([]);
@@ -115,6 +118,15 @@ export default function StartDmDialog({
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  /**
+   * フィルター済みユーザーにオンライン状態を追加
+   * Presenceで動的に判定
+   */
+  const usersWithOnlineStatus = filteredUsers.map(user => ({
+    ...user,
+    isOnline: isUserOnline(user.authId)
+  }));
 
   /**
    * 新規DM作成処理
@@ -209,12 +221,12 @@ export default function StartDmDialog({
               <div className="text-center text-sm text-muted-foreground py-8">
                 読み込み中...
               </div>
-            ) : filteredUsers.length === 0 ? (
+            ) : usersWithOnlineStatus.length === 0 ? (
               <div className="text-center text-sm text-muted-foreground py-8">
                 {searchTerm ? '該当するユーザーが見つかりません' : 'ユーザーがいません'}
               </div>
             ) : (
-              filteredUsers.map((user) => (
+              usersWithOnlineStatus.map((user) => (
                 <div
                   key={user.id}
                   className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent transition-colors"
@@ -240,7 +252,7 @@ export default function StartDmDialog({
                         {user.isOnline && (
                           <>
                             <span className="text-gray-400">•</span>
-                            <span className="text-green-600 dark:text-green-400 font-medium">オンライン</span>
+                            <span className="text-green-600 dark:text-green-400 font-medium">アクティブ</span>
                           </>
                         )}
                       </div>

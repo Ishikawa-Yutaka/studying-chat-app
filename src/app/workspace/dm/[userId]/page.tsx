@@ -15,7 +15,7 @@ import DmHeader from '@/components/dm/dmHeader';
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
-import { usePresence } from '@/hooks/usePresence';
+import { usePresenceContext } from '@/contexts/PresenceContext';
 // 認証フック
 import { useAuth } from '@/hooks/useAuth';
 
@@ -24,8 +24,8 @@ interface User {
   id: string;
   name: string;
   email?: string;
+  authId?: string;
   avatarUrl?: string | null;
-  isOnline?: boolean;
   lastSeen?: Date;
 }
 
@@ -56,11 +56,8 @@ export default function DirectMessagePage() {
   const [dmPartner, setDmPartner] = useState<User | null>(null);
   const [dmChannelId, setDmChannelId] = useState<string>('');
 
-  // Presenceでリアルタイムオンライン状態を追跡
-  const { isUserOnline } = usePresence({
-    userId: user?.id || null,
-    enabled: !!user,
-  });
+  // PresenceContextからオンライン状態取得
+  const { isUserOnline } = usePresenceContext();
   
   // リアルタイムメッセージフック：自動的にメッセージがリアルタイム更新される
   const { messages, addMessage } = useRealtimeMessages({
@@ -94,7 +91,6 @@ export default function DirectMessagePage() {
           // DM相手の情報を設定（APIから取得した実データを使用）
           setDmPartner({
             ...dmData.dmChannel.partner,
-            isOnline: dmData.dmChannel.partner.isOnline ?? false,
             lastSeen: dmData.dmChannel.partner.lastSeen ? new Date(dmData.dmChannel.partner.lastSeen) : undefined
           });
           
@@ -246,8 +242,8 @@ export default function DirectMessagePage() {
   }
 
   // Presenceからリアルタイムオンライン状態を取得
-  // DM相手のauthIdを使ってオンライン状態を確認
-  const isPartnerOnlineFromPresence = userId ? isUserOnline(userId) : false;
+  // DM相手のauthIdを使ってオンライン状態を確認（userIdではなくauthIdを使用）
+  const isPartnerOnlineFromPresence = dmPartner.authId ? isUserOnline(dmPartner.authId) : false;
 
   // dmPartnerにリアルタイムオンライン状態を反映
   // Presenceのみを使用（データベースのisOnlineは削除済み）
@@ -256,13 +252,22 @@ export default function DirectMessagePage() {
     isOnline: isPartnerOnlineFromPresence,
   };
 
+  // メッセージにオンライン状態を追加
+  const messagesWithOnlineStatus = messages.map(msg => ({
+    ...msg,
+    sender: {
+      ...msg.sender,
+      isOnline: msg.sender.authId ? isUserOnline(msg.sender.authId) : false
+    }
+  }));
+
   return (
     <div className="flex flex-col h-full">
       {/* DM専用ヘッダー（リアルタイムオンライン状態を反映） */}
       <DmHeader dmPartner={dmPartnerWithPresence} />
-      
+
       {/* メッセージ表示エリア（チャンネルと同じコンポーネントを再利用） */}
-      <MessageView messages={messages} myUserId={myUserId} />
+      <MessageView messages={messagesWithOnlineStatus} myUserId={myUserId} />
       
       {/* メッセージ入力フォーム（チャンネルと同じコンポーネントを再利用） */}
       <MessageForm 

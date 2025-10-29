@@ -14,7 +14,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
-import { usePresence } from '@/hooks/usePresence';
+import { usePresenceContext } from '@/contexts/PresenceContext';
 // 認証フック
 import { useAuth } from '@/hooks/useAuth';
 
@@ -76,11 +76,8 @@ export default function ChannelPage() {
     initialMessages
   });
 
-  // Presenceでリアルタイムオンライン状態を追跡
-  const { isUserOnline } = usePresence({
-    userId: user?.id || null,
-    enabled: !!user,
-  });
+  // PresenceContextからオンライン状態取得
+  const { isUserOnline } = usePresenceContext();
 
   // メッセージにオンライン状態を追加
   const messagesWithOnlineStatus = messages.map(msg => ({

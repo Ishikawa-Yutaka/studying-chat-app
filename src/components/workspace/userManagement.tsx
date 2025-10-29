@@ -13,6 +13,7 @@ import { MessageCircle, Search, UserPlus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
+import { usePresenceContext } from '@/contexts/PresenceContext';
 import { UserAvatar } from '@/components/userAvatar';
 import {
   Dialog,
@@ -36,7 +37,6 @@ interface User {
   email: string;
   authId: string;
   avatarUrl?: string | null;  // プロフィール画像
-  isOnline?: boolean;         // オンライン状態
   lastSeen?: Date;            // 最終ログイン時刻
 }
 
@@ -53,14 +53,17 @@ interface UserManagementProps {
 export default function UserManagement({ onUserUpdate }: UserManagementProps) {
   const router = useRouter();
   const { user: currentUser } = useAuth();
-  
+
+  // PresenceContextからオンライン状態取得
+  const { isUserOnline } = usePresenceContext();
+
   // 状態管理
   const [users, setUsers] = useState<User[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedChannel, setSelectedChannel] = useState<string>('');
-  
+
   // ダイアログ状態
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -118,6 +121,12 @@ export default function UserManagement({ onUserUpdate }: UserManagementProps) {
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // フィルター済みユーザーにオンライン状態を追加（Presenceで動的に判定）
+  const usersWithOnlineStatus = filteredUsers.map(user => ({
+    ...user,
+    isOnline: isUserOnline(user.authId)
+  }));
 
   // 新規DM作成
   const handleCreateDM = async (targetUser: User) => {
@@ -217,12 +226,12 @@ export default function UserManagement({ onUserUpdate }: UserManagementProps) {
           <div className="text-center text-xs text-muted-foreground py-4">
             読み込み中...
           </div>
-        ) : filteredUsers.length === 0 ? (
+        ) : usersWithOnlineStatus.length === 0 ? (
           <div className="text-center text-xs text-muted-foreground py-4">
             {searchTerm ? '該当するユーザーが見つかりません' : 'ユーザーがいません'}
           </div>
         ) : (
-          filteredUsers.map((user) => (
+          usersWithOnlineStatus.map((user) => (
             <div
               key={user.id}
               className="flex items-center justify-between p-2 rounded-md bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border mb-1"
@@ -247,7 +256,7 @@ export default function UserManagement({ onUserUpdate }: UserManagementProps) {
                     {user.isOnline && (
                       <>
                         <span className="text-gray-400">•</span>
-                        <span className="text-green-600 dark:text-green-400 font-medium">オンライン</span>
+                        <span className="text-green-600 dark:text-green-400 font-medium">アクティブ</span>
                       </>
                     )}
                   </div>

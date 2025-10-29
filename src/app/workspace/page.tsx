@@ -20,7 +20,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard';
-import { usePresence } from '@/hooks/usePresence';
+import { usePresenceContext } from '@/contexts/PresenceContext';
 // 認証フック
 import { useAuth } from '@/hooks/useAuth';
 
@@ -86,11 +86,8 @@ export default function WorkspacePage() {
     currentUserId: user?.id || ''
   });
 
-  // Presenceでリアルタイムオンライン状態を追跡
-  const { isUserOnline } = usePresence({
-    userId: user?.id || null,
-    enabled: !!user,
-  });
+  // PresenceContextからオンライン状態取得
+  const { isUserOnline } = usePresenceContext();
 
   // データ取得
   useEffect(() => {
