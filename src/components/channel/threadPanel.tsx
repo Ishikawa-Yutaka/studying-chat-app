@@ -23,7 +23,7 @@ interface User {
 
 interface Message {
   id: string;
-  sender: User;
+  sender: User | null; // アカウント削除されたユーザーの場合はnull
   content: string;
   createdAt: Date | string;
   replies?: Message[];
@@ -62,10 +62,15 @@ export default function ThreadPanel({
 
   // 自分のメッセージかどうかを判定
   const isMyMessage = (message: Message) => {
-    if (!myUserId || !message.sender.authId) {
+    if (!myUserId || !message.sender || !message.sender.authId) {
       return false;
     }
     return message.sender.authId === myUserId;
+  };
+
+  // 送信者名を取得（削除済みユーザー対応）
+  const getSenderName = (message: Message) => {
+    return message.sender?.name || '削除済みユーザー';
   };
 
   // スレッド返信を送信
@@ -122,14 +127,14 @@ export default function ThreadPanel({
             <div className="pb-4 border-b">
               <div className="flex items-start gap-3">
                 <UserAvatar
-                  name={parentMessage.sender.name}
-                  avatarUrl={parentMessage.sender.avatarUrl}
+                  name={getSenderName(parentMessage)}
+                  avatarUrl={parentMessage.sender?.avatarUrl}
                   size="md"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-semibold text-gray-900">
-                      {parentMessage.sender.name}
+                      {getSenderName(parentMessage)}
                     </span>
                     <span className="text-xs text-gray-500">
                       {typeof parentMessage.createdAt === "string"
@@ -151,14 +156,14 @@ export default function ThreadPanel({
             {replies.map((reply) => (
               <div key={reply.id} className="flex items-start gap-3">
                 <UserAvatar
-                  name={reply.sender.name}
-                  avatarUrl={reply.sender.avatarUrl}
+                  name={getSenderName(reply)}
+                  avatarUrl={reply.sender?.avatarUrl}
                   size="sm"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-semibold text-sm text-gray-900">
-                      {isMyMessage(reply) ? '自分' : reply.sender.name}
+                      {isMyMessage(reply) ? '自分' : getSenderName(reply)}
                     </span>
                     <span className="text-xs text-gray-500">
                       {typeof reply.createdAt === "string"

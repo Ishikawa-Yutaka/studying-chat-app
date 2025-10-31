@@ -166,12 +166,12 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
                   <LogOut className="h-3.5 w-3.5 text-gray-400 group-hover/leave:text-orange-500 transition-colors" />
                 </Button>
 
-                {/* 削除アイコン（作成者のみ表示、それ以外はスペース確保のため非表示） */}
+                {/* 削除アイコン（作成者のみ表示、作成者が削除された場合は全メンバー表示） */}
                 <Button
                   variant="ghost"
                   size="icon"
                   className={`group/delete h-5 w-5 flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity ${
-                    currentUserId && channel.creatorId === currentUserId ? '' : 'invisible pointer-events-none'
+                    currentUserId && (channel.creatorId === currentUserId || channel.creatorId === null) ? '' : 'invisible pointer-events-none'
                   }`}
                   onClick={(e) => {
                     e.preventDefault();
@@ -179,7 +179,7 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
                     setSettingsChannel(channel);
                   }}
                   title="チャンネル設定"
-                  disabled={!(currentUserId && channel.creatorId === currentUserId)}
+                  disabled={!(currentUserId && (channel.creatorId === currentUserId || channel.creatorId === null))}
                 >
                   <Trash2 className="h-3.5 w-3.5 text-gray-400 group-hover/delete:text-red-500 transition-colors" />
                 </Button>

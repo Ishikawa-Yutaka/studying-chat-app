@@ -30,7 +30,7 @@ model Channel {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   creatorId   String?
-  creator     User?           @relation(fields: [creatorId], references: [id])
+  creator     User?           @relation(fields: [creatorId], references: [id], onDelete: SetNull)
   members     ChannelMember[]
   messages    Message[]
 }
@@ -52,7 +52,7 @@ model Message {
   content         String
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  senderId        String
+  senderId        String?
   channelId       String
   parentMessageId String?
   fileUrl         String?
@@ -62,7 +62,7 @@ model Message {
   channel         Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
   parentMessage   Message?  @relation("ThreadReplies", fields: [parentMessageId], references: [id], onDelete: Cascade)
   replies         Message[] @relation("ThreadReplies")
-  sender          User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  sender          User?     @relation(fields: [senderId], references: [id], onDelete: SetNull)
 }
 
 model AiChatSession {

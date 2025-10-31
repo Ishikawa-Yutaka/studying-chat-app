@@ -31,7 +31,7 @@ interface User {
 
 interface Message {
   id: string;
-  sender: User;
+  sender: User | null; // アカウント削除済みの場合はnull
   content: string;
   createdAt: Date | string;
   // ファイル添付情報（オプショナル）
@@ -255,10 +255,10 @@ export default function DirectMessagePage() {
   // メッセージにオンライン状態を追加
   const messagesWithOnlineStatus = messages.map(msg => ({
     ...msg,
-    sender: {
+    sender: msg.sender ? {
       ...msg.sender,
       isOnline: msg.sender.authId ? isUserOnline(msg.sender.authId) : false
-    }
+    } : null
   }));
 
   return (

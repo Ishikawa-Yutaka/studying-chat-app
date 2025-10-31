@@ -17,7 +17,7 @@ interface User {
 
 interface Message {
   id: string;
-  sender: User;
+  sender: User | null; // アカウント削除済みの場合はnull
   content: string;
   createdAt: Date | string;
   // ファイル添付情報（オプショナル）
@@ -51,18 +51,20 @@ export function useRealtimeMessages({ channelId, initialMessages }: UseRealtimeM
   }, []);
 
   // 初期メッセージの更新（リセット）
+  // channelId が変わった時にメッセージを完全にリセット
   useEffect(() => {
-    if (initialMessages.length > 0) {
-      console.log('🔄 初期メッセージを設定:', initialMessages.length, '件');
-      setMessages(initialMessages);
-    }
-  }, [initialMessages.length]);
+    console.log('🔄 初期メッセージを設定:', initialMessages.length, '件 (channelId:', channelId, ')');
+    setMessages(initialMessages);
+  }, [channelId, initialMessages.length]);
 
   // Supabase Realtimeの設定
   useEffect(() => {
     // channelIdとsupabaseが有効な場合のみ実行
     if (!channelId || !supabase) {
-      console.log('⚠️ channelIdまたはsupabaseが無効のため、Realtime監視をスキップ');
+      console.log('⚠️ channelIdまたはsupabaseが無効のため、Realtime監視をスキップ', {
+        channelId: channelId || '(empty)',
+        hasSupabase: !!supabase
+      });
       return;
     }
 
@@ -94,18 +96,23 @@ export function useRealtimeMessages({ channelId, initialMessages }: UseRealtimeM
             }
 
             // 送信者の情報を取得
-            const response = await fetch(`/api/user/${newMessage.senderId}`);
+            // senderId が null の場合は削除済みユーザーとして扱う
             let senderInfo = {
-              id: newMessage.senderId,
-              name: 'Unknown User',
+              id: newMessage.senderId || 'deleted-user',
+              name: '削除済みユーザー',
               email: '',
-              authId: undefined
+              authId: undefined,
+              avatarUrl: null
             };
 
-            if (response.ok) {
-              const userData = await response.json();
-              if (userData.success) {
-                senderInfo = userData.user;
+            // senderId が存在する場合のみAPI呼び出し
+            if (newMessage.senderId) {
+              const response = await fetch(`/api/user/${newMessage.senderId}`);
+              if (response.ok) {
+                const userData = await response.json();
+                if (userData.success) {
+                  senderInfo = userData.user;
+                }
               }
             }
 

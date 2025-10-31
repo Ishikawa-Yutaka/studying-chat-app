@@ -30,7 +30,7 @@ export interface Channel {
 export interface Message {
   id: string;        // 一意のメッセージID
   channelId: string; // 所属するチャンネルのID
-  sender: User;      // 送信者の情報
+  sender: User | null; // 送信者の情報（アカウント削除済みの場合はnull）
   content: string;   // メッセージ内容
   createdAt: Date;   // 送信日時
 }

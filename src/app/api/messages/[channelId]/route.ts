@@ -37,12 +37,39 @@ export async function GET(
     
     // メッセージ取得（送信者情報、ファイル情報、スレッド返信も含む）
     // 注意: parentMessageIdがnullのもののみ取得（スレッドの返信は除外）
+    // 注意: senderId が null のメッセージ（削除済みユーザー）も取得する
     const messages = await prisma.message.findMany({
       where: {
         channelId: channelId,
         parentMessageId: null  // スレッドの返信は除外（親メッセージのみ取得）
       },
-      include: messageWithDetailsInclude,
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            authId: true,
+            avatarUrl: true,
+          }
+        },
+        replies: {
+          include: {
+            sender: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                authId: true,
+                avatarUrl: true,
+              }
+            }
+          },
+          orderBy: {
+            createdAt: 'asc' as const,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'asc'  // 古いメッセージから順番に
       }

@@ -79,7 +79,10 @@ export async function DELETE(
     }
 
     // 4. 作成者チェック：このユーザーがチャンネルの作成者か確認
-    if (channel.creatorId !== user.id) {
+    // 作成者が削除済み（creatorId が null）の場合は、全メンバーが削除可能
+    if (channel.creatorId === null) {
+      console.log(`⚠️ チャンネル作成者が削除済みです。全メンバーに削除権限を付与します。`);
+    } else if (channel.creatorId !== user.id) {
       console.error('❌ 作成者ではありません - 作成者ID:', channel.creatorId, 'ユーザーID:', user.id);
       return NextResponse.json({
         success: false,
@@ -87,7 +90,7 @@ export async function DELETE(
       }, { status: 403 }); // 403 Forbidden
     }
 
-    console.log(`🔑 作成者確認OK - ユーザー: ${user.name}, チャンネル: ${channel.name}`);
+    console.log(`🔑 削除権限確認OK - ユーザー: ${user.name}, チャンネル: ${channel.name}`);
 
     // 5. チャンネル削除（Prismaのcascade設定により、メンバーとメッセージも自動削除される）
     await prisma.channel.delete({

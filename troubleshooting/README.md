@@ -28,13 +28,45 @@
 - **解決策**: `authId`フィールドによるID変換処理実装
 - **学習ポイント**: マイクロサービス連携、ORMとAuth統合、ユーザーID管理
 
-### 4. [PRISMA_MIGRATION_DRIFT_ERROR.md](./PRISMA_MIGRATION_DRIFT_ERROR.md) ⭐ **NEW**
+### 4. [PRISMA_MIGRATION_DRIFT_ERROR.md](./PRISMA_MIGRATION_DRIFT_ERROR.md)
 **Prismaマイグレーション管理の構築**
 
 - **対象**: "Drift detected" エラー、マイグレーションが実行できない問題
 - **主な原因**: マイグレーション履歴テーブル（`_prisma_migrations`）が存在しない
 - **解決策**: ベースラインマイグレーション作成、既存DBへのマイグレーション管理導入
 - **学習ポイント**: Prismaマイグレーション管理、データベーススキーマ同期、本番デプロイ準備
+
+### 5. [BUILD_CACHE_ERROR.md](./BUILD_CACHE_ERROR.md) ⭐ **NEW**
+**Next.jsビルドキャッシュエラーの解決方法**
+
+- **対象**: "Cannot read properties of undefined (reading 'call')" エラー、API 500エラー
+- **主な原因**: 大規模な型定義変更後のビルドキャッシュ不整合
+- **解決策**: `.next` ディレクトリを削除して再ビルド（`rm -rf .next && npm run dev`）
+- **学習ポイント**: Next.jsビルドキャッシュの仕組み、Webpack依存関係管理、型定義変更時のベストプラクティス
+
+### 6. [DATABASE_CONNECTION_IPV4_ERROR.md](./DATABASE_CONNECTION_IPV4_ERROR.md)
+**データベース接続エラー: IPv4/IPv6互換性問題**
+
+- **対象**: "Can't reach database server" エラー、Prismaデータベース接続エラー
+- **主な原因**: IPv6環境でIPv4アドレスへの接続失敗
+- **解決策**: Supabase接続プールURL使用、IPv6トンネリング設定
+- **学習ポイント**: IPv4/IPv6互換性、Prisma接続設定、Supabase接続プール
+
+### 7. [DM_CREATION_ERROR.md](./DM_CREATION_ERROR.md)
+**DM作成エラーの解決方法**
+
+- **対象**: "DMの作成に失敗しました" エラー、Prismaクエリエラー
+- **主な原因**: Prismaクエリの誤った引数使用（存在しないフィールド指定）
+- **解決策**: Prismaスキーマに存在するフィールドのみ使用、適切なクエリ構文
+- **学習ポイント**: Prismaクエリ構文、スキーマ定義確認、エラーメッセージ解読
+
+### 8. [SIGNUP_EMAIL_CONFIRMATION_ERROR.md](./SIGNUP_EMAIL_CONFIRMATION_ERROR.md)
+**サインアップ・メール確認フローのエラー解決ガイド**
+
+- **対象**: 新規ユーザーログイン失敗、メール確認後のエラー
+- **主な原因**: メール確認フローのUI未実装、Prismaデータベース未連携
+- **解決策**: メール確認画面実装、認証コールバックでPrismaユーザー作成
+- **学習ポイント**: Supabase Auth認証フロー、メール確認UI/UX、Auth↔Prisma連携
 
 ## 🎯 活用方法
 
@@ -51,18 +83,25 @@
 ## 🔍 関連技術
 
 - **React**: useEffect, useState, useCallback, useMemo
-- **Supabase**: Realtime, Auth, PostgreSQL Publication
-- **Prisma**: ORM, マイグレーション管理, リレーション管理, ユーザーID管理
-- **PostgreSQL**: 論理レプリケーション, システムカタログ, スキーマ同期
-- **TypeScript**: 型安全性, インターフェース定義
-- **認証システム**: JWT, セッション管理, マイクロサービス連携
+- **Next.js**: App Router, ビルドキャッシュ, Webpack設定
+- **Supabase**: Realtime, Auth, PostgreSQL Publication, メール確認フロー
+- **Prisma**: ORM, マイグレーション管理, リレーション管理, ユーザーID管理, クエリ構文
+- **PostgreSQL**: 論理レプリケーション, システムカタログ, スキーマ同期, 接続プール
+- **TypeScript**: 型安全性, インターフェース定義, 型定義管理
+- **Webpack**: モジュール解決, 依存関係管理, ビルドキャッシュ
+- **認証システム**: JWT, セッション管理, マイクロサービス連携, メール確認フロー, Auth↔DB連携
+- **ネットワーク**: IPv4/IPv6互換性, データベース接続設定, トンネリング
 - **データベースマイグレーション**: スキーマバージョン管理, ベースライン作成, 本番デプロイ
 
 ## 📚 参考リンク
 
 - [React公式ドキュメント - useEffect](https://react.dev/reference/react/useEffect)
+- [Next.js公式ドキュメント - Building Your Application](https://nextjs.org/docs/app/building-your-application)
 - [Supabase Realtime公式ドキュメント](https://supabase.com/docs/guides/realtime)
+- [Supabase Auth公式ドキュメント](https://supabase.com/docs/guides/auth)
+- [Prisma公式ドキュメント](https://www.prisma.io/docs)
 - [PostgreSQL Publication公式ドキュメント](https://www.postgresql.org/docs/current/sql-createpublication.html)
+- [Webpack公式ドキュメント - Caching](https://webpack.js.org/guides/caching/)
 
 ---
 

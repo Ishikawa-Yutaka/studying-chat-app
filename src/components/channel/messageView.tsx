@@ -16,7 +16,7 @@ interface User {
 
 interface Message {
   id: string;
-  sender: User;
+  sender: User | null; // アカウント削除されたユーザーの場合はnull
   content: string;
   createdAt: Date | string;
   replies?: Message[]; // スレッド返信一覧（オプション）
@@ -57,7 +57,7 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
 
   // 自分のメッセージかどうかを判定する関数（SupabaseのAuthIDで比較）
   const isMyMessage = (message: Message) => {
-    if (!myUserId || !message.sender.authId) {
+    if (!myUserId || !message.sender || !message.sender.authId) {
       return false;
     }
     return message.sender.authId === myUserId;
@@ -66,6 +66,11 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
   // スレッド返信数を取得
   const getReplyCount = (message: Message) => {
     return message.replies?.length || 0;
+  };
+
+  // 送信者名を取得（削除済みユーザー対応）
+  const getSenderName = (message: Message) => {
+    return message.sender?.name || '削除済みユーザー';
   };
 
   /**
@@ -245,12 +250,12 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
                 {/* 相手のメッセージの場合のみアバターを左に表示 */}
                 {!isMyMessage(message) && (
                   <UserAvatar
-                    name={message.sender.name}
-                    avatarUrl={message.sender.avatarUrl}
+                    name={getSenderName(message)}
+                    avatarUrl={message.sender?.avatarUrl}
                     size="sm"
                     className="flex-shrink-0"
                     showOnlineStatus={true}
-                    isOnline={message.sender.isOnline}
+                    isOnline={message.sender?.isOnline}
                   />
                 )}
 
@@ -264,7 +269,7 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
                   <div className="flex items-center gap-2">
                     {!isMyMessage(message) && (
                       <span className="font-semibold text-foreground">
-                        {message.sender.name}
+                        {getSenderName(message)}
                       </span>
                     )}
                     {isMyMessage(message) && (
@@ -315,12 +320,12 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
                 {/* 自分のメッセージの場合のみアバターを右に表示 */}
                 {isMyMessage(message) && (
                   <UserAvatar
-                    name={message.sender.name}
-                    avatarUrl={message.sender.avatarUrl}
+                    name={getSenderName(message)}
+                    avatarUrl={message.sender?.avatarUrl}
                     size="sm"
                     className="flex-shrink-0"
                     showOnlineStatus={true}
-                    isOnline={message.sender.isOnline}
+                    isOnline={message.sender?.isOnline}
                   />
                 )}
               </div>

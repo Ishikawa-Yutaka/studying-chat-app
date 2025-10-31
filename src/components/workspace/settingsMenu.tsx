@@ -9,8 +9,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings, User, Moon, Sun, LogOut } from 'lucide-react';
+import { Settings, User, Moon, Sun, LogOut, Trash2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 
 interface SettingsMenuProps {
@@ -28,6 +39,9 @@ interface SettingsMenuProps {
 
 export default function SettingsMenu({ onAvatarSettingsClick, onSignOut }: SettingsMenuProps) {
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   /**
    * テーマ切り替え処理
@@ -45,6 +59,36 @@ export default function SettingsMenu({ onAvatarSettingsClick, onSignOut }: Setti
     }
     // ログアウト後にログインページにリダイレクト
     window.location.href = '/login';
+  };
+
+  /**
+   * アカウント削除処理
+   */
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeleting(true);
+      console.log('🗑️ アカウント削除リクエスト送信...');
+
+      const response = await fetch('/api/user/delete', {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'アカウントの削除に失敗しました');
+      }
+
+      console.log('✅ アカウント削除成功');
+
+      // ログインページにリダイレクト
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('❌ アカウント削除エラー:', error);
+      alert(error instanceof Error ? error.message : 'アカウントの削除に失敗しました');
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
   };
   return (
     <div className="p-2" style={{ backgroundColor: 'hsl(var(--background))' }}>
@@ -104,8 +148,41 @@ export default function SettingsMenu({ onAvatarSettingsClick, onSignOut }: Setti
             <LogOut className="mr-2 h-4 w-4" />
             <span>ログアウト</span>
           </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          {/* アカウント削除 */}
+          <DropdownMenuItem
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="cursor-pointer text-red-600 focus:text-red-600"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            <span>アカウント削除</span>
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* アカウント削除確認ダイアログ */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>アカウントを削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              この操作は取り消せません。アカウントを削除しても、送信したメッセージや作成したチャンネルは残ります。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? '削除中...' : '削除する'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

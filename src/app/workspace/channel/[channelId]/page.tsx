@@ -29,7 +29,7 @@ interface User {
 
 interface Message {
   id: string;
-  sender: User;
+  sender: User | null; // アカウント削除済みの場合はnull
   content: string;
   createdAt: Date | string;
   replies?: Message[];
@@ -70,9 +70,13 @@ export default function ChannelPage() {
   // 初期メッセージの状態管理（リアルタイムフックの初期値用）
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
 
+  // Realtimeサブスクリプション用のチャンネルID状態管理
+  // データ取得完了後に設定することで、Realtimeサブスクリプションを適切にセットアップ
+  const [realtimeChannelId, setRealtimeChannelId] = useState<string>('');
+
   // リアルタイムメッセージフック：自動的にメッセージがリアルタイム更新される
   const { messages, addMessage } = useRealtimeMessages({
-    channelId,
+    channelId: realtimeChannelId,
     initialMessages
   });
 
@@ -82,10 +86,10 @@ export default function ChannelPage() {
   // メッセージにオンライン状態を追加
   const messagesWithOnlineStatus = messages.map(msg => ({
     ...msg,
-    sender: {
+    sender: msg.sender ? {
       ...msg.sender,
       isOnline: msg.sender.authId ? isUserOnline(msg.sender.authId) : false
-    }
+    } : null
   }));
 
   // 現在のユーザーID（認証されたユーザー）
@@ -122,7 +126,7 @@ export default function ChannelPage() {
         } else {
           throw new Error(channelData.error || 'チャンネル情報の取得に失敗しました');
         }
-        
+
         // メッセージの処理
         const messagesData = await messagesResponse.json();
         if (messagesResponse.ok && messagesData.success) {
@@ -132,7 +136,12 @@ export default function ChannelPage() {
           console.log('📭 メッセージなし、空のチャットを開始');
           setInitialMessages([]);
         }
-        
+
+        // データ取得完了後にRealtimeチャンネルIDを設定
+        // これによりRealtimeサブスクリプションが適切にセットアップされる
+        console.log('🔄 Realtimeサブスクリプション開始: channelId =', channelId);
+        setRealtimeChannelId(channelId);
+
       } catch (error) {
         console.error('❌ データ取得エラー:', error);
         setError(error instanceof Error ? error.message : 'チャンネル情報の取得に失敗しました');
