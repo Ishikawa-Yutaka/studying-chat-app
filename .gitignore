@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# session handover documents (personal notes)
+/docs/HANDOVER
+
 # debug
 npm-debug.log*
 yarn-debug.log*
