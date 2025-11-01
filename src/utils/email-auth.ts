@@ -8,7 +8,7 @@
  * 注: ソーシャル認証（Google、GitHubなど）は src/lib/social-auth.ts を参照
  */
 
-import { createClient } from './supabase/client';
+import { createClient } from '@/lib/supabase/client';
 
 /**
  * ユーザーサインアップ（新規登録）

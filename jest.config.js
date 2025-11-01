@@ -39,6 +39,16 @@ const customJestConfig = {
   testEnvironment: 'jest-environment-jsdom',
 
   /**
+   * テスト環境のオプション設定
+   *
+   * jsdom環境でのwindow.location.originを設定
+   * （OAuth認証などでリダイレクトURLを生成する際に使用）
+   */
+  testEnvironmentOptions: {
+    url: 'http://localhost:3000',
+  },
+
+  /**
    * テスト実行前のセットアップファイル
    *
    * jest.setup.js が各テストファイル実行前に読み込まれる

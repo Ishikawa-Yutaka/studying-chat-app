@@ -130,6 +130,10 @@ global.ResizeObserver = class ResizeObserver {
 }
 
 /**
+ * window.locationのモックは jest.config.js の testURL オプションで設定されています
+ */
+
+/**
  * console.error/warn の抑制（オプション）
  *
  * テスト中に予期される警告・エラーメッセージを抑制したい場合に使用。
