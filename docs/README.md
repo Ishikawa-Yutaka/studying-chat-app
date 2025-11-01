@@ -110,9 +110,35 @@
 - **対象**: OAuth2.0 ベースのソーシャル認証
 - **学習ポイント**: OAuth 設定、プロバイダー連携、認証フロー
 
+### 🧪 テスト・品質管理
+
+#### 13. [TESTING_GUIDE.md](./TESTING_GUIDE.md)
+
+**テストガイド - 包括的なテスト計画**
+
+- **内容**: 自動テスト（Jest + React Testing Library）と手動テストの完全ガイド
+- **対象**: ユニットテスト、コンポーネントテスト、API統合テスト、E2Eテスト
+- **学習ポイント**: テストフレームワーク構成、カバレッジ目標（50-60%）、テスト実装パターン、品質管理
+
+#### 14. [TESTING_TOOLS_OVERVIEW.md](./TESTING_TOOLS_OVERVIEW.md)
+
+**テストツール概要 - 初心者向け完全ガイド**
+
+- **内容**: 各テストツールの役割・使い方を初心者向けに詳しく解説
+- **対象**: Jest, React Testing Library, MSW, Playwright などのツール説明
+- **学習ポイント**: ツールの選択理由、実際の使用例、fireEventとuser-eventの違い、APIモックの仕組み
+
+#### 15. [TESTING_MOCK_COMPARISON.md](./TESTING_MOCK_COMPARISON.md)
+
+**テストモック手法の比較: jest.fn() vs MSW**
+
+- **内容**: jest.fn()とMSWの違い、遭遇した問題と対処方法、技術選定の記録
+- **対象**: モック手法の選択、セットアップ時の問題解決
+- **学習ポイント**: モックの種類（関数レベル vs ネットワークレベル）、polyfillの必要性、初心者向け技術選定
+
 ### 📝 開発履歴・コンテキスト
 
-#### 13. [CONTEXT_HANDOVER_20251027.md](./CONTEXT_HANDOVER_20251027.md)
+#### 16. [CONTEXT_HANDOVER_20251027.md](./CONTEXT_HANDOVER_20251027.md)
 
 **コンテキスト引き継ぎ - 2025 年 10 月 27 日**
 
@@ -142,6 +168,7 @@
 - **フロントエンド**: React, Next.js, React Hook Form, 楽観的更新
 - **UI/UX**: shadcn/ui, RadixUI, TailwindCSS, アニメーション
 - **ストレージ**: Supabase Storage, ファイルアップロード
+- **テスト・品質管理**: Jest, React Testing Library, MSW, カバレッジレポート
 
 ## 📚 参考リンク
 
