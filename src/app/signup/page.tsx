@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Github, Twitter, Facebook, Eye, EyeOff, AlertCircle, Loader2, Mail, CheckCircle } from 'lucide-react'
-import { signInWithSocial, type SocialProvider, SOCIAL_PROVIDERS } from '@/lib/auth'
+import { signInWithSocial, type SocialProvider, SOCIAL_PROVIDERS } from '@/lib/social-auth'
 import { signup } from './actions'
 
 /**
@@ -283,7 +283,7 @@ export default function SignupPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
                     aria-label={showPassword ? "パスワードを非表示" : "パスワードを表示"}
                   >
                     {showPassword ? (

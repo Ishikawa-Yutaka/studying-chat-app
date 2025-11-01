@@ -220,7 +220,7 @@ Google、GitHub、Twitter/X、Facebookでのソーシャルログイン機能を
 
 ### 1. ログイン関数の作成
 
-**ファイル**: `src/lib/auth.ts`（新規作成）
+**ファイル**: `src/lib/social-auth.ts`
 
 ```typescript
 import { createClient } from '@/lib/supabase/client';
@@ -258,7 +258,7 @@ export async function signInWithSocial(provider: SocialProvider) {
 既存のログインフォームの下に、ソーシャルログインボタンを追加します。
 
 ```typescript
-import { signInWithSocial } from '@/lib/auth';
+import { signInWithSocial } from '@/lib/social-auth';
 
 // コンポーネント内
 const handleSocialLogin = async (provider: SocialProvider) => {
