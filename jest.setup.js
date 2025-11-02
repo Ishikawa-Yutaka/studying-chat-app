@@ -8,27 +8,22 @@
  */
 
 /**
- * Polyfills for MSW (Mock Service Worker)
+ * Polyfills for Next.js API Routes
  *
- * 注: 現在は jest.fn() を使用しているため、MSW関連のpolyfillはコメントアウトしています。
- * 将来MSWを使用する場合は、以下のコメントを外してください。
+ * Next.jsのAPIルート（/api/*）をテストするために必要なWeb API polyfill。
+ * NextRequest/NextResponseはWeb標準のRequest/Response APIを使用するため、
+ * これらをJestのNode.js環境で動作させるためにpolyfillが必要です。
  *
- * 必要なpolyfill:
- * 1. whatwg-fetch - fetch API
- * 2. TextEncoder/TextDecoder
- * 3. Web Streams API (ReadableStream, WritableStream, TransformStream)
+ * Node.js 18以降の組み込みfetch APIを使用:
+ * - Request, Response, Headers, fetch はNode.js標準で利用可能
+ * - TextEncoder/TextDecoder も標準で利用可能
+ * - Web Streams APIも標準で利用可能
  *
  * 参考: docs/TESTING_MOCK_COMPARISON.md
  */
 
-// import 'whatwg-fetch'
-// import { TextEncoder, TextDecoder } from 'util'
-// global.TextEncoder = TextEncoder
-// global.TextDecoder = TextDecoder
-// import { ReadableStream, WritableStream, TransformStream } from 'web-streams-polyfill'
-// global.ReadableStream = ReadableStream
-// global.WritableStream = WritableStream
-// global.TransformStream = TransformStream
+// Node.js 18以降はwhatwg-fetchは不要（組み込みfetch APIを使用）
+// TextEncoder/TextDecoderも組み込みで利用可能
 
 /**
  * @testing-library/jest-dom のインポート
@@ -81,20 +76,24 @@ import '@testing-library/jest-dom'
  * このモックにより、テスト実行時にエラーを回避できます。
  *
  * 用途: レスポンシブデザインのテスト、ダークモード切り替えなど
+ *
+ * 注: Node.js環境（APIテスト）ではwindowが存在しないため、条件分岐で実行
  */
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: jest.fn().mockImplementation((query) => ({
-    matches: false, // デフォルトはマッチしない
-    media: query,
-    onchange: null,
-    addListener: jest.fn(), // 非推奨だが互換性のため
-    removeListener: jest.fn(), // 非推奨だが互換性のため
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
-})
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: jest.fn().mockImplementation((query) => ({
+      matches: false, // デフォルトはマッチしない
+      media: query,
+      onchange: null,
+      addListener: jest.fn(), // 非推奨だが互換性のため
+      removeListener: jest.fn(), // 非推奨だが互換性のため
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    })),
+  })
+}
 
 /**
  * IntersectionObserver のモック
