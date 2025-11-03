@@ -14,7 +14,6 @@ import { Hash, Plus, Search, Trash2, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CreateChannelDialog from './createChannelDialog';
 import JoinChannelDialog from '@/components/channel/joinChannelDialog';
-import ChannelSettingsDialog from '@/components/channel/channelSettingsDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,11 +53,56 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
 
   // 「さらに表示」機能用の状態
   const [showAllChannels, setShowAllChannels] = useState(false);
-  // チャンネル設定ダイアログの状態管理
-  const [settingsChannel, setSettingsChannel] = useState<Channel | null>(null);
+  // 削除確認ダイアログの状態管理
+  const [deleteChannel, setDeleteChannel] = useState<Channel | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   // 退出確認ダイアログの状態管理
   const [leaveChannel, setLeaveChannel] = useState<Channel | null>(null);
   const [isLeaving, setIsLeaving] = useState(false);
+
+  /**
+   * チャンネル削除処理
+   */
+  const handleDeleteChannel = async () => {
+    if (!deleteChannel) return;
+
+    setIsDeleting(true);
+
+    try {
+      console.log('🔄 チャンネル削除開始:', deleteChannel.id);
+
+      const response = await fetch(`/api/channels/${deleteChannel.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'チャンネルの削除に失敗しました');
+      }
+
+      console.log('✅ チャンネル削除成功:', data.channelName);
+
+      // 削除成功: モーダルを閉じる
+      setDeleteChannel(null);
+
+      // 即座にUIを更新（楽観的更新）
+      if (onChannelDeleted) {
+        onChannelDeleted(deleteChannel.id);
+      }
+
+      // 現在そのチャンネルページにいる場合はワークスペースに遷移
+      if (pathname === `/workspace/channel/${deleteChannel.id}`) {
+        router.push('/workspace');
+      }
+
+    } catch (err) {
+      console.error('❌ チャンネル削除エラー:', err);
+      alert(err instanceof Error ? err.message : 'チャンネルの削除に失敗しました');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   /**
    * チャンネル退出処理
@@ -176,9 +220,9 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setSettingsChannel(channel);
+                    setDeleteChannel(channel);
                   }}
-                  title="チャンネル設定"
+                  title="チャンネル削除"
                   disabled={!(currentUserId && (channel.creatorId === currentUserId || channel.creatorId === null))}
                 >
                   <Trash2 className="h-3.5 w-3.5 text-gray-400 group-hover/delete:text-red-500 transition-colors" />
@@ -219,19 +263,32 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
         onChannelJoined={onChannelJoined}
       />
 
-      {/* チャンネル設定ダイアログ */}
-      {settingsChannel && (
-        <ChannelSettingsDialog
-          open={settingsChannel !== null}
-          onOpenChange={(open) => {
-            if (!open) setSettingsChannel(null);
-          }}
-          channelId={settingsChannel.id}
-          channelName={settingsChannel.name}
-          channelDescription={settingsChannel.description}
-          onChannelDeleted={onChannelDeleted}
-        />
-      )}
+      {/* チャンネル削除確認ダイアログ */}
+      <AlertDialog open={deleteChannel !== null} onOpenChange={(open) => !open && setDeleteChannel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>本当に削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              チャンネル「{deleteChannel?.name}」を削除しようとしています。
+              <br />
+              <br />
+              この操作は取り消せません。チャンネル内のすべてのメッセージとメンバー情報が完全に削除されます。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              キャンセル
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteChannel}
+              disabled={isDeleting}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {isDeleting ? '削除中...' : '削除する'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* チャンネル退出確認ダイアログ */}
       <AlertDialog open={leaveChannel !== null} onOpenChange={(open) => !open && setLeaveChannel(null)}>

@@ -46,15 +46,29 @@ jest.mock('@/components/dm/startDmDialog', () => ({
     ) : null,
 }))
 
-jest.mock('@/components/dm/dmSettingsDialog', () => ({
-  __esModule: true,
-  default: ({ open, onOpenChange, partnerName }: any) =>
-    open ? (
-      <div data-testid="dm-settings-dialog">
-        <div>{partnerName}</div>
-        <button onClick={() => onOpenChange(false)}>Close</button>
-      </div>
-    ) : null,
+// AlertDialogコンポーネントのモック
+jest.mock('@/components/ui/alert-dialog', () => ({
+  AlertDialog: ({ children, open }: any) => open ? <div data-testid="alert-dialog">{children}</div> : null,
+  AlertDialogContent: ({ children }: any) => <div data-testid="alert-dialog-content">{children}</div>,
+  AlertDialogHeader: ({ children }: any) => <div>{children}</div>,
+  AlertDialogTitle: ({ children }: any) => <div data-testid="alert-dialog-title">{children}</div>,
+  AlertDialogDescription: ({ children }: any) => <div>{children}</div>,
+  AlertDialogFooter: ({ children }: any) => <div>{children}</div>,
+  AlertDialogCancel: ({ children, onClick, disabled }: any) => (
+    <button onClick={onClick} disabled={disabled} data-testid="alert-cancel">{children}</button>
+  ),
+  AlertDialogAction: ({ children, onClick, disabled }: any) => (
+    <button onClick={onClick} disabled={disabled} data-testid="alert-action">{children}</button>
+  ),
+}))
+
+// next/navigationのモック
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    prefetch: jest.fn(),
+  })),
 }))
 
 // UserAvatarコンポーネントのモック
@@ -271,7 +285,7 @@ describe('DirectMessageList - DM一覧コンポーネント', () => {
       expect(trashIcons).toHaveLength(mockDirectMessages.length)
     })
 
-    test('削除ボタンをクリックすると設定ダイアログが表示される', () => {
+    test('削除ボタンをクリックすると退出確認ダイアログが表示される', () => {
       const mockIsUserOnline = jest.fn(() => false)
 
       render(
@@ -288,10 +302,8 @@ describe('DirectMessageList - DM一覧コンポーネント', () => {
         fireEvent.click(deleteButton)
       }
 
-      expect(screen.getByTestId('dm-settings-dialog')).toBeInTheDocument()
-      // ダイアログ内のテキストを確認
-      const dialog = screen.getByTestId('dm-settings-dialog')
-      expect(dialog).toHaveTextContent('テストユーザー1')
+      expect(screen.getByTestId('alert-dialog')).toBeInTheDocument()
+      expect(screen.getByTestId('alert-dialog-title')).toHaveTextContent('DMから退出しますか？')
     })
   })
 

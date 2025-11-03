@@ -55,15 +55,20 @@ jest.mock('@/components/channel/joinChannelDialog', () => ({
     ) : null,
 }))
 
-jest.mock('@/components/channel/channelSettingsDialog', () => ({
-  __esModule: true,
-  default: ({ open, onOpenChange, channelName }: any) =>
-    open ? (
-      <div data-testid="channel-settings-dialog">
-        <div>{channelName}</div>
-        <button onClick={() => onOpenChange(false)}>Close</button>
-      </div>
-    ) : null,
+// AlertDialogコンポーネントのモック
+jest.mock('@/components/ui/alert-dialog', () => ({
+  AlertDialog: ({ children, open }: any) => open ? <div data-testid="alert-dialog">{children}</div> : null,
+  AlertDialogContent: ({ children }: any) => <div data-testid="alert-dialog-content">{children}</div>,
+  AlertDialogHeader: ({ children }: any) => <div>{children}</div>,
+  AlertDialogTitle: ({ children }: any) => <div data-testid="alert-dialog-title">{children}</div>,
+  AlertDialogDescription: ({ children }: any) => <div>{children}</div>,
+  AlertDialogFooter: ({ children }: any) => <div>{children}</div>,
+  AlertDialogCancel: ({ children, onClick, disabled }: any) => (
+    <button onClick={onClick} disabled={disabled} data-testid="alert-cancel">{children}</button>
+  ),
+  AlertDialogAction: ({ children, onClick, disabled }: any) => (
+    <button onClick={onClick} disabled={disabled} data-testid="alert-action">{children}</button>
+  ),
 }))
 
 // global.fetchのモック
@@ -406,7 +411,7 @@ describe('ChannelList - チャンネル一覧コンポーネント', () => {
       expect(deleteButton).not.toHaveClass('invisible')
     })
 
-    test('削除ボタンをクリックすると設定ダイアログが表示される', () => {
+    test('削除ボタンをクリックすると削除確認ダイアログが表示される', () => {
       render(
         <ChannelList
           channels={mockChannels}
@@ -421,7 +426,8 @@ describe('ChannelList - チャンネル一覧コンポーネント', () => {
         fireEvent.click(deleteButton)
       }
 
-      expect(screen.getByTestId('channel-settings-dialog')).toBeInTheDocument()
+      expect(screen.getByTestId('alert-dialog')).toBeInTheDocument()
+      expect(screen.getByTestId('alert-dialog-title')).toHaveTextContent('本当に削除しますか？')
     })
   })
 

@@ -15,10 +15,20 @@ import Link from "next/link";
 import { Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import StartDmDialog from "@/components/dm/startDmDialog";
-import DmSettingsDialog from "@/components/dm/dmSettingsDialog";
 import { UserAvatar } from "@/components/userAvatar";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // DM型（APIレスポンスと一致）
 interface DirectMessage {
@@ -47,10 +57,12 @@ export default function DirectMessageList({
   onLinkClick,
   isUserOnline,
 }: DirectMessageListProps) {
+  const router = useRouter();
   // モーダル開閉状態
   const [isStartDmOpen, setIsStartDmOpen] = useState(false);
-  // DM設定ダイアログの状態管理
-  const [settingsDm, setSettingsDm] = useState<DirectMessage | null>(null);
+  // DM削除確認ダイアログの状態管理
+  const [leaveDm, setLeaveDm] = useState<DirectMessage | null>(null);
+  const [isLeaving, setIsLeaving] = useState(false);
   // 「さらに表示」機能用の状態
   const [showAllDms, setShowAllDms] = useState(false);
 
@@ -62,6 +74,50 @@ export default function DirectMessageList({
   useEffect(() => {
     setLocalDirectMessages(directMessages);
   }, [directMessages]);
+
+  /**
+   * DM退出処理
+   */
+  const handleLeaveDm = async () => {
+    if (!leaveDm) return;
+
+    setIsLeaving(true);
+
+    try {
+      console.log('🔄 DM退出開始:', leaveDm.id);
+
+      const response = await fetch(`/api/dm/leave/${leaveDm.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'DMからの退出に失敗しました');
+      }
+
+      console.log('✅ DM退出成功:', data.partnerName);
+
+      // 退出成功: モーダルを閉じる
+      setLeaveDm(null);
+
+      // 即座にUIを更新（楽観的更新）
+      if (onDmLeft) {
+        onDmLeft(leaveDm.id);
+      }
+
+      // 現在そのDMページにいる場合はワークスペースに遷移
+      if (pathname === `/workspace/dm/${leaveDm.partnerId}`) {
+        router.push('/workspace');
+      }
+
+    } catch (err) {
+      console.error('❌ DM退出エラー:', err);
+      alert(err instanceof Error ? err.message : 'DMからの退出に失敗しました');
+    } finally {
+      setIsLeaving(false);
+    }
+  };
 
   // オンライン状態判定関数はpropsから受け取る（layout.tsxのusePresenceの結果）
   // ローカルでusePresenceを呼び出す必要はない
@@ -163,9 +219,9 @@ export default function DirectMessageList({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        setSettingsDm(dm);
+                        setLeaveDm(dm);
                       }}
-                      title="DM設定"
+                      title="DMから退出"
                     >
                       <Trash2 className="h-3.5 w-3.5 text-gray-400 group-hover/delete:text-red-500 transition-colors" />
                     </Button>
@@ -198,19 +254,35 @@ export default function DirectMessageList({
         onDmCreated={onDmCreated}
       />
 
-      {/* DM設定ダイアログ */}
-      {settingsDm && (
-        <DmSettingsDialog
-          open={settingsDm !== null}
-          onOpenChange={(open) => {
-            if (!open) setSettingsDm(null);
-          }}
-          channelId={settingsDm.id}
-          partnerName={settingsDm.partnerName}
-          partnerEmail={settingsDm.partnerEmail}
-          onDmLeft={onDmLeft}
-        />
-      )}
+      {/* DM退出確認ダイアログ */}
+      <AlertDialog open={leaveDm !== null} onOpenChange={(open) => !open && setLeaveDm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>DMから退出しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              {leaveDm?.partnerName} とのDMから退出しようとしています。
+              <br />
+              <br />
+              このDMがあなたのDM一覧から削除されます。相手のDM一覧には残ります。
+              <br />
+              <br />
+              再度DMを開始すると、以前のメッセージも引き続き見られます。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLeaving}>
+              キャンセル
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLeaveDm}
+              disabled={isLeaving}
+              className="bg-orange-600 text-white hover:bg-orange-700"
+            >
+              {isLeaving ? '退出中...' : '退出する'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
