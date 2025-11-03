@@ -1,4 +1,21 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# チャットアプリ（卒業制作）
+
+リアルタイムチャットアプリケーション - Slack/Discord風のWebベースチャットプラットフォーム
+
+## 技術スタック
+
+- Next.js 15.5.4 (App Router) + React 19
+- TypeScript
+- Prisma ORM + PostgreSQL (Supabase)
+- Supabase Auth & Realtime
+- shadcn/ui + TailwindCSS 4
+- Jest + React Testing Library
+
+## ドキュメント
+
+- [CLAUDE.md](./CLAUDE.md) - プロジェクト概要・開発ガイド
+- [TECHNICAL_DEBT.md](./docs/TECHNICAL_DEBT.md) - 技術的負債・リファクタリングTODO
+- [HANDOVER](./docs/HANDOVER/) - 開発セッションの引き継ぎドキュメント
 
 ## Getting Started
 
