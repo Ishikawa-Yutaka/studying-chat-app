@@ -48,7 +48,7 @@ jest.mock('@/components/dm/startDmDialog', () => ({
 
 // AlertDialogコンポーネントのモック
 jest.mock('@/components/ui/alert-dialog', () => ({
-  AlertDialog: ({ children, open }: any) => open ? <div data-testid="alert-dialog">{children}</div> : null,
+  AlertDialog: ({ children, open, onOpenChange }: any) => open ? <div data-testid="alert-dialog" data-onchange={onOpenChange}>{children}</div> : null,
   AlertDialogContent: ({ children }: any) => <div data-testid="alert-dialog-content">{children}</div>,
   AlertDialogHeader: ({ children }: any) => <div>{children}</div>,
   AlertDialogTitle: ({ children }: any) => <div data-testid="alert-dialog-title">{children}</div>,
@@ -95,7 +95,7 @@ jest.mock('@/lib/utils', () => ({
   cn: jest.fn((...inputs) => inputs.filter(Boolean).join(' ')),
 }))
 
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import DirectMessageList from '@/components/workspace/directMessageList'
 
 // テスト用のDMデータ
@@ -304,6 +304,106 @@ describe('DirectMessageList - DM一覧コンポーネント', () => {
 
       expect(screen.getByTestId('alert-dialog')).toBeInTheDocument()
       expect(screen.getByTestId('alert-dialog-title')).toHaveTextContent('DMから退出しますか？')
+    })
+
+    test('退出確認ダイアログでキャンセルボタンが表示される', () => {
+      const mockIsUserOnline = jest.fn(() => false)
+
+      render(
+        <DirectMessageList
+          directMessages={mockDirectMessages}
+          pathname="/workspace"
+          isUserOnline={mockIsUserOnline}
+        />
+      )
+
+      // 削除ボタンをクリック
+      const trashIcon = screen.getAllByTestId('trash-icon')[0]
+      const deleteButton = trashIcon.closest('button')
+      if (deleteButton) {
+        fireEvent.click(deleteButton)
+      }
+
+      // ダイアログとキャンセルボタンが表示されていることを確認
+      expect(screen.getByTestId('alert-dialog')).toBeInTheDocument()
+      const cancelButton = screen.getByTestId('alert-cancel')
+      expect(cancelButton).toBeInTheDocument()
+    })
+
+    test('退出確認ダイアログで退出を実行すると正しくAPIが呼ばれる', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, partnerName: 'テストユーザー1' })
+      } as Response)
+
+      const mockOnDmLeft = jest.fn()
+      const mockIsUserOnline = jest.fn(() => false)
+
+      render(
+        <DirectMessageList
+          directMessages={mockDirectMessages}
+          pathname="/workspace"
+          isUserOnline={mockIsUserOnline}
+          onDmLeft={mockOnDmLeft}
+        />
+      )
+
+      // 削除ボタンをクリック
+      const trashIcon = screen.getAllByTestId('trash-icon')[0]
+      const deleteButton = trashIcon.closest('button')
+      if (deleteButton) {
+        fireEvent.click(deleteButton)
+      }
+
+      // 退出実行ボタンをクリック
+      const actionButton = screen.getByTestId('alert-action')
+      fireEvent.click(actionButton)
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/dm/leave/dm-1',
+          { method: 'DELETE' }
+        )
+      })
+
+      await waitFor(() => {
+        expect(mockOnDmLeft).toHaveBeenCalledWith('dm-1')
+      })
+    })
+
+    test('退出APIがエラーを返した場合、エラーメッセージが表示される', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ success: false, error: '退出に失敗しました' })
+      } as Response)
+
+      const mockAlert = jest.spyOn(window, 'alert').mockImplementation()
+      const mockIsUserOnline = jest.fn(() => false)
+
+      render(
+        <DirectMessageList
+          directMessages={mockDirectMessages}
+          pathname="/workspace"
+          isUserOnline={mockIsUserOnline}
+        />
+      )
+
+      // 削除ボタンをクリック
+      const trashIcon = screen.getAllByTestId('trash-icon')[0]
+      const deleteButton = trashIcon.closest('button')
+      if (deleteButton) {
+        fireEvent.click(deleteButton)
+      }
+
+      // 退出実行ボタンをクリック
+      const actionButton = screen.getByTestId('alert-action')
+      fireEvent.click(actionButton)
+
+      await waitFor(() => {
+        expect(mockAlert).toHaveBeenCalledWith('退出に失敗しました')
+      })
+
+      mockAlert.mockRestore()
     })
   })
 

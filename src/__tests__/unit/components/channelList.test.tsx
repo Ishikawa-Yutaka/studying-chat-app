@@ -57,7 +57,7 @@ jest.mock('@/components/channel/joinChannelDialog', () => ({
 
 // AlertDialogコンポーネントのモック
 jest.mock('@/components/ui/alert-dialog', () => ({
-  AlertDialog: ({ children, open }: any) => open ? <div data-testid="alert-dialog">{children}</div> : null,
+  AlertDialog: ({ children, open, onOpenChange }: any) => open ? <div data-testid="alert-dialog" data-onchange={onOpenChange}>{children}</div> : null,
   AlertDialogContent: ({ children }: any) => <div data-testid="alert-dialog-content">{children}</div>,
   AlertDialogHeader: ({ children }: any) => <div>{children}</div>,
   AlertDialogTitle: ({ children }: any) => <div data-testid="alert-dialog-title">{children}</div>,
@@ -428,6 +428,104 @@ describe('ChannelList - チャンネル一覧コンポーネント', () => {
 
       expect(screen.getByTestId('alert-dialog')).toBeInTheDocument()
       expect(screen.getByTestId('alert-dialog-title')).toHaveTextContent('本当に削除しますか？')
+    })
+
+    test('削除確認ダイアログでキャンセルを押すとダイアログが閉じる', async () => {
+      render(
+        <ChannelList
+          channels={mockChannels}
+          pathname="/workspace"
+          currentUserId="user-1"
+        />
+      )
+
+      // 削除ボタンをクリック
+      const trashIcon = screen.getAllByTestId('trash-icon')[0]
+      const deleteButton = trashIcon.closest('button')
+      if (deleteButton && !deleteButton.classList.contains('invisible')) {
+        fireEvent.click(deleteButton)
+      }
+
+      // ダイアログが表示されていることを確認
+      expect(screen.getByTestId('alert-dialog')).toBeInTheDocument()
+
+      // キャンセルボタンが存在することを確認
+      const cancelButton = screen.getByTestId('alert-cancel')
+      expect(cancelButton).toBeInTheDocument()
+    })
+
+    test('削除確認ダイアログで削除を実行すると正しくAPIが呼ばれる', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, channelName: 'テストチャンネル1' })
+      } as Response)
+
+      const mockOnChannelDeleted = jest.fn()
+
+      render(
+        <ChannelList
+          channels={mockChannels}
+          pathname="/workspace"
+          currentUserId="user-1"
+          onChannelDeleted={mockOnChannelDeleted}
+        />
+      )
+
+      // 削除ボタンをクリック
+      const trashIcon = screen.getAllByTestId('trash-icon')[0]
+      const deleteButton = trashIcon.closest('button')
+      if (deleteButton && !deleteButton.classList.contains('invisible')) {
+        fireEvent.click(deleteButton)
+      }
+
+      // 削除実行ボタンをクリック
+      const actionButton = screen.getByTestId('alert-action')
+      fireEvent.click(actionButton)
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          '/api/channels/channel-1',
+          { method: 'DELETE' }
+        )
+      })
+
+      await waitFor(() => {
+        expect(mockOnChannelDeleted).toHaveBeenCalledWith('channel-1')
+      })
+    })
+
+    test('削除APIがエラーを返した場合、エラーメッセージが表示される', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ success: false, error: '削除に失敗しました' })
+      } as Response)
+
+      const mockAlert = jest.spyOn(window, 'alert').mockImplementation()
+
+      render(
+        <ChannelList
+          channels={mockChannels}
+          pathname="/workspace"
+          currentUserId="user-1"
+        />
+      )
+
+      // 削除ボタンをクリック
+      const trashIcon = screen.getAllByTestId('trash-icon')[0]
+      const deleteButton = trashIcon.closest('button')
+      if (deleteButton && !deleteButton.classList.contains('invisible')) {
+        fireEvent.click(deleteButton)
+      }
+
+      // 削除実行ボタンをクリック
+      const actionButton = screen.getByTestId('alert-action')
+      fireEvent.click(actionButton)
+
+      await waitFor(() => {
+        expect(mockAlert).toHaveBeenCalledWith('削除に失敗しました')
+      })
+
+      mockAlert.mockRestore()
     })
   })
 
