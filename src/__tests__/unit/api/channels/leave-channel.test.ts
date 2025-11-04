@@ -1,23 +1,26 @@
 /**
- * チャンネル退出API（DELETE /api/channels/leave/[channelId]）のユニットテスト
+ * /api/channels/leave/[channelId] エンドポイントのユニットテスト
  *
- * テスト対象:
- * - 正常系: チャンネルから正常に退出できる
- * - 認証エラー: 未ログインユーザーは拒否される
- * - エラー: 存在しないチャンネルは404エラー
- * - エラー: チャンネルメンバーでないユーザーは403エラー
- * - エラーハンドリング: データベースエラー時の適切なレスポンス
+ * テスト対象: src/app/api/channels/leave/[channelId]/route.ts
+ *
+ * このテストでは、チャンネル退出APIの
+ * 動作を確認します。
+ *
+ * テストする機能:
+ * - チャンネル退出（DELETE）
+ * - 認証チェック
+ * - メンバーシップ確認
+ * - エラーハンドリング
  *
  * @jest-environment node
  */
 
-import { NextRequest } from 'next/server'
-import { DELETE } from '@/app/api/channels/leave/[channelId]/route'
-import { getCurrentUser } from '@/lib/auth-server'
-import { prisma } from '@/lib/prisma'
+import { NextRequest } from 'next/server';
+import { DELETE } from '@/app/api/channels/leave/[channelId]/route';
+import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth-server';
 
 // モック設定
-jest.mock('@/lib/auth-server')
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     channel: {
@@ -27,301 +30,274 @@ jest.mock('@/lib/prisma', () => ({
       deleteMany: jest.fn(),
     },
   },
-}))
+}));
 
-const mockGetCurrentUser = getCurrentUser as jest.MockedFunction<typeof getCurrentUser>
+jest.mock('@/lib/auth-server');
 
-describe('DELETE /api/channels/leave/[channelId]', () => {
+const mockPrisma = prisma as jest.Mocked<typeof prisma>;
+const mockGetCurrentUser = getCurrentUser as jest.MockedFunction<typeof getCurrentUser>;
+
+describe('DELETE /api/channels/leave/[channelId] - チャンネル退出', () => {
+  // テスト用データ
+  const mockUser = {
+    id: 'user-123',
+    authId: 'auth-123',
+    name: 'テストユーザー',
+    email: 'test@example.com',
+    avatarUrl: null,
+    lastSeen: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const mockChannel = {
+    id: 'channel-123',
+    name: '一般',
+    members: [
+      { userId: 'user-123' }, // テストユーザーが参加
+      { userId: 'user-456' },
+    ],
+  };
+
   beforeEach(() => {
-    jest.clearAllMocks()
-  })
+    jest.clearAllMocks();
 
-  /**
-   * テスト1: 正常系
-   * チャンネルから正常に退出できる
-   */
-  test('チャンネルから正常に退出できる', async () => {
-    const mockUser = {
-      id: 'user-123',
-      name: 'テストユーザー',
-      email: 'test@example.com',
-      authId: 'auth-123',
-      avatarUrl: null,
-      lastSeen: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
-
-    const mockChannel = {
-      id: 'channel-1',
-      name: '一般',
-      members: [
-        { userId: 'user-123' },
-        { userId: 'user-456' },
-      ],
-    }
-
+    // デフォルトの認証モック
     mockGetCurrentUser.mockResolvedValue({
       user: mockUser,
       error: null,
       status: 200,
-    })
+    });
+  });
 
-    ;(prisma.channel.findUnique as jest.Mock).mockResolvedValue(mockChannel)
-    ;(prisma.channelMember.deleteMany as jest.Mock).mockResolvedValue({ count: 1 })
+  /**
+   * 正常系テスト
+   */
+  describe('正常系', () => {
+    test('チャンネルから正常に退出できる', async () => {
+      mockPrisma.channel.findUnique.mockResolvedValue(mockChannel as any);
+      mockPrisma.channelMember.deleteMany.mockResolvedValue({ count: 1 } as any);
 
-    const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-1', {
-      method: 'DELETE',
-    })
-    const params = Promise.resolve({ channelId: 'channel-1' })
+      const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-123');
+      const context = {
+        params: Promise.resolve({ channelId: 'channel-123' }),
+      };
 
-    const response = await DELETE(request, { params })
-    const data = await response.json()
+      const response = await DELETE(request, context);
+      const data = await response.json();
 
-    // アサーション
-    expect(response.status).toBe(200)
-    expect(data.success).toBe(true)
-    expect(data.channelName).toBe('一般')
-    expect(data.message).toBe('チャンネルから退出しました')
+      // レスポンス確認
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.message).toBe('チャンネルから退出しました');
+      expect(data.channelName).toBe('一般');
 
-    // モック関数が正しく呼ばれたか確認
-    expect(prisma.channel.findUnique).toHaveBeenCalledWith({
-      where: { id: 'channel-1' },
-      select: {
-        id: true,
-        name: true,
-        members: {
-          select: {
-            userId: true,
-          },
+      // Prismaが正しく呼ばれているか確認
+      expect(mockPrisma.channelMember.deleteMany).toHaveBeenCalledWith({
+        where: {
+          channelId: 'channel-123',
+          userId: 'user-123',
         },
-      },
-    })
+      });
+    });
 
-    expect(prisma.channelMember.deleteMany).toHaveBeenCalledWith({
-      where: {
-        channelId: 'channel-1',
-        userId: 'user-123',
-      },
-    })
-  })
+    test('複数メンバーがいるチャンネルから退出しても、他のメンバーは残る', async () => {
+      mockPrisma.channel.findUnique.mockResolvedValue(mockChannel as any);
+      mockPrisma.channelMember.deleteMany.mockResolvedValue({ count: 1 } as any);
 
-  /**
-   * テスト2: 認証エラー
-   * 未ログインユーザーは401エラーを返す
-   */
-  test('未ログインユーザーは401エラーを返す', async () => {
-    mockGetCurrentUser.mockResolvedValue({
-      user: null,
-      error: '認証が必要です。ログインしてください。',
-      status: 401,
-    })
+      const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-123');
+      const context = {
+        params: Promise.resolve({ channelId: 'channel-123' }),
+      };
 
-    const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-1', {
-      method: 'DELETE',
-    })
-    const params = Promise.resolve({ channelId: 'channel-1' })
+      const response = await DELETE(request, context);
+      const data = await response.json();
 
-    const response = await DELETE(request, { params })
-    const data = await response.json()
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
 
-    expect(response.status).toBe(401)
-    expect(data.success).toBe(false)
-    expect(data.error).toBe('認証が必要です。ログインしてください。')
-
-    // データベースクエリは実行されないはず
-    expect(prisma.channel.findUnique).not.toHaveBeenCalled()
-  })
+      // 自分のメンバーシップのみ削除
+      expect(mockPrisma.channelMember.deleteMany).toHaveBeenCalledWith({
+        where: {
+          channelId: 'channel-123',
+          userId: 'user-123',
+        },
+      });
+    });
+  });
 
   /**
-   * テスト3: 存在しないチャンネル
-   * チャンネルが見つからない場合は404エラー
+   * 認証エラー
    */
-  test('存在しないチャンネルは404エラーを返す', async () => {
-    const mockUser = {
-      id: 'user-123',
-      name: 'テストユーザー',
-      email: 'test@example.com',
-      authId: 'auth-123',
-      avatarUrl: null,
-      lastSeen: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+  describe('認証エラー', () => {
+    test('未認証ユーザーの場合、401エラーを返す', async () => {
+      mockGetCurrentUser.mockResolvedValue({
+        user: null,
+        error: '認証が必要です',
+        status: 401,
+      });
 
-    mockGetCurrentUser.mockResolvedValue({
-      user: mockUser,
-      error: null,
-      status: 200,
-    })
+      const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-123');
+      const context = {
+        params: Promise.resolve({ channelId: 'channel-123' }),
+      };
 
-    ;(prisma.channel.findUnique as jest.Mock).mockResolvedValue(null)
+      const response = await DELETE(request, context);
+      const data = await response.json();
 
-    const request = new NextRequest('http://localhost:3000/api/channels/leave/non-existent', {
-      method: 'DELETE',
-    })
-    const params = Promise.resolve({ channelId: 'non-existent' })
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('認証が必要です');
 
-    const response = await DELETE(request, { params })
-    const data = await response.json()
-
-    expect(response.status).toBe(404)
-    expect(data.success).toBe(false)
-    expect(data.error).toBe('チャンネルが見つかりません')
-
-    // 削除処理は実行されないはず
-    expect(prisma.channelMember.deleteMany).not.toHaveBeenCalled()
-  })
+      // Prismaは呼ばれない
+      expect(mockPrisma.channel.findUnique).not.toHaveBeenCalled();
+    });
+  });
 
   /**
-   * テスト4: メンバーでないユーザー
-   * チャンネルメンバーでないユーザーは403エラー
+   * リソースが見つからないエラー
    */
-  test('チャンネルメンバーでないユーザーは403エラーを返す', async () => {
-    const mockUser = {
-      id: 'user-123',
-      name: 'テストユーザー',
-      email: 'test@example.com',
-      authId: 'auth-123',
-      avatarUrl: null,
-      lastSeen: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+  describe('リソースが見つからない', () => {
+    test('チャンネルが存在しない場合、404エラーを返す', async () => {
+      mockPrisma.channel.findUnique.mockResolvedValue(null);
 
-    const mockChannel = {
-      id: 'channel-1',
-      name: '一般',
-      members: [
-        { userId: 'user-456' }, // 他のユーザーのみ
-        { userId: 'user-789' },
-      ],
-    }
+      const request = new NextRequest('http://localhost:3000/api/channels/leave/non-existent');
+      const context = {
+        params: Promise.resolve({ channelId: 'non-existent' }),
+      };
 
-    mockGetCurrentUser.mockResolvedValue({
-      user: mockUser,
-      error: null,
-      status: 200,
-    })
+      const response = await DELETE(request, context);
+      const data = await response.json();
 
-    ;(prisma.channel.findUnique as jest.Mock).mockResolvedValue(mockChannel)
-
-    const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-1', {
-      method: 'DELETE',
-    })
-    const params = Promise.resolve({ channelId: 'channel-1' })
-
-    const response = await DELETE(request, { params })
-    const data = await response.json()
-
-    expect(response.status).toBe(403)
-    expect(data.success).toBe(false)
-    expect(data.error).toBe('このチャンネルのメンバーではありません')
-
-    // 削除処理は実行されないはず
-    expect(prisma.channelMember.deleteMany).not.toHaveBeenCalled()
-  })
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('チャンネルが見つかりません');
+    });
+  });
 
   /**
-   * テスト5: データベースエラー
-   * チャンネルメンバー削除時にエラーが発生した場合は500エラー
+   * 権限エラー
    */
-  test('データベースエラー時に500エラーを返す', async () => {
-    const mockUser = {
-      id: 'user-123',
-      name: 'テストユーザー',
-      email: 'test@example.com',
-      authId: 'auth-123',
-      avatarUrl: null,
-      lastSeen: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+  describe('権限エラー', () => {
+    test('チャンネルのメンバーでない場合、403エラーを返す', async () => {
+      const channelWithoutUser = {
+        ...mockChannel,
+        members: [
+          { userId: 'user-456' }, // 他のユーザーのみ
+        ],
+      };
 
-    const mockChannel = {
-      id: 'channel-1',
-      name: '一般',
-      members: [
-        { userId: 'user-123' },
-      ],
-    }
+      mockPrisma.channel.findUnique.mockResolvedValue(channelWithoutUser as any);
 
-    mockGetCurrentUser.mockResolvedValue({
-      user: mockUser,
-      error: null,
-      status: 200,
-    })
+      const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-123');
+      const context = {
+        params: Promise.resolve({ channelId: 'channel-123' }),
+      };
 
-    ;(prisma.channel.findUnique as jest.Mock).mockResolvedValue(mockChannel)
-    ;(prisma.channelMember.deleteMany as jest.Mock).mockRejectedValue(
-      new Error('Database constraint violation')
-    )
+      const response = await DELETE(request, context);
+      const data = await response.json();
 
-    const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-1', {
-      method: 'DELETE',
-    })
-    const params = Promise.resolve({ channelId: 'channel-1' })
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('このチャンネルのメンバーではありません');
 
-    const response = await DELETE(request, { params })
-    const data = await response.json()
+      // deleteManyは呼ばれない
+      expect(mockPrisma.channelMember.deleteMany).not.toHaveBeenCalled();
+    });
 
-    expect(response.status).toBe(500)
-    expect(data.success).toBe(false)
-    expect(data.error).toBe('チャンネルからの退出に失敗しました')
-    expect(data.details).toBe('Database constraint violation')
-  })
+    test('メンバーが0人のチャンネルの場合、403エラーを返す', async () => {
+      const emptyChannel = {
+        ...mockChannel,
+        members: [],
+      };
+
+      mockPrisma.channel.findUnique.mockResolvedValue(emptyChannel as any);
+
+      const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-123');
+      const context = {
+        params: Promise.resolve({ channelId: 'channel-123' }),
+      };
+
+      const response = await DELETE(request, context);
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('このチャンネルのメンバーではありません');
+    });
+  });
 
   /**
-   * テスト6: 最後のメンバーが退出する場合
-   * チャンネルに自分だけがメンバーの場合でも正常に退出できる
+   * データベースエラー
    */
-  test('最後のメンバーが退出する場合も正常に処理できる', async () => {
-    const mockUser = {
-      id: 'user-123',
-      name: 'テストユーザー',
-      email: 'test@example.com',
-      authId: 'auth-123',
-      avatarUrl: null,
-      lastSeen: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+  describe('データベースエラー', () => {
+    test('チャンネル取得時のエラーで500エラーを返す', async () => {
+      mockPrisma.channel.findUnique.mockRejectedValue(new Error('DB error'));
 
-    const mockChannel = {
-      id: 'channel-1',
-      name: '一般',
-      members: [
-        { userId: 'user-123' }, // 自分だけ
-      ],
-    }
+      const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-123');
+      const context = {
+        params: Promise.resolve({ channelId: 'channel-123' }),
+      };
 
-    mockGetCurrentUser.mockResolvedValue({
-      user: mockUser,
-      error: null,
-      status: 200,
-    })
+      const response = await DELETE(request, context);
+      const data = await response.json();
 
-    ;(prisma.channel.findUnique as jest.Mock).mockResolvedValue(mockChannel)
-    ;(prisma.channelMember.deleteMany as jest.Mock).mockResolvedValue({ count: 1 })
+      expect(response.status).toBe(500);
+      expect(data.error).toBe('チャンネルからの退出に失敗しました');
+      expect(data.details).toBe('DB error');
+    });
 
-    const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-1', {
-      method: 'DELETE',
-    })
-    const params = Promise.resolve({ channelId: 'channel-1' })
+    test('メンバー削除時のエラーで500エラーを返す', async () => {
+      mockPrisma.channel.findUnique.mockResolvedValue(mockChannel as any);
+      mockPrisma.channelMember.deleteMany.mockRejectedValue(new Error('Delete failed'));
 
-    const response = await DELETE(request, { params })
-    const data = await response.json()
+      const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-123');
+      const context = {
+        params: Promise.resolve({ channelId: 'channel-123' }),
+      };
 
-    expect(response.status).toBe(200)
-    expect(data.success).toBe(true)
-    expect(data.message).toBe('チャンネルから退出しました')
+      const response = await DELETE(request, context);
+      const data = await response.json();
 
-    // 削除処理が実行されたか確認
-    expect(prisma.channelMember.deleteMany).toHaveBeenCalledWith({
-      where: {
-        channelId: 'channel-1',
-        userId: 'user-123',
-      },
-    })
-  })
-})
+      expect(response.status).toBe(500);
+      expect(data.error).toBe('チャンネルからの退出に失敗しました');
+      expect(data.details).toBe('Delete failed');
+    });
+  });
+
+  /**
+   * レスポンス形式テスト
+   */
+  describe('レスポンス形式', () => {
+    test('成功時、success, channelName, messageフィールドを含む', async () => {
+      mockPrisma.channel.findUnique.mockResolvedValue(mockChannel as any);
+      mockPrisma.channelMember.deleteMany.mockResolvedValue({ count: 1 } as any);
+
+      const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-123');
+      const context = {
+        params: Promise.resolve({ channelId: 'channel-123' }),
+      };
+
+      const response = await DELETE(request, context);
+      const data = await response.json();
+
+      expect(data).toHaveProperty('success');
+      expect(data).toHaveProperty('channelName');
+      expect(data).toHaveProperty('message');
+      expect(data.success).toBe(true);
+    });
+
+    test('エラー時、success, errorフィールドを含む', async () => {
+      mockPrisma.channel.findUnique.mockResolvedValue(null);
+
+      const request = new NextRequest('http://localhost:3000/api/channels/leave/channel-123');
+      const context = {
+        params: Promise.resolve({ channelId: 'channel-123' }),
+      };
+
+      const response = await DELETE(request, context);
+      const data = await response.json();
+
+      expect(data).toHaveProperty('success');
+      expect(data).toHaveProperty('error');
+      expect(data.success).toBe(false);
+      expect(data).not.toHaveProperty('channelName');
+    });
+  });
+});
