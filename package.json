@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
+    "test:unit": "jest src/__tests__/unit",
+    "test:integration": "jest src/__tests__/integration --runInBand",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },

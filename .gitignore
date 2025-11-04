@@ -27,6 +27,9 @@
 # session handover documents (personal notes)
 /docs/HANDOVER
 
+# requirements document (internal use only)
+/docs/REQUIREMENTS.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*
