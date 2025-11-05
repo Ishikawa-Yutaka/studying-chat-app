@@ -68,6 +68,15 @@
 - **解決策**: メール確認画面実装、認証コールバックでPrismaユーザー作成
 - **学習ポイント**: Supabase Auth認証フロー、メール確認UI/UX、Auth↔Prisma連携
 
+### 9. [E2E_DISCOVERED_USEEFFECT_LOOP.md](./E2E_DISCOVERED_USEEFFECT_LOOP.md) ⭐ **NEW**
+**E2Eテストで発見されたuseEffect無限ループ問題**
+
+- **対象**: ログイン後の /workspace ページが読み込まれない、JSONParseError
+- **主な原因**: useEffect依存配列でSupabaseインスタンスが毎回新しく作成される
+- **解決策**: `useMemo(() => createClient(), [])` でインスタンスを安定化
+- **学習ポイント**: E2Eテストの重要性、モックの限界、React hooksの依存配列、オブジェクト参照の比較
+- **重要な発見**: 単体テスト・統合テストでは検出できない問題をE2Eテストが発見した事例
+
 ## 🎯 活用方法
 
 ### 開発者向け
@@ -82,9 +91,9 @@
 
 ## 🔍 関連技術
 
-- **React**: useEffect, useState, useCallback, useMemo
+- **React**: useEffect, useState, useCallback, useMemo, 依存配列, オブジェクト参照比較
 - **Next.js**: App Router, ビルドキャッシュ, Webpack設定
-- **Supabase**: Realtime, Auth, PostgreSQL Publication, メール確認フロー
+- **Supabase**: Realtime, Auth, PostgreSQL Publication, メール確認フロー, クライアントインスタンス管理
 - **Prisma**: ORM, マイグレーション管理, リレーション管理, ユーザーID管理, クエリ構文
 - **PostgreSQL**: 論理レプリケーション, システムカタログ, スキーマ同期, 接続プール
 - **TypeScript**: 型安全性, インターフェース定義, 型定義管理
@@ -92,16 +101,19 @@
 - **認証システム**: JWT, セッション管理, マイクロサービス連携, メール確認フロー, Auth↔DB連携
 - **ネットワーク**: IPv4/IPv6互換性, データベース接続設定, トンネリング
 - **データベースマイグレーション**: スキーマバージョン管理, ベースライン作成, 本番デプロイ
+- **テスト**: E2Eテスト, 単体テスト, 統合テスト, モックの限界, Playwright
 
 ## 📚 参考リンク
 
 - [React公式ドキュメント - useEffect](https://react.dev/reference/react/useEffect)
+- [React公式ドキュメント - useMemo](https://react.dev/reference/react/useMemo)
 - [Next.js公式ドキュメント - Building Your Application](https://nextjs.org/docs/app/building-your-application)
 - [Supabase Realtime公式ドキュメント](https://supabase.com/docs/guides/realtime)
 - [Supabase Auth公式ドキュメント](https://supabase.com/docs/guides/auth)
 - [Prisma公式ドキュメント](https://www.prisma.io/docs)
 - [PostgreSQL Publication公式ドキュメント](https://www.postgresql.org/docs/current/sql-createpublication.html)
 - [Webpack公式ドキュメント - Caching](https://webpack.js.org/guides/caching/)
+- [Playwright公式ドキュメント](https://playwright.dev/)
 
 ---
 

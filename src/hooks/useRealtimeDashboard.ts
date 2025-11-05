@@ -47,7 +47,9 @@ export function useRealtimeDashboard({
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [channels, setChannels] = useState<Channel[]>(initialChannels);
   const [directMessages, setDirectMessages] = useState<DirectMessage[]>(initialDirectMessages);
-  const supabase = createClient();
+
+  // useMemoでsupabaseインスタンスを安定化（無限ループ防止）
+  const supabase = useMemo(() => createClient(), []);
 
   // ダッシュボードデータ全体を再取得する関数
   const refreshDashboardData = useCallback(async () => {
@@ -176,7 +178,9 @@ export function useRealtimeDashboard({
       supabase.removeChannel(userChannel);
       supabase.removeChannel(memberChannel);
     };
-  }, [supabase, refreshDashboardData]);
+    // supabaseはuseMemoで安定化されているため、依存配列に含めない
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshDashboardData]);
 
   return {
     stats,

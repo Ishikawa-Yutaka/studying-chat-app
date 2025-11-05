@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 
@@ -23,7 +23,8 @@ export function useAuth() {
     error: null
   });
 
-  const supabase = createClient();
+  // useMemoでsupabaseインスタンスを安定化（無限ループ防止）
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     let mounted = true; // コンポーネントがマウント状態か確認

@@ -181,6 +181,36 @@ npm run dev
 - Supabaseダッシュボードでユーザーを確認
 - パスワードが `password123` になっているか確認
 
+#### 4. `SyntaxError: Unexpected end of JSON input` ⭐ **重要**
+
+**症状**: ログイン後のページが読み込まれず、E2Eテストがタイムアウト
+
+**原因**: useEffect無限ループによるJSONParseError
+- カスタムフックで `createClient()` が毎回新しいインスタンスを作成
+- それが `useEffect` の依存配列に含まれていると無限ループ発生
+
+**解決方法**: 以下のファイルを修正済み
+- `src/hooks/useAuth.ts`
+- `src/hooks/useRealtimeDashboard.ts`
+- `src/hooks/useRealtimeMessages.ts`
+
+**修正例**:
+```typescript
+// ❌ バグあり
+const supabase = createClient();
+useEffect(() => { /* ... */ }, [supabase]);
+
+// ✅ 修正後
+const supabase = useMemo(() => createClient(), []);
+useEffect(() => { /* ... */ }, [supabase]);
+```
+
+**詳細**: `troubleshooting/E2E_DISCOVERED_USEEFFECT_LOOP.md` を参照
+
+**重要な教訓**:
+- 単体テスト・統合テストではモックにより検出できない問題も、E2Eテストで発見できる
+- E2Eテストは開発の早い段階で実行すべき
+
 ---
 
 ## data-testid属性について

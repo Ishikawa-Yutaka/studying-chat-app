@@ -34,7 +34,9 @@ interface UseRealtimeMessagesProps {
 
 export function useRealtimeMessages({ channelId, initialMessages }: UseRealtimeMessagesProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const supabase = createClient();
+
+  // useMemoでsupabaseインスタンスを安定化（無限ループ防止）
+  const supabase = useMemo(() => createClient(), []);
 
   // メッセージを追加する関数（楽観的更新用）
   const addMessage = useCallback((newMessage: Message) => {
@@ -156,7 +158,9 @@ export function useRealtimeMessages({ channelId, initialMessages }: UseRealtimeM
       console.log(`🔌 チャンネル ${channelId} のリアルタイム監視を停止`);
       supabase.removeChannel(channel);
     };
-  }, [channelId, supabase, addMessage]);
+    // supabaseはuseMemoで安定化されているため、依存配列に含めない
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelId, addMessage]);
 
   return {
     messages,
