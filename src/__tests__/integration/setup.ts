@@ -25,8 +25,17 @@ import { prisma } from '@/lib/prisma';
  * 3. Channel (他のテーブルから参照される)
  * 4. User (他のテーブルから参照される)
  * 5. AiChat (独立したテーブル)
+ *
+ * 環境変数による制御:
+ * - SKIP_DB_CLEANUP=true を設定すると、データベースをクリアしない
  */
 export async function clearDatabase() {
+  // 環境変数でデータベースクリーンアップをスキップ
+  if (process.env.SKIP_DB_CLEANUP === 'true') {
+    console.log('⏭️  SKIP_DB_CLEANUP=true のため、データベースのクリアをスキップします');
+    return;
+  }
+
   console.log('🧹 データベースをクリア中...');
 
   try {
@@ -209,10 +218,30 @@ export async function setupIntegrationTest() {
  * 統合テストのグローバルクリーンアップ
  *
  * 各テストファイルの afterAll で呼び出します。
+ *
+ * 環境変数による制御:
+ * - SKIP_DB_CLEANUP=true を設定すると、データベースをクリアしない
+ * - 設定しない場合は、通常通りデータベースをクリアする
+ *
+ * 使用例:
+ * ```bash
+ * # データを保持してテスト実行
+ * SKIP_DB_CLEANUP=true npm test
+ *
+ * # 通常のテスト実行（データをクリア）
+ * npm test
+ * ```
  */
 export async function teardownIntegrationTest() {
   console.log('🧹 統合テスト環境をクリーンアップ中...');
-  await clearDatabase();
+
+  // 環境変数でデータベースクリーンアップをスキップできる
+  if (process.env.SKIP_DB_CLEANUP === 'true') {
+    console.log('⏭️  SKIP_DB_CLEANUP=true のため、データベースのクリアをスキップします');
+  } else {
+    await clearDatabase();
+  }
+
   await prisma.$disconnect();
   console.log('✅ 統合テスト環境のクリーンアップ完了');
 }
