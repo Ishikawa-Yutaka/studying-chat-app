@@ -16,6 +16,10 @@ import { loginAsTestUser } from './utils/auth';
 test.describe('DM機能', () => {
   /**
    * 各テスト実行前にログイン
+   *
+   * 注意: テストデータは事前に手動でSeedしておく必要があります
+   * テスト実行前に以下のコマンドを実行してください:
+   * curl -X POST http://localhost:3000/api/seed
    */
   test.beforeEach(async ({ page }) => {
     await loginAsTestUser(page, 'user1');
@@ -35,7 +39,7 @@ test.describe('DM機能', () => {
     await page.goto('/workspace');
 
     // ユーザー一覧を開く
-    await page.click('button:has-text("ユーザー一覧")');
+    await page.click('button[data-testid="start-dm-button"]');
 
     // モーダルが表示されるまで待機
     const modal = page.locator('[role="dialog"]');
@@ -68,7 +72,7 @@ test.describe('DM機能', () => {
       // メッセージを入力
       const messageContent = `DMテストメッセージ ${Date.now()}`;
       await page.fill(
-        'textarea[data-testid="message-input"]',
+        'input[data-testid="message-input"]',
         messageContent
       );
 
@@ -99,7 +103,7 @@ test.describe('DM機能', () => {
 
     // ユーザー1がユーザー2とのDMを開く
     await page1.goto('/workspace');
-    await page1.click('button:has-text("ユーザー一覧")');
+    await page1.click('button[data-testid="start-dm-button"]');
 
     // ユーザー2を探してDMを開始
     const user2Item = page1.locator('text=テストユーザー2');
@@ -117,7 +121,7 @@ test.describe('DM機能', () => {
     // ユーザー1がメッセージを送信
     const messageContent = `DMリアルタイムテスト ${Date.now()}`;
     await page1.fill(
-      'textarea[data-testid="message-input"]',
+      'input[data-testid="message-input"]',
       messageContent
     );
     await page1.click('button[data-testid="send-button"]');

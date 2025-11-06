@@ -141,7 +141,7 @@ export default function MessageForm({
   };
 
   return (
-    <footer className="bg-background p-4">
+    <footer className="bg-background p-4" data-testid="message-form">
       {/* ファイルプレビュー表示 */}
       {selectedFile && (
         <div className="mb-2 flex items-center gap-2 bg-muted p-2 rounded-md">
@@ -188,6 +188,7 @@ export default function MessageForm({
 
         {/* メッセージ入力フィールド */}
         <Input
+          data-testid="message-input"
           placeholder={`${channelDisplayName}にメッセージを送信`}
           className="flex-1"
           value={content}
@@ -201,6 +202,7 @@ export default function MessageForm({
 
         {/* 送信ボタン */}
         <Button
+          data-testid="send-button"
           type="submit"
           size="icon"
           disabled={(!content.trim() && !selectedFile) || isUploading}

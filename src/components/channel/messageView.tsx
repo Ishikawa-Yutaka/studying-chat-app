@@ -232,7 +232,7 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
         fileType={previewFile?.type || ''}
       />
 
-      <div ref={containerRef} className="flex-1 p-4 overflow-y-auto">
+      <div ref={containerRef} className="flex-1 p-4 overflow-y-auto" data-testid="message-list">
         <div className="space-y-4 py-4">
         {/* メッセージ配列をループして表示（通常のメッセージのみ） */}
         {messages

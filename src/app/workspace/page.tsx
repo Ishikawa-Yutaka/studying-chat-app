@@ -157,20 +157,20 @@ export default function WorkspacePage() {
       <div className="space-y-4">
         <h2 className="text-3xl font-bold tracking-tight">ダッシュボード</h2>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" className="border-2" onClick={() => setIsJoinChannelOpen(true)}>
+          <Button variant="outline" size="sm" className="border-2 cursor-pointer" onClick={() => setIsJoinChannelOpen(true)}>
             <Search className="mr-2 h-4 w-4" />
             チャンネルを探す
           </Button>
-          <Button variant="outline" size="sm" className="border-2" onClick={() => setIsCreateChannelOpen(true)}>
+          <Button variant="outline" size="sm" className="border-2 cursor-pointer" onClick={() => setIsCreateChannelOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             新規チャンネル
           </Button>
-          <Button variant="outline" size="sm" className="border-2" onClick={() => setIsStartDmOpen(true)}>
+          <Button variant="outline" size="sm" className="border-2 cursor-pointer" onClick={() => setIsStartDmOpen(true)}>
             <Users className="mr-2 h-4 w-4" />
             ダイレクトメッセージ
           </Button>
           <Link href="/workspace/ai-chat">
-            <Button variant="outline" size="sm" className="border-2">
+            <Button variant="outline" size="sm" className="border-2 cursor-pointer">
               <Bot className="mr-2 h-4 w-4" />
               AIチャット
             </Button>

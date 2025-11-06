@@ -15,7 +15,7 @@ export default function ChannelHeader({
   memberCount
 }: ChannelHeaderProps) {
   return (
-    <header className="border-b bg-background z-10">
+    <header className="border-b bg-background z-10" data-testid="channel-header">
       <div className="h-14 flex items-center gap-4 px-4">
         {/* チャンネル情報表示 */}
         <div className="flex items-center gap-4">

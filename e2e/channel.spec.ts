@@ -19,6 +19,10 @@ test.describe('チャンネル機能', () => {
    * 各テスト実行前にログイン
    *
    * チャンネル機能はログインが必須なので、毎回自動でログインします
+   *
+   * 注意: テストデータは事前に手動でSeedしておく必要があります
+   * テスト実行前に以下のコマンドを実行してください:
+   * curl -X POST http://localhost:3000/api/seed
    */
   test.beforeEach(async ({ page }) => {
     await loginAsTestUser(page, 'user1');
@@ -42,7 +46,7 @@ test.describe('チャンネル機能', () => {
     await page.goto('/workspace');
 
     // チャンネル作成ボタンをクリック
-    await page.click('button:has-text("チャンネル作成")');
+    await page.click('button[data-testid="create-channel-button"]');
 
     // モーダルが表示されるまで待機
     const modal = page.locator('[role="dialog"]');
@@ -102,7 +106,7 @@ test.describe('チャンネル機能', () => {
     // メッセージを入力
     const messageContent = `テストメッセージ ${Date.now()}`;
     await page.fill(
-      'textarea[data-testid="message-input"]',
+      'input[data-testid="message-input"]',
       messageContent
     );
 
@@ -134,7 +138,7 @@ test.describe('チャンネル機能', () => {
     // ユーザー1がメッセージを送信
     const messageContent = `リアルタイムテスト ${Date.now()}`;
     await page1.fill(
-      'textarea[data-testid="message-input"]',
+      'input[data-testid="message-input"]',
       messageContent
     );
     await page1.click('button[data-testid="send-button"]');

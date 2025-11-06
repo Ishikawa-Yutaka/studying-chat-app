@@ -162,6 +162,7 @@ export default function DirectMessageList({
           className="h-6 w-6 hover:bg-accent hover:text-accent-foreground text-foreground"
           onClick={() => setIsStartDmOpen(true)}
           title="ユーザーを検索してDMを開始"
+          data-testid="start-dm-button"
         >
           <Search className="h-4 w-4" />
         </Button>

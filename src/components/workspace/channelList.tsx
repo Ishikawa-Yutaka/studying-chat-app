@@ -168,6 +168,7 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
             className="h-6 w-6 hover:bg-accent hover:text-accent-foreground text-foreground"
             onClick={() => setIsCreateDialogOpen(true)}
             title="新しいチャンネルを作成"
+            data-testid="create-channel-button"
           >
             <Plus className="h-4 w-4" />
           </Button>
