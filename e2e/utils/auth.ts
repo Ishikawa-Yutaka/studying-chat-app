@@ -75,15 +75,21 @@ export async function loginAsTestUser(
  * @param page - Playwrightのページオブジェクト
  *
  * 処理の流れ:
- * 1. ログアウトボタンを探す
- * 2. ボタンをクリック
+ * 1. 設定メニュー（歯車アイコン）を開く
+ * 2. ドロップダウンメニューから「ログアウト」をクリック
  * 3. ログインページにリダイレクトされるまで待機
  */
 export async function logout(page: Page) {
+  // 設定メニュー（歯車アイコン）をクリックしてドロップダウンを開く
+  await page.locator('button[title="設定"]').click();
+
+  // ドロップダウンメニューが表示されるまで待機
+  await page.waitForSelector('text=ログアウト', { state: 'visible' });
+
   // ログアウトボタンクリックとナビゲーションを同時に待つ
   await Promise.all([
     page.waitForURL(/\/login/),
-    page.locator('button:has-text("ログアウト")').click(),
+    page.locator('text=ログアウト').click(),
   ]);
 }
 

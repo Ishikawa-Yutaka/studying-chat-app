@@ -70,11 +70,11 @@ export async function login(prevState: ActionResult | null, formData: FormData):
 
     // エラーの種類に応じてメッセージを変更
     if (error.message.includes('Invalid login credentials')) {
-      errorMessage = 'メールアドレスまたはパスワードが正しくありません'
+      errorMessage = 'エラー: メールアドレスまたはパスワードが無効です'
     } else if (error.message.includes('Email not confirmed')) {
-      errorMessage = 'メールアドレスが確認されていません。確認メールをご確認ください'
+      errorMessage = 'エラー: メールアドレスが確認されていません。確認メールをご確認ください'
     } else if (error.message.includes('Network request failed')) {
-      errorMessage = 'ネットワークエラーが発生しました。接続を確認してください'
+      errorMessage = 'エラー: ネットワーク接続に失敗しました。接続を確認してください'
     }
 
     return { error: errorMessage }

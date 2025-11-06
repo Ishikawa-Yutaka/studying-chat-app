@@ -173,13 +173,14 @@ export default function ChannelList({ channels, pathname, currentUserId, onChann
           </Button>
         </div>
       </div>
-      <div className="space-y-1">
+      <div className="space-y-1" data-testid="channel-list">
         <div className={`${showAllChannels ? 'max-h-[500px]' : 'max-h-[250px]'} overflow-y-auto transition-all duration-300`}>
           {channels.slice(0, showAllChannels ? undefined : 5).map((channel) => {
           const isActive = pathname === `/workspace/channel/${channel.id}`;
           return (
             <div
               key={channel.id}
+              data-testid="channel-item"
               className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground mb-1 ${
                 isActive ? 'bg-accent text-accent-foreground' : ''
               }`}

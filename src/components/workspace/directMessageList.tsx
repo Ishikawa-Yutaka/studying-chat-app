@@ -166,7 +166,7 @@ export default function DirectMessageList({
           <Search className="h-4 w-4" />
         </Button>
       </div>
-      <div className="space-y-1">
+      <div className="space-y-1" data-testid="dm-list">
         <div
           className={`${
             showAllDms ? "max-h-[400px]" : "max-h-[200px]"
@@ -182,6 +182,7 @@ export default function DirectMessageList({
               return (
                 <div
                   key={dm.id}
+                  data-testid="dm-item"
                   className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground mb-1 ${
                     isActive ? "bg-accent text-accent-foreground" : ""
                   }`}
