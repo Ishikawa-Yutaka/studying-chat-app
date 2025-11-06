@@ -7,6 +7,7 @@
 'use client';
 
 import { UserAvatar } from '@/components/userAvatar';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // ユーザー型定義
 interface User {
@@ -25,7 +26,7 @@ export default function UserProfileBar({ user }: UserProfileBarProps) {
   if (!user) {
     return (
       <div className="flex items-center justify-center p-4">
-        <p className="text-sm text-muted-foreground">読み込み中...</p>
+        <LoadingSpinner size={24} />
       </div>
     );
   }
