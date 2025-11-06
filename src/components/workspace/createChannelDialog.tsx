@@ -148,6 +148,7 @@ export default function CreateChannelDialog({
               </Label>
               <Input
                 id="name"
+                name="name"
                 placeholder="例: プロジェクト相談"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -162,6 +163,7 @@ export default function CreateChannelDialog({
               <Label htmlFor="description">説明（任意）</Label>
               <Textarea
                 id="description"
+                name="description"
                 placeholder="このチャンネルの目的を説明してください"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}

@@ -58,7 +58,7 @@ test.describe('チャンネル機能', () => {
 
     // 説明を入力
     await page.fill(
-      'input[name="description"]',
+      'textarea[name="description"]',
       'E2Eテストで作成されたチャンネル'
     );
 
@@ -128,12 +128,20 @@ test.describe('チャンネル機能', () => {
     await page1.goto('/workspace');
     await page1.locator('[data-testid="channel-item"]').first().click();
 
+    // チャンネルページのロード完了を待機
+    await page1.waitForLoadState('networkidle');
+    await page1.waitForTimeout(1000); // Realtimeサブスクリプション完了を待機
+
     // ユーザー2のブラウザコンテキスト
     const context2 = await browser.newContext();
     const page2 = await context2.newPage();
     await loginAsTestUser(page2, 'user2');
     await page2.goto('/workspace');
     await page2.locator('[data-testid="channel-item"]').first().click();
+
+    // チャンネルページのロード完了を待機
+    await page2.waitForLoadState('networkidle');
+    await page2.waitForTimeout(1000); // Realtimeサブスクリプション完了を待機
 
     // ユーザー1がメッセージを送信
     const messageContent = `リアルタイムテスト ${Date.now()}`;

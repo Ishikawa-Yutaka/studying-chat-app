@@ -22,7 +22,7 @@ export default function DmHeader({ dmPartner }: DmHeaderProps) {
 
   return (
     <>
-      <header className="border-b bg-background">
+      <header className="border-b bg-background" data-testid="dm-header">
         <div className="h-16 flex items-center px-4">
           {/* ユーザー情報 */}
           <div className="flex items-center gap-3">

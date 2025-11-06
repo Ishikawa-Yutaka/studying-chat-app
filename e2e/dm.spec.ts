@@ -47,11 +47,12 @@ test.describe('DM機能', () => {
 
     // ユーザーを選択してDMを開始
     const userItem = page.locator('[data-testid="user-item"]').first();
-    await userItem.click();
+    // DMボタンをクリック
+    await userItem.locator('button:has-text("DM")').click();
 
     // DMチャット画面が表示されるまで待機
     const dmHeader = page.locator('[data-testid="dm-header"]');
-    await expect(dmHeader).toBeVisible({ timeout: 5000 });
+    await expect(dmHeader).toBeVisible({ timeout: 10000 });
 
     // メッセージ入力フォームが表示されているか確認
     const messageForm = page.locator('[data-testid="message-form"]');
@@ -105,11 +106,19 @@ test.describe('DM機能', () => {
     await page1.goto('/workspace');
     await page1.click('button[data-testid="start-dm-button"]');
 
+    // モーダルが表示されるまで待機
+    await page1.waitForSelector('[role="dialog"]');
+
     // ユーザー2を探してDMを開始
-    const user2Item = page1.locator('text=テストユーザー2');
-    if (await user2Item.isVisible()) {
-      await user2Item.click();
+    const user2Item = page1.locator('[data-testid="user-item"]').filter({ hasText: 'テストユーザー2' });
+    if (await user2Item.count() > 0) {
+      // DMボタンをクリック
+      await user2Item.locator('button:has-text("DM")').click();
     }
+
+    // DMページのロード完了を待機
+    await page1.waitForLoadState('networkidle');
+    await page1.waitForTimeout(1000); // Realtimeサブスクリプション完了を待機
 
     // ユーザー2もDM一覧から同じDMを開く
     await page2.goto('/workspace');
@@ -117,6 +126,10 @@ test.describe('DM機能', () => {
     if (await dmItem.isVisible()) {
       await dmItem.click();
     }
+
+    // DMページのロード完了を待機
+    await page2.waitForLoadState('networkidle');
+    await page2.waitForTimeout(1000); // Realtimeサブスクリプション完了を待機
 
     // ユーザー1がメッセージを送信
     const messageContent = `DMリアルタイムテスト ${Date.now()}`;

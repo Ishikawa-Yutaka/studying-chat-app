@@ -229,6 +229,7 @@ export default function StartDmDialog({
               usersWithOnlineStatus.map((user) => (
                 <div
                   key={user.id}
+                  data-testid="user-item"
                   className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent transition-colors"
                 >
                   {/* ユーザー情報 */}
