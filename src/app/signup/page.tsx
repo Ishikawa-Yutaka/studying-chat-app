@@ -13,8 +13,8 @@ import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Github, Twitter, Facebook, Eye, EyeOff, AlertCircle, Loader2, Mail, CheckCircle } from 'lucide-react'
-import { signInWithSocial, type SocialProvider, SOCIAL_PROVIDERS } from '@/lib/social-auth'
+import { Github, Twitter, Facebook, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react'
+import { signInWithSocial, type SocialProvider, SOCIAL_PROVIDERS } from '@/lib/auth'
 import { signup } from './actions'
 
 /**
@@ -71,6 +71,7 @@ export default function SignupPage() {
   // state.error にエラーメッセージが格納される
   const [state, formAction] = useActionState(signup, null)
 
+  
   /**
    * ソーシャル認証でサインアップする時の処理
    *
@@ -108,17 +109,17 @@ export default function SignupPage() {
     }
   }
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* ページタイトル */}
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-foreground">
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
             新規アカウント作成
           </h2>
-          <p className="mt-4 text-base text-muted-foreground">
+          <p className="mt-2 text-sm text-gray-600">
             既にアカウントをお持ちの場合は{' '}
-            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-700">
-              ログインはこちら
+            <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+              ログイン
             </Link>
           </p>
         </div>
@@ -126,8 +127,8 @@ export default function SignupPage() {
         {/* サインアップフォーム */}
         <Card>
           <CardHeader>
-            <CardTitle>アカウント作成</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-gray-900">アカウント作成</CardTitle>
+            <CardDescription className="text-gray-600">
               メールアドレス・パスワード、またはソーシャルアカウントで登録できます
             </CardDescription>
           </CardHeader>
@@ -172,65 +173,26 @@ export default function SignupPage() {
             {/* 区切り線 */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
+                <span className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">または</span>
+                <span className="bg-white px-2 text-gray-600">または</span>
               </div>
             </div>
 
             {/* メール・パスワードサインアップフォーム */}
             <form action={formAction} className="space-y-4">
-              {/* メール確認メッセージ表示 */}
-              {state?.requiresEmailConfirmation && (
-                <div className="rounded-md bg-blue-50 dark:bg-blue-950 p-4 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 space-y-2">
-                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                        確認メールを送信しました
-                      </p>
-                      <p className="text-sm text-blue-800 dark:text-blue-200">
-                        ご登録いただいたメールアドレスに確認メールを送信しました。
-                        メール内のリンクをクリックして、アカウントを有効化してください。
-                      </p>
-                      <div className="mt-3 space-y-1">
-                        <div className="flex items-start gap-2">
-                          <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                          <p className="text-xs text-blue-700 dark:text-blue-300">
-                            メールが届かない場合は、迷惑メールフォルダをご確認ください
-                          </p>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                          <p className="text-xs text-blue-700 dark:text-blue-300">
-                            確認後、ログインページからログインできます
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="pt-2">
-                    <Link href="/login" className="block">
-                      <Button type="button" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                        ログインページへ
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              )}
-
               {/* エラーメッセージ表示 */}
               {state?.error && (
-                <div className="rounded-md bg-red-50 dark:bg-red-950 p-3 flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-600 dark:text-red-400">{state.error}</p>
+                <div className="rounded-md bg-red-50 p-3 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-600">{state.error}</p>
                 </div>
               )}
 
               {/* ユーザー名入力 */}
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                   ユーザー名
                 </label>
                 <Input
@@ -242,14 +204,14 @@ export default function SignupPage() {
                   placeholder="あなたの名前"
                   maxLength={50}
                 />
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-gray-500">
                   50文字以内で入力してください
                 </p>
               </div>
 
               {/* メールアドレス入力 */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   メールアドレス
                 </label>
                 <Input
@@ -265,7 +227,7 @@ export default function SignupPage() {
 
               {/* パスワード入力 */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                   パスワード
                 </label>
                 <div className="relative">
@@ -283,7 +245,7 @@ export default function SignupPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     aria-label={showPassword ? "パスワードを非表示" : "パスワードを表示"}
                   >
                     {showPassword ? (
@@ -293,7 +255,7 @@ export default function SignupPage() {
                     )}
                   </button>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-gray-500">
                   8〜128文字で入力してください
                 </p>
               </div>
@@ -307,7 +269,7 @@ export default function SignupPage() {
 
             {/* ログインリンク（フォーム外） */}
             <Link href="/login" className="block w-full mt-4">
-              <Button type="button" variant="outline" className="w-full bg-gray-500 hover:bg-gray-600 text-white">
+              <Button type="button" variant="outline" className="w-full">
                 ログインはこちら
               </Button>
             </Link>
