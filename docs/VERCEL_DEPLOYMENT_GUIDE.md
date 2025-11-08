@@ -5,10 +5,11 @@
 ## 目次
 
 1. [デプロイ前の準備](#デプロイ前の準備)
-2. [Vercelデプロイ手順](#vercelデプロイ手順)
-3. [環境変数の設定](#環境変数の設定)
-4. [トラブルシューティング](#トラブルシューティング)
-5. [デプロイ後の確認](#デプロイ後の確認)
+2. [Supabase認証設定](#supabase認証設定)
+3. [Vercelデプロイ手順](#vercelデプロイ手順)
+4. [環境変数の設定](#環境変数の設定)
+5. [トラブルシューティング](#トラブルシューティング)
+6. [デプロイ後の確認](#デプロイ後の確認)
 
 ---
 
@@ -94,6 +95,81 @@ git add .
 git commit -m "build: Vercelデプロイのためのビルド設定を最適化"
 git push origin main
 ```
+
+---
+
+## Supabase認証設定
+
+Vercelデプロイ前に、Supabaseの認証設定を正しく構成する必要があります。
+
+### 1. Site URL の設定
+
+Supabaseダッシュボード → **Authentication** → **URL Configuration**
+
+**Site URL**:
+```
+https://studying-chat-app.vercel.app
+```
+
+**役割**:
+- デフォルトのリダイレクト先
+- ソーシャルログイン完了後の戻り先
+- 本番環境のベースURL
+
+⚠️ **重要**: Site URLを本番URLに設定しても、ローカル開発は問題なく動作します（後述のRedirect URLsで対応）。
+
+### 2. Redirect URLs の設定
+
+同じ画面で、**Redirect URLs** に以下の4つを追加：
+
+#### 本番環境用
+```
+https://studying-chat-app.vercel.app/auth/callback
+https://studying-chat-app.vercel.app/**
+```
+
+#### 開発環境用
+```
+http://localhost:3000/auth/callback
+http://localhost:3000/**
+```
+
+**各URLの役割**:
+
+| URL | 説明 |
+|-----|------|
+| `*/auth/callback` | ソーシャルログイン後、プロバイダー（Google, GitHubなど）から戻ってくるURL |
+| `*/**` | すべてのパスからのリダイレクトを許可（ワイルドカード） |
+
+**ワイルドカード（`**`）の必要性**:
+- Supabaseの認証フローが複数のパスを経由する可能性がある
+- 柔軟な認証フローをサポート
+- ドメイン全体を許可するが、Supabaseが管理しているため安全
+
+### 3. 設定後の確認
+
+設定を保存したら、以下を確認：
+
+✅ Site URL: `https://studying-chat-app.vercel.app`
+✅ Redirect URLs（4つ）:
+  - `https://studying-chat-app.vercel.app/auth/callback`
+  - `https://studying-chat-app.vercel.app/**`
+  - `http://localhost:3000/auth/callback`
+  - `http://localhost:3000/**`
+
+### 4. ソーシャルプロバイダーの設定確認
+
+**Authentication** → **Providers** で以下を確認：
+
+#### Google
+- ✅ Google OAuth有効化
+- ✅ Client ID と Client Secret 設定済み
+
+#### GitHub
+- ✅ GitHub OAuth有効化
+- ✅ Client ID と Client Secret 設定済み
+
+⚠️ **注意**: プロバイダーの設定は事前に完了している前提です。未設定の場合は、各プロバイダーのOAuthアプリケーション設定が必要です。
 
 ---
 
