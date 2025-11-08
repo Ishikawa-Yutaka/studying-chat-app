@@ -336,7 +336,7 @@ export default function ChannelPage() {
   }
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="flex flex-col h-full">
       {/* チャンネルヘッダー */}
       <ChannelHeader
         channelName={channel.name}
@@ -344,19 +344,23 @@ export default function ChannelPage() {
         memberCount={channel.memberCount}
       />
 
-      {/* メッセージ表示エリア */}
-      <MessageView
-        messages={messagesWithOnlineStatus}
-        myUserId={myUserId}
-        onThreadOpen={handleThreadOpen}
-      />
-
-      {/* メッセージ入力フォーム */}
-      {myUserId && (
-        <MessageForm
-          channelDisplayName={`# ${channel.name}`}
-          handleSendMessage={handleSendMessage}
+      {/* メッセージ表示エリア - 入力フォーム分の下部余白を確保 */}
+      <div className="flex-1 overflow-y-auto pb-24 px-4 md:px-6 pt-4">
+        <MessageView
+          messages={messagesWithOnlineStatus}
+          myUserId={myUserId}
+          onThreadOpen={handleThreadOpen}
         />
+      </div>
+
+      {/* メッセージ入力フォーム - 画面下部に固定（PC時はサイドバーを避ける） */}
+      {myUserId && (
+        <div className="fixed bottom-0 left-0 right-0 lg:left-[280px] bg-background border-t px-4 md:px-6 py-4 z-10">
+          <MessageForm
+            channelDisplayName={`# ${channel.name}`}
+            handleSendMessage={handleSendMessage}
+          />
+        </div>
       )}
 
       {/* スレッドパネル */}

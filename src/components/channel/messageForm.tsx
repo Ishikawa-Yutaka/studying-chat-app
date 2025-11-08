@@ -1,7 +1,7 @@
 'use client';
 
 // React Hooks
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 // アイコン（Lucide React）
 import { Send, Paperclip, X } from 'lucide-react';
 // shadcn/ui コンポーネント
@@ -40,8 +40,25 @@ export default function MessageForm({
   // ファイル入力要素への参照
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // テキストエリアへの参照
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   // 最大文字数
   const MAX_MESSAGE_LENGTH = 5000;
+
+  /**
+   * テキストエリアの高さを自動調整
+   * 入力内容に応じて高さを動的に変更
+   */
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // 一旦高さをリセットして、scrollHeightを正確に取得
+      textarea.style.height = 'auto';
+      // scrollHeightに基づいて高さを設定（max-h-[120px]の範囲内）
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+    }
+  }, [content]);
 
   /**
    * ファイル選択時の処理
@@ -141,7 +158,7 @@ export default function MessageForm({
   };
 
   return (
-    <footer className="bg-background p-4" data-testid="message-form">
+    <footer className="bg-background" data-testid="message-form">
       {/* ファイルプレビュー表示 */}
       {selectedFile && (
         <div className="mb-2 flex items-center gap-2 bg-muted p-2 rounded-md">
@@ -186,14 +203,22 @@ export default function MessageForm({
           <span className="sr-only">ファイルを添付</span>
         </Button>
 
-        {/* メッセージ入力フィールド */}
-        <Input
+        {/* メッセージ入力フィールド（複数行対応） */}
+        <textarea
+          ref={textareaRef}
           data-testid="message-input"
           placeholder={`${channelDisplayName}にメッセージを送信`}
-          className="flex-1"
+          className="flex-1 min-h-[40px] max-h-[120px] resize-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 overflow-y-auto"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          type="text"
+          onKeyDown={(e) => {
+            // Enterキーで送信（Shift+Enterで改行）
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit(e);
+            }
+          }}
+          rows={1}
           autoComplete="off"
           autoCorrect="off"
           spellCheck="false"

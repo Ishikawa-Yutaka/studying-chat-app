@@ -15,7 +15,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Send, Bot, User, Plus, MessageSquare, Trash2, Menu, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -58,6 +58,7 @@ export default function AiChatPage() {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // モバイル用サイドバー表示状態
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -140,6 +141,17 @@ export default function AiChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  /**
+   * テキストエリアの高さを自動調整
+   */
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+    }
+  }, [inputMessage]);
 
   /**
    * 新しい会話を開始
@@ -418,8 +430,9 @@ export default function AiChatPage() {
 
       {/* チャットエリア（フル幅） */}
       <div className="flex flex-col h-full w-full" style={{ backgroundColor: 'hsl(var(--background))' }}>
-        {/* 常に表示されるヘッダー（メニューボタン） */}
-        <div className="border-b px-4 py-3 flex items-center gap-3" style={{ backgroundColor: 'hsl(var(--background))' }}>
+        {/* ヘッダー（PCのみ表示、スマホではワークスペースレイアウトのヘッダーを使用） */}
+        <div className="hidden lg:flex border-b px-4 py-3 items-center gap-3" style={{ backgroundColor: 'hsl(var(--background))' }}>
+          {/* メニューボタン（会話履歴） */}
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
@@ -428,10 +441,47 @@ export default function AiChatPage() {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <div className="flex items-center gap-2">
+
+          {/* タイトル */}
+          <div className="flex items-center gap-2 flex-1">
             <Bot className="h-5 w-5" />
             <span className="font-medium">AIアシスタント</span>
           </div>
+
+          {/* 新しい会話ボタン（アイコンのみ） */}
+          <button
+            type="button"
+            onClick={handleNewSession}
+            className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex-shrink-0"
+            title="新しい会話を開始"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* スマホ用ヘッダー（会話履歴ボタン） - ワークスペースヘッダーの下に固定 */}
+        <div className="lg:hidden sticky top-14 z-10 border-b px-4 py-3 flex items-center gap-3" style={{ backgroundColor: 'hsl(var(--background))' }}>
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 hover:bg-accent rounded-lg transition-colors flex-shrink-0"
+            title="会話履歴を開く"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-2 flex-1">
+            <Bot className="h-5 w-5" />
+            <span className="font-medium">AIアシスタント</span>
+          </div>
+          {/* 新しい会話ボタン（アイコンのみ） */}
+          <button
+            type="button"
+            onClick={handleNewSession}
+            className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex-shrink-0"
+            title="新しい会話を開始"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
         </div>
 
         {!currentSessionId ? (
@@ -450,8 +500,8 @@ export default function AiChatPage() {
           </div>
         ) : (
           <>
-            {/* メッセージ表示エリア */}
-            <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-24 lg:pb-4 pt-4 space-y-6">
+            {/* メッセージ表示エリア - 入力フォーム分の下部余白を確保 */}
+            <div className="flex-1 overflow-y-auto pb-24 px-4 md:px-6 pt-4 space-y-6">
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center h-full">
                   <LoadingSpinner size={60} />
@@ -507,16 +557,24 @@ export default function AiChatPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* メッセージ入力フォーム（モバイル: 画面下部固定、PC: 通常配置） */}
-            <div className="fixed lg:static bottom-0 left-0 right-0 px-4 md:px-6 py-4 pb-safe z-10" style={{ backgroundColor: 'hsl(var(--background))' }}>
-              <form onSubmit={handleSendMessage} className="flex gap-2">
-                <input
-                  type="text"
+            {/* メッセージ入力フォーム - 画面下部に固定（PC時はサイドバーを避ける） */}
+            <div className="fixed bottom-0 left-0 right-0 lg:left-[280px] bg-background border-t px-4 md:px-6 py-4 z-10">
+              <form onSubmit={handleSendMessage} className="flex items-end gap-2">
+                <textarea
+                  ref={textareaRef}
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Enterキーで送信（Shift+Enterで改行）
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage(e);
+                    }
+                  }}
                   placeholder="メッセージを入力..."
                   disabled={isSending}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  rows={1}
+                  className="flex-1 min-h-[40px] max-h-[120px] resize-none px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed overflow-y-auto"
                 />
                 <button
                   type="submit"

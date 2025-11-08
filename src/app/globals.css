@@ -68,7 +68,7 @@ body {
 }
 
 html {
-  transition: background-color 0.8s ease-in-out;
+  transition: background-color 0.2s ease-in-out;
 }
 
 body,
@@ -84,7 +84,7 @@ button,
 input,
 textarea,
 select {
-  transition: background-color 0.8s ease-in-out, color 0.8s ease-in-out, border-color 0.8s ease-in-out !important;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out !important;
 }
 
 * {

@@ -4,14 +4,14 @@
  * アプリの紹介と新規登録・ログインへの導線を提供
  */
 
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { ArrowRight, MessageSquare, Users, Bot, Moon, Sun } from 'lucide-react';
-import { useTheme } from 'next-themes';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { ArrowRight, MessageSquare, Users, Bot, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 
 export default function TopPage() {
   const { theme, setTheme } = useTheme();
@@ -22,7 +22,7 @@ export default function TopPage() {
   }, []);
 
   const handleThemeChange = (checked: boolean) => {
-    const newTheme = checked ? 'dark' : 'light';
+    const newTheme = checked ? "dark" : "light";
 
     // View Transition APIが使えるかチェック
     if ((document as any).startViewTransition) {
@@ -40,18 +40,15 @@ export default function TopPage() {
       {/* ヘッダー */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between mx-auto px-4 md:px-6">
-          <div className="flex items-center gap-2 font-bold">
-            <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center text-primary-foreground">
-              S
-            </div>
-            <span>STUDYing Tech Chat</span>
+          <div className="flex items-center gap-2 font-bold text-2xl">
+            <span>Chat App</span>
           </div>
           <div className="flex items-center gap-4">
             {mounted && (
               <div className="flex items-center gap-2">
                 <Sun className="h-4 w-4 text-muted-foreground" />
                 <Switch
-                  checked={theme === 'dark'}
+                  checked={theme === "dark"}
                   onCheckedChange={handleThemeChange}
                 />
                 <Moon className="h-4 w-4 text-muted-foreground" />
@@ -76,10 +73,10 @@ export default function TopPage() {
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    STUDYing Tech Chat
+                    Chat App
                   </h1>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    STUDYing Tech Chat
+                    Chat App
                     は、チームのコミュニケーションを効率化し、円滑なコミュニケーションを実現するためのアプリです。
                   </p>
                 </div>
@@ -110,9 +107,11 @@ export default function TopPage() {
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">主な機能</h2>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                  主な機能
+                </h2>
                 <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  STUDYing Tech Chat が提供する主な機能をご紹介します
+                  Chat App が提供する主な機能をご紹介します
                 </p>
               </div>
             </div>
@@ -123,7 +122,9 @@ export default function TopPage() {
                   <MessageSquare className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold">チャンネル機能</h3>
-                <p className="text-center text-muted-foreground">トピックごとにチャンネルを作成することができます</p>
+                <p className="text-center text-muted-foreground">
+                  トピックごとにチャンネルを作成することができます
+                </p>
               </div>
 
               {/* ダイレクトメッセージ */}
@@ -144,7 +145,8 @@ export default function TopPage() {
                 </div>
                 <h3 className="text-xl font-bold">AI機能</h3>
                 <p className="text-center text-muted-foreground">
-                  AI チャットボットが提供されており、アプリ内で AI との会話ができます
+                  AI チャットボットが提供されており、アプリ内で AI
+                  との会話ができます
                 </p>
               </div>
             </div>
@@ -156,7 +158,7 @@ export default function TopPage() {
       <footer className="border-t py-6 md:py-0">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row px-4 md:px-6">
           <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-            &copy; 2025 STUDYing Tech Chat. All rights reserved.
+            &copy; 2025 Chat App. All rights reserved.
           </p>
         </div>
       </footer>

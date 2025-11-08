@@ -5,17 +5,35 @@
  * ソーシャル認証（Google、GitHub、Twitter、Facebook）にも対応
  */
 
-'use client'
+"use client";
 
-import React, { useState, useActionState } from 'react'
-import Link from 'next/link'
-import { useFormStatus } from 'react-dom'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Github, Twitter, Facebook, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react'
-import { signInWithSocial, type SocialProvider, SOCIAL_PROVIDERS } from '@/lib/social-auth'
-import { login } from './actions'
+import React, { useState, useActionState } from "react";
+import Link from "next/link";
+import { useFormStatus } from "react-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Github,
+  Twitter,
+  Facebook,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import {
+  signInWithSocial,
+  type SocialProvider,
+  SOCIAL_PROVIDERS,
+} from "@/lib/social-auth";
+import { login } from "./actions";
 
 /**
  * ログインボタンコンポーネント
@@ -24,14 +42,14 @@ import { login } from './actions'
  * 送信中はボタンを無効化してローディング表示
  */
 function LoginButton() {
-  const { pending } = useFormStatus()
+  const { pending } = useFormStatus();
 
   return (
     <Button type="submit" className="w-full" disabled={pending}>
       {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-      {pending ? 'ログイン中...' : 'ログイン'}
+      {pending ? "ログイン中..." : "ログイン"}
     </Button>
-  )
+  );
 }
 
 /**
@@ -41,7 +59,11 @@ function LoginButton() {
  */
 function GoogleIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <path
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
         fill="#4285F4"
@@ -59,62 +81,67 @@ function GoogleIcon({ className }: { className?: string }) {
         fill="#EA4335"
       />
     </svg>
-  )
+  );
 }
 
 export default function LoginPage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [socialProvider, setSocialProvider] = useState<SocialProvider | null>(null)
-  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
+  const [socialProvider, setSocialProvider] = useState<SocialProvider | null>(
+    null
+  );
+  const [showPassword, setShowPassword] = useState(false);
 
   // useActionStateでログインのエラー状態を管理
   // state.error にエラーメッセージが格納される
-  const [state, formAction] = useActionState(login, null)
+  const [state, formAction] = useActionState(login, null);
 
   /**
    * ソーシャルログインボタンがクリックされた時の処理
    */
   const handleSocialLogin = async (provider: SocialProvider) => {
     try {
-      setIsLoading(true)
-      setSocialProvider(provider)
-      await signInWithSocial(provider)
+      setIsLoading(true);
+      setSocialProvider(provider);
+      await signInWithSocial(provider);
       // 注: この後、プロバイダーの認証画面にリダイレクトされます
     } catch (error) {
-      console.error('❌ ソーシャルログインエラー:', error)
-      alert('ログインに失敗しました。もう一度お試しください。')
-      setIsLoading(false)
-      setSocialProvider(null)
+      console.error("❌ ソーシャルログインエラー:", error);
+      alert("ログインに失敗しました。もう一度お試しください。");
+      setIsLoading(false);
+      setSocialProvider(null);
     }
-  }
+  };
 
   /**
    * プロバイダーに応じたアイコンを表示
    */
   const getIcon = (provider: SocialProvider) => {
-    const iconClass = "w-5 h-5"
+    const iconClass = "w-5 h-5";
     switch (provider) {
-      case 'google':
-        return <GoogleIcon className={iconClass} />
-      case 'github':
-        return <Github className={iconClass} />
-      case 'twitter':
-        return <Twitter className={iconClass} />
-      case 'facebook':
-        return <Facebook className={iconClass} />
+      case "google":
+        return <GoogleIcon className={iconClass} />;
+      case "github":
+        return <Github className={iconClass} />;
+      case "twitter":
+        return <Twitter className={iconClass} />;
+      case "facebook":
+        return <Facebook className={iconClass} />;
     }
-  }
+  };
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* ページタイトル */}
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-extrabold text-foreground">
-            チャットアプリにログイン
+            Chat Appにログイン
           </h2>
           <p className="mt-4 text-base text-muted-foreground">
-            アカウントをお持ちでない場合は{' '}
-            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-700">
+            アカウントをお持ちでない場合は{" "}
+            <Link
+              href="/signup"
+              className="font-medium text-blue-600 hover:text-blue-700"
+            >
               新規登録はこちら
             </Link>
           </p>
@@ -137,13 +164,13 @@ export default function LoginPage() {
                   type="button"
                   variant="outline"
                   className={SOCIAL_PROVIDERS.google.color}
-                  onClick={() => handleSocialLogin('google')}
+                  onClick={() => handleSocialLogin("google")}
                   disabled={isLoading}
                 >
-                  {socialProvider === 'google' ? (
+                  {socialProvider === "google" ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    getIcon('google')
+                    getIcon("google")
                   )}
                   <span className="ml-2">Google</span>
                 </Button>
@@ -153,13 +180,13 @@ export default function LoginPage() {
                   type="button"
                   variant="outline"
                   className={SOCIAL_PROVIDERS.github.color}
-                  onClick={() => handleSocialLogin('github')}
+                  onClick={() => handleSocialLogin("github")}
                   disabled={isLoading}
                 >
-                  {socialProvider === 'github' ? (
+                  {socialProvider === "github" ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    getIcon('github')
+                    getIcon("github")
                   )}
                   <span className="ml-2">GitHub</span>
                 </Button>
@@ -172,7 +199,9 @@ export default function LoginPage() {
                 <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">または</span>
+                <span className="bg-card px-2 text-muted-foreground">
+                  または
+                </span>
               </div>
             </div>
 
@@ -188,7 +217,10 @@ export default function LoginPage() {
 
               {/* メールアドレス入力 */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
                   メールアドレス
                 </label>
                 <Input
@@ -204,7 +236,10 @@ export default function LoginPage() {
 
               {/* パスワード入力 */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-foreground mb-1"
+                >
                   パスワード
                 </label>
                 <div className="relative">
@@ -223,7 +258,9 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-                    aria-label={showPassword ? "パスワードを非表示" : "パスワードを表示"}
+                    aria-label={
+                      showPassword ? "パスワードを非表示" : "パスワードを表示"
+                    }
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5" />
@@ -243,7 +280,11 @@ export default function LoginPage() {
 
             {/* サインアップリンク（フォーム外） */}
             <Link href="/signup" className="block w-full mt-4">
-              <Button type="button" variant="outline" className="w-full bg-gray-500 hover:bg-gray-600 text-white">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full bg-gray-500 hover:bg-gray-600 text-white"
+              >
                 新規登録はこちら
               </Button>
             </Link>
@@ -251,5 +292,5 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

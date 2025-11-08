@@ -1,5 +1,7 @@
 'use client';
 
+import { ChevronLeft } from 'lucide-react';
+import Link from 'next/link';
 import { formatRelativeTime } from '@/lib/utils';
 import { UserAvatar } from '@/components/userAvatar';
 
@@ -22,10 +24,19 @@ export default function DmHeader({ dmPartner }: DmHeaderProps) {
 
   return (
     <>
-      <header className="border-b bg-background" data-testid="dm-header">
-        <div className="h-16 flex items-center px-4">
+      <header className="sticky top-14 lg:top-0 z-10 border-b bg-background" data-testid="dm-header">
+        <div className="h-16 flex items-center gap-3 px-4">
+          {/* 戻るボタン（スマホのみ表示） */}
+          <Link
+            href="/workspace"
+            className="lg:hidden p-2 hover:bg-accent rounded-lg transition-colors -ml-2"
+            aria-label="ワークスペースに戻る"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </Link>
+
           {/* ユーザー情報 */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             {/* ユーザーアバター */}
             <UserAvatar
               name={dmPartner.name}
@@ -36,14 +47,14 @@ export default function DmHeader({ dmPartner }: DmHeaderProps) {
             />
 
             {/* ユーザー詳細情報 */}
-            <div className="flex flex-col">
-              <h1 className="font-semibold text-lg">{dmPartner.name}</h1>
+            <div className="flex flex-col min-w-0">
+              <h1 className="font-semibold text-lg truncate">{dmPartner.name}</h1>
               <div className="flex items-center gap-2 text-sm">
                 {/* オンライン状態 */}
-                <div className={`w-2 h-2 rounded-full ${
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                   dmPartner.isOnline ? 'bg-green-500' : 'bg-gray-400'
                 }`} />
-                <span className="text-gray-600">
+                <span className="text-gray-600 truncate">
                   {dmPartner.isOnline
                     ? 'アクティブ'
                     : `${formatRelativeTime(dmPartner.lastSeen)}にアクティブ`
