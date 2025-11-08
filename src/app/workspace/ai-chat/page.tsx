@@ -17,8 +17,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Send, Bot, User, Plus, MessageSquare, Trash2, Menu, X } from 'lucide-react';
+import { Send, Bot, User, Plus, MessageSquare, Trash2, Menu, X, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 /**
@@ -59,6 +60,9 @@ export default function AiChatPage() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // IME（日本語入力）変換中かどうかのフラグ
+  const [isComposing, setIsComposing] = useState(false);
 
   // モバイル用サイドバー表示状態
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -430,8 +434,17 @@ export default function AiChatPage() {
 
       {/* チャットエリア（フル幅） */}
       <div className="flex flex-col h-full w-full" style={{ backgroundColor: 'hsl(var(--background))' }}>
-        {/* ヘッダー（PCのみ表示、スマホではワークスペースレイアウトのヘッダーを使用） */}
-        <div className="hidden lg:flex border-b px-4 py-3 items-center gap-3" style={{ backgroundColor: 'hsl(var(--background))' }}>
+        {/* ヘッダー（スマホ: sticky、PC: 通常） */}
+        <div className="lg:relative sticky top-0 z-10 border-b px-4 py-3 flex items-center gap-3" style={{ backgroundColor: 'hsl(var(--background))' }}>
+          {/* 戻るボタン（ワークスペースに戻る） */}
+          <Link
+            href="/workspace"
+            className="p-2 hover:bg-accent rounded-lg transition-colors -ml-2 flex-shrink-0"
+            aria-label="ワークスペースに戻る"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </Link>
+
           {/* メニューボタン（会話履歴） */}
           <button
             type="button"
@@ -448,31 +461,6 @@ export default function AiChatPage() {
             <span className="font-medium">AIアシスタント</span>
           </div>
 
-          {/* 新しい会話ボタン（アイコンのみ） */}
-          <button
-            type="button"
-            onClick={handleNewSession}
-            className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex-shrink-0"
-            title="新しい会話を開始"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* スマホ用ヘッダー（会話履歴ボタン） - ワークスペースヘッダーの下に固定 */}
-        <div className="lg:hidden sticky top-14 z-10 border-b px-4 py-3 flex items-center gap-3" style={{ backgroundColor: 'hsl(var(--background))' }}>
-          <button
-            type="button"
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 hover:bg-accent rounded-lg transition-colors flex-shrink-0"
-            title="会話履歴を開く"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <div className="flex items-center gap-2 flex-1">
-            <Bot className="h-5 w-5" />
-            <span className="font-medium">AIアシスタント</span>
-          </div>
           {/* 新しい会話ボタン（アイコンのみ） */}
           <button
             type="button"
@@ -564,9 +552,12 @@ export default function AiChatPage() {
                   ref={textareaRef}
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
+                  onCompositionStart={() => setIsComposing(true)}
+                  onCompositionEnd={() => setIsComposing(false)}
                   onKeyDown={(e) => {
-                    // Enterキーで送信（Shift+Enterで改行）
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                    // IME変換中はEnterキーを無視（日本語入力の変換確定用）
+                    // Shift+Enterは改行、通常のEnterは送信
+                    if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
                       e.preventDefault();
                       handleSendMessage(e);
                     }

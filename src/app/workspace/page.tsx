@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Hash, MessageSquare, Users, Plus, Search, Bot } from 'lucide-react';
+import { Hash, Users, Plus, Search, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import CreateChannelDialog from '@/components/workspace/createChannelDialog';
@@ -63,7 +63,6 @@ export default function WorkspacePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [initialStats, setInitialStats] = useState<DashboardStats | null>(null);
   const [initialChannels, setInitialChannels] = useState<Channel[]>([]);
-  const [allChannels, setAllChannels] = useState<Channel[]>([]); // 全チャンネル（参加・未参加問わず）
   const [initialDirectMessages, setInitialDirectMessages] = useState<DirectMessage[]>([]);
   const [dmStats, setDmStats] = useState<DmStat[]>([]); // DM統計情報
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
@@ -108,8 +107,7 @@ export default function WorkspacePage() {
         if (data.success) {
           console.log('✅ ダッシュボードデータ取得成功:', data.stats);
           setInitialStats(data.stats);
-          setInitialChannels(data.myChannels || []); // 参加チャンネル（統計用）
-          setAllChannels(data.allChannels || []); // 全チャンネル（表示用）
+          setInitialChannels(data.myChannels || []); // 参加チャンネル
           setInitialDirectMessages(data.directMessages);
           setDmStats(data.dmStats || []); // DM統計情報
         } else {
@@ -125,7 +123,6 @@ export default function WorkspacePage() {
           totalUserCount: 0
         });
         setInitialChannels([]);
-        setAllChannels([]);
         setInitialDirectMessages([]);
         setDmStats([]);
       } finally {
@@ -196,53 +193,17 @@ export default function WorkspacePage() {
         onOpenChange={setIsStartDmOpen}
       />
 
-      {/* 統計情報カード */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card
-          className="cursor-pointer transition-colors hover:bg-accent/50"
-          onClick={() => {
-            const element = document.getElementById('channel-list');
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">参加チャンネル</CardTitle>
-            <Hash className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.channelCount}</div>
-            <p className="text-xs text-muted-foreground">参加しているチャンネル数（クリックで一覧へ）</p>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="cursor-pointer transition-colors hover:bg-accent/50"
-          onClick={() => setIsStartDmOpen(true)}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">全メンバー</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUserCount}</div>
-            <p className="text-xs text-muted-foreground">ワークスペース全体のメンバー数（クリックで一覧へ）</p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* チャンネル・DM一覧 */}
       <div className="space-y-4 md:grid md:gap-4 md:grid-cols-2 md:space-y-0">
-        {/* チャンネル一覧 */}
+        {/* 参加チャンネル一覧 */}
         <Card id="channel-list">
           <CardHeader>
-            <CardTitle>チャンネル一覧</CardTitle>
-            <CardDescription>全てのチャンネル</CardDescription>
+            <CardTitle>参加チャンネル</CardTitle>
+            <CardDescription>あなたが参加しているチャンネル</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className={`space-y-4 ${showAllChannels ? 'max-h-[500px]' : 'max-h-[400px]'} overflow-y-auto transition-all duration-300`}>
-              {allChannels.slice(0, showAllChannels ? undefined : 5).map((channel) => (
+              {initialChannels.slice(0, showAllChannels ? undefined : 5).map((channel) => (
                 <div key={channel.id} className="flex items-center">
                   <div className="mr-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
                     <Hash className="h-5 w-5 text-primary" />
@@ -260,19 +221,19 @@ export default function WorkspacePage() {
                   </div>
                 </div>
               ))}
-              {allChannels.length === 0 && (
+              {initialChannels.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  チャンネルがありません
+                  参加しているチャンネルがありません
                 </p>
               )}
             </div>
-            {allChannels.length > 5 && (
+            {initialChannels.length > 5 && (
               <Button
                 variant="outline"
                 className="w-[280px] mx-auto block border-2"
                 onClick={() => setShowAllChannels(!showAllChannels)}
               >
-                {showAllChannels ? '表示を減らす' : `さらに表示 (${allChannels.length - 5}件)`}
+                {showAllChannels ? '表示を減らす' : `さらに表示 (${initialChannels.length - 5}件)`}
               </Button>
             )}
           </CardContent>

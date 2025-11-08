@@ -43,6 +43,9 @@ export default function MessageForm({
   // テキストエリアへの参照
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // IME（日本語入力）変換中かどうかのフラグ
+  const [isComposing, setIsComposing] = useState<boolean>(false);
+
   // 最大文字数
   const MAX_MESSAGE_LENGTH = 5000;
 
@@ -211,9 +214,12 @@ export default function MessageForm({
           className="flex-1 min-h-[40px] max-h-[120px] resize-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 overflow-y-auto"
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          onCompositionStart={() => setIsComposing(true)}
+          onCompositionEnd={() => setIsComposing(false)}
           onKeyDown={(e) => {
-            // Enterキーで送信（Shift+Enterで改行）
-            if (e.key === 'Enter' && !e.shiftKey) {
+            // IME変換中はEnterキーを無視（日本語入力の変換確定用）
+            // Shift+Enterは改行、通常のEnterは送信
+            if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
               e.preventDefault();
               handleSubmit(e);
             }

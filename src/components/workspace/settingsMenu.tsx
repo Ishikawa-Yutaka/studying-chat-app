@@ -3,12 +3,12 @@
  *
  * サイドバー下部に表示される設定メニュー（歯車アイコン）
  * - アバター設定
- * - ダークモード切り替え
+ * - ダークモード切り替え（トグルスイッチ）
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Settings, User, Moon, Sun, LogOut, Trash2 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 
 interface SettingsMenuProps {
   onAvatarSettingsClick: () => void;
@@ -42,12 +43,27 @@ export default function SettingsMenu({ onAvatarSettingsClick, onSignOut }: Setti
   const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   /**
-   * テーマ切り替え処理
+   * テーマ切り替え処理（トグルスイッチ用）
    */
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
+  const handleThemeChange = (checked: boolean) => {
+    const newTheme = checked ? 'dark' : 'light';
+
+    // View Transition APIが使えるかチェック
+    if ((document as any).startViewTransition) {
+      (document as any).startViewTransition(() => {
+        setTheme(newTheme);
+      });
+    } else {
+      // フォールバック
+      setTheme(newTheme);
+    }
   };
 
   /**
@@ -120,23 +136,24 @@ export default function SettingsMenu({ onAvatarSettingsClick, onSignOut }: Setti
             <span>アバター設定</span>
           </DropdownMenuItem>
 
-          {/* ダークモード切り替え */}
-          <DropdownMenuItem
-            onClick={toggleTheme}
-            className="cursor-pointer"
-          >
-            {theme === 'dark' ? (
-              <>
-                <Sun className="mr-2 h-4 w-4" />
-                <span>ライトモード</span>
-              </>
-            ) : (
-              <>
-                <Moon className="mr-2 h-4 w-4" />
-                <span>ダークモード</span>
-              </>
-            )}
-          </DropdownMenuItem>
+          {/* テーマ切り替え（トグルスイッチ） */}
+          {mounted && (
+            <div className="px-2 py-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Sun className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">テーマ</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={theme === 'dark'}
+                    onCheckedChange={handleThemeChange}
+                  />
+                  <Moon className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+            </div>
+          )}
 
           <DropdownMenuSeparator />
 

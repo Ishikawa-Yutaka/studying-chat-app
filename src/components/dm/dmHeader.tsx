@@ -24,12 +24,12 @@ export default function DmHeader({ dmPartner }: DmHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-14 lg:top-0 z-10 border-b bg-background" data-testid="dm-header">
+      <header className="sticky top-0 z-10 border-b bg-background" data-testid="dm-header">
         <div className="h-16 flex items-center gap-3 px-4">
-          {/* 戻るボタン（スマホのみ表示） */}
+          {/* 戻るボタン */}
           <Link
             href="/workspace"
-            className="lg:hidden p-2 hover:bg-accent rounded-lg transition-colors -ml-2"
+            className="p-2 hover:bg-accent rounded-lg transition-colors -ml-2"
             aria-label="ワークスペースに戻る"
           >
             <ChevronLeft className="h-6 w-6" />

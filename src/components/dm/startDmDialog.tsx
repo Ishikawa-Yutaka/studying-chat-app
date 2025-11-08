@@ -16,8 +16,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageCircle, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { usePresenceContext } from '@/contexts/PresenceContext';
@@ -111,12 +110,11 @@ export default function StartDmDialog({
   /**
    * 検索フィルター
    *
-   * ユーザー名またはメールアドレスで検索
+   * ユーザー名で検索
    * 大文字小文字を区別しない
    */
   const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    user.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   /**
@@ -201,7 +199,7 @@ export default function StartDmDialog({
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="ユーザー名またはメールアドレスで検索..."
+              placeholder="ユーザー名で検索..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -230,47 +228,30 @@ export default function StartDmDialog({
                 <div
                   key={user.id}
                   data-testid="user-item"
-                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent transition-colors"
+                  onClick={() => handleCreateDM(user)}
+                  className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent transition-colors cursor-pointer"
                 >
-                  {/* ユーザー情報 */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <UserAvatar
-                      name={user.name}
-                      avatarUrl={user.avatarUrl}
-                      size="md"
-                      showOnlineStatus={true}
-                      isOnline={user.isOnline}
-                    />
+                  {/* ユーザーアバター */}
+                  <UserAvatar
+                    name={user.name}
+                    avatarUrl={user.avatarUrl}
+                    size="md"
+                    showOnlineStatus={true}
+                    isOnline={user.isOnline}
+                  />
 
-                    {/* 名前・メール・オンライン状態 */}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-foreground truncate">
-                        {user.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate flex items-center gap-1.5">
-                        {user.email}
-                        {/* オンライン状態テキスト */}
-                        {user.isOnline && (
-                          <>
-                            <span className="text-gray-400">•</span>
-                            <span className="text-green-600 dark:text-green-400 font-medium">アクティブ</span>
-                          </>
-                        )}
-                      </div>
+                  {/* 名前・オンライン状態 */}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-foreground truncate">
+                      {user.name}
                     </div>
+                    {/* オンライン状態 */}
+                    {user.isOnline && (
+                      <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+                        アクティブ
+                      </div>
+                    )}
                   </div>
-
-                  {/* DMボタン */}
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => handleCreateDM(user)}
-                    disabled={isLoading}
-                    className="shrink-0"
-                  >
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    DM
-                  </Button>
                 </div>
               ))
             )}

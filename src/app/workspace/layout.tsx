@@ -155,16 +155,24 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
   // - Userテーブルのリアルタイム監視は不要（DirectMessageListが個別にPresenceイベントを監視）
   // - DM退出とチャンネル削除は楽観的更新を使用
 
+  // チャット関連ページかどうかを判定
+  // AIチャット、チャンネル、DMページではモバイルヘッダーを非表示にする
+  const isChatPage = pathname?.startsWith('/workspace/ai-chat') ||
+                     pathname?.startsWith('/workspace/channel/') ||
+                     pathname?.startsWith('/workspace/dm/');
+
   return (
     <div className="flex min-h-screen flex-col">
-      {/* モバイルナビゲーション */}
-      <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b px-4 lg:hidden shadow-sm" style={{ backgroundColor: 'hsl(var(--background))' }}>
-        <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setOpen(true)}>
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">ナビゲーションメニューを開く</span>
-        </Button>
-        <AppLogo />
-      </header>
+      {/* モバイルナビゲーション - チャット関連ページでは非表示 */}
+      {!isChatPage && (
+        <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b px-4 lg:hidden shadow-sm" style={{ backgroundColor: 'hsl(var(--background))' }}>
+          <Button variant="outline" size="icon" className="lg:hidden" onClick={() => setOpen(true)}>
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">ナビゲーションメニューを開く</span>
+          </Button>
+          <AppLogo />
+        </header>
+      )}
 
       {/* モバイルサイドバー */}
       <MobileSidebar open={open} onOpenChange={setOpen}>
