@@ -61,6 +61,20 @@ export function useRealtimeThreadReplies({
         console.log('🔄 重複スレッド返信をスキップ:', newReply.id);
         return prevReplies;
       }
+
+      // 楽観的更新の仮メッセージを置き換える
+      // temp- で始まるIDのメッセージがあり、内容が同じなら置き換え
+      const tempIndex = prevReplies.findIndex(
+        msg => msg.id.startsWith('temp-') && msg.content === newReply.content
+      );
+
+      if (tempIndex !== -1) {
+        console.log('⚡ 楽観的更新スレッド返信を本物に置き換え:', newReply.id);
+        const updated = [...prevReplies];
+        updated[tempIndex] = newReply;
+        return updated;
+      }
+
       console.log('✅ 新しいスレッド返信を追加:', newReply.id);
       return [...prevReplies, newReply];
     });

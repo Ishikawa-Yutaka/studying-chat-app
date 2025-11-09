@@ -1,6 +1,6 @@
 // 基本的なスタイリングのみで実装（shadcn/ui依存を削除）
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { MessageSquare, FileText, Download } from "lucide-react";
 import FilePreviewModal from "./filePreviewModal";
 import { UserAvatar } from "@/components/userAvatar";
@@ -36,24 +36,12 @@ interface MessageViewProps {
 }
 
 export default function MessageView({ messages, myUserId, onThreadOpen }: MessageViewProps) {
-  // 最下部の目印用ref
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-
   // ファイルプレビューモーダルの状態管理
   const [previewFile, setPreviewFile] = useState<{
     url: string;
     name: string;
     type: string;
   } | null>(null);
-
-  // ✅ ページ表示時・メッセージ更新時に最下部を初期表示（LINE風）
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    if (container) {
-      container.scrollTop = container.scrollHeight;
-    }
-  }, [messages.length]);
 
   // 自分のメッセージかどうかを判定する関数（SupabaseのAuthIDで比較）
   const isMyMessage = (message: Message) => {
@@ -232,8 +220,7 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
         fileType={previewFile?.type || ''}
       />
 
-      <div ref={containerRef} className="flex-1 p-4 overflow-y-auto" data-testid="message-list">
-        <div className="space-y-4 py-4">
+      <div className="space-y-4 py-4">
         {/* メッセージ配列をループして表示（通常のメッセージのみ） */}
         {messages
           .filter((message) => !message.parentMessageId) // スレッド返信は表示しない
@@ -279,11 +266,13 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
                     <span className="text-xs text-gray-500">
                       {typeof message.createdAt === "string"
                         ? new Date(message.createdAt).toLocaleString("ja-JP", {
+                            timeZone: 'Asia/Tokyo',
                             hour: '2-digit',
                             minute: '2-digit'
                           })
                         : message.createdAt instanceof Date
                         ? message.createdAt.toLocaleString("ja-JP", {
+                            timeZone: 'Asia/Tokyo',
                             hour: '2-digit',
                             minute: '2-digit'
                           })
@@ -337,9 +326,6 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
               </div>
             );
           })}
-        {/* 最下部の目印 */}
-        <div ref={messagesEndRef} />
-        </div>
       </div>
     </>
   );

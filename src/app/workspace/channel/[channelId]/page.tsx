@@ -124,6 +124,7 @@ export default function ChannelPage() {
 
   // 最新メッセージへの自動スクロール用ref
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // 認証が完了してからデータ取得を開始するuseEffect
   useEffect(() => {
@@ -181,9 +182,14 @@ export default function ChannelPage() {
   }, [channelId, authLoading, user]); // 認証状態とchannelIdが変更された時に再実行
 
   // メッセージが変更されたら最新メッセージまで瞬時にジャンプ（内部リンクのように）
-  // block: 'nearest' で固定フォームに隠れないように調整
+  // 親要素のscrollTopを直接制御して確実に最下部までスクロール
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+    const container = scrollContainerRef.current;
+    if (container) {
+      // scrollHeightは要素の全体の高さ、clientHeightは表示領域の高さ
+      // scrollTopをscrollHeightに設定することで、最下部までスクロール
+      container.scrollTop = container.scrollHeight;
+    }
   }, [messages]);
 
   /**
@@ -439,7 +445,7 @@ export default function ChannelPage() {
       />
 
       {/* メッセージ表示エリア - 入力フォーム分の下部余白を確保（デバイス別に最適化） */}
-      <div className="flex-1 overflow-y-auto pb-28 sm:pb-24 md:pb-28 px-4 md:px-6 pt-4">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-24 sm:pb-20 md:pb-24 px-4 md:px-6 pt-4">
         <MessageView
           messages={messagesWithOnlineStatus}
           myUserId={myUserId}

@@ -49,6 +49,21 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      // フェードイン/フェードアウトのアニメーション設定
+      keyframes: {
+        "fade-in": {
+          "0%": { opacity: "0", transform: "translateY(30px) scale(0.95)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "fade-out": {
+          "0%": { opacity: "1" },
+          "100%": { opacity: "0" },
+        },
+      },
+      animation: {
+        "fade-in": "fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
+        "fade-out": "fade-out 0.3s ease-in-out",
+      },
     },
   },
   plugins: [],

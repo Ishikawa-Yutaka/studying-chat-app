@@ -15,7 +15,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Send, Bot, User, Plus, MessageSquare, Trash2, Menu, X, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -59,6 +59,7 @@ export default function AiChatPage() {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // IME（日本語入力）変換中かどうかのフラグ
@@ -140,10 +141,15 @@ export default function AiChatPage() {
   }, [currentSessionId]);
 
   /**
-   * メッセージ送信時に最下部へ瞬時にジャンプ（内部リンクのように）
+   * メッセージ送信時に最下部へスムーズにスクロール（入力フォームの上に表示）
    */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+    const container = scrollContainerRef.current;
+    if (container) {
+      // scrollHeightは要素の全体の高さ、clientHeightは表示領域の高さ
+      // scrollTopをscrollHeightに設定することで、最下部までスクロール
+      container.scrollTop = container.scrollHeight;
+    }
   }, [messages]);
 
   /**
@@ -499,7 +505,7 @@ export default function AiChatPage() {
         ) : (
           <>
             {/* メッセージ表示エリア - 入力フォーム分の下部余白を確保（デバイス別に最適化） */}
-            <div className="flex-1 overflow-y-auto pb-28 sm:pb-24 md:pb-28 px-4 md:px-6 pt-4 space-y-6">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-24 sm:pb-20 md:pb-24 px-4 md:px-6 pt-4 space-y-6">
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center h-full">
                   <LoadingSpinner size={60} />
@@ -514,7 +520,7 @@ export default function AiChatPage() {
                 <>
                   {/* メッセージ（古い順に表示） */}
                   {messages.map((chat) => (
-                    <div key={chat.id} className="space-y-4">
+                    <React.Fragment key={chat.id}>
                       {/* ユーザーのメッセージ（右寄せ） */}
                       <div className="flex justify-end">
                         <div className="flex items-start gap-2 max-w-[85%] md:max-w-[70%]">
@@ -548,11 +554,10 @@ export default function AiChatPage() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </React.Fragment>
                   ))}
                 </>
               )}
-              <div ref={messagesEndRef} />
             </div>
 
             {/* メッセージ入力フォーム - 画面下部に固定（PC時はサイドバーを避ける） */}

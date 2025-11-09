@@ -47,6 +47,20 @@ export function useRealtimeMessages({ channelId, initialMessages }: UseRealtimeM
         console.log('🔄 重複メッセージをスキップ:', newMessage.id);
         return prevMessages;
       }
+
+      // 楽観的更新の仮メッセージを置き換える
+      // temp- で始まるIDのメッセージがあり、内容が同じなら置き換え
+      const tempIndex = prevMessages.findIndex(
+        msg => msg.id.startsWith('temp-') && msg.content === newMessage.content
+      );
+
+      if (tempIndex !== -1) {
+        console.log('⚡ 楽観的更新メッセージを本物に置き換え:', newMessage.id);
+        const updated = [...prevMessages];
+        updated[tempIndex] = newMessage;
+        return updated;
+      }
+
       console.log('✅ 新しいメッセージを追加:', newMessage.id);
       return [...prevMessages, newMessage];
     });
