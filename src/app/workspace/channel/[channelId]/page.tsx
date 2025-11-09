@@ -1,7 +1,7 @@
 'use client';
 
 // React Hooks: コンポーネントの状態管理とライフサイクル管理
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 // Next.js: URLパラメータ取得とページが見つからない場合の処理
 import { useParams, notFound } from 'next/navigation';
 // Next.js dynamic import: 遅延読み込みでページ読み込み速度を向上
@@ -90,14 +90,22 @@ export default function ChannelPage() {
   // PresenceContextからオンライン状態取得
   const { isUserOnline } = usePresenceContext();
 
-  // メッセージにオンライン状態を追加
-  const messagesWithOnlineStatus = messages.map(msg => ({
-    ...msg,
-    sender: msg.sender ? {
-      ...msg.sender,
-      isOnline: msg.sender.authId ? isUserOnline(msg.sender.authId) : false
-    } : null
-  }));
+  /**
+   * メッセージにオンライン状態を追加（パフォーマンス最適化）
+   *
+   * useMemoを使用することで、messagesかisUserOnlineが変わった時だけ再計算される
+   * これにより不要な再レンダリングを防ぎ、表示がスムーズになる
+   */
+  const messagesWithOnlineStatus = useMemo(() =>
+    messages.map(msg => ({
+      ...msg,
+      sender: msg.sender ? {
+        ...msg.sender,
+        isOnline: msg.sender.authId ? isUserOnline(msg.sender.authId) : false
+      } : null
+    })),
+    [messages, isUserOnline]  // この2つが変わった時だけ再計算
+  );
 
   // 現在のユーザーID（認証されたユーザー）
   const myUserId = user?.id;
@@ -179,13 +187,16 @@ export default function ChannelPage() {
   }, [messages]);
 
   /**
-   * メッセージ送信処理
+   * メッセージ送信処理（パフォーマンス最適化）
    * テキストメッセージとファイル情報をAPIに送信する
+   *
+   * useCallbackを使用することで、依存する値が変わらない限り同じ関数参照を保持
+   * これによりMessageFormコンポーネントの不要な再レンダリングを防ぐ
    *
    * @param content - メッセージ内容
    * @param fileInfo - ファイル情報（オプショナル）
    */
-  const handleSendMessage = async (
+  const handleSendMessage = useCallback(async (
     content: string,
     fileInfo?: { url: string; name: string; type: string; size: number }
   ) => {
@@ -239,10 +250,14 @@ export default function ChannelPage() {
       console.error('❌ メッセージの送信に失敗しました:', error);
       alert('メッセージの送信に失敗しました。もう一度お試しください。');
     }
-  };
+  }, [channelId, myUserId, addMessage]);  // 依存配列: これらが変わった時だけ関数を再生成
 
-  // スレッドパネルを開く処理
-  const handleThreadOpen = async (messageId: string) => {
+  /**
+   * スレッドパネルを開く処理（パフォーマンス最適化）
+   *
+   * useCallbackでメモ化し、MessageViewに安定した関数参照を渡す
+   */
+  const handleThreadOpen = useCallback(async (messageId: string) => {
     try {
       console.log('🔄 スレッド取得開始 - メッセージID:', messageId);
 
@@ -270,17 +285,25 @@ export default function ChannelPage() {
     } finally {
       setIsThreadLoading(false); // ローディング終了
     }
-  };
+  }, []);  // 依存配列: 空配列（最初の1回だけ関数を生成）
 
-  // スレッドパネルを閉じる処理
-  const handleThreadClose = () => {
+  /**
+   * スレッドパネルを閉じる処理（パフォーマンス最適化）
+   *
+   * useCallbackでメモ化し、ThreadPanelに安定した関数参照を渡す
+   */
+  const handleThreadClose = useCallback(() => {
     setIsThreadOpen(false);
     setCurrentThreadParent(null);
     setInitialThreadReplies([]); // 初期スレッド返信をクリア
-  };
+  }, []);  // 依存配列: 空配列（最初の1回だけ関数を生成）
 
-  // スレッド返信送信処理
-  const handleSendReply = async (content: string) => {
+  /**
+   * スレッド返信送信処理（パフォーマンス最適化）
+   *
+   * useCallbackでメモ化し、ThreadPanelに安定した関数参照を渡す
+   */
+  const handleSendReply = useCallback(async (content: string) => {
     if (!myUserId || !currentThreadParent) {
       console.error('❌ ユーザーまたは親メッセージが存在しません');
       return;
@@ -315,7 +338,7 @@ export default function ChannelPage() {
       console.error('❌ スレッド返信の送信に失敗しました:', error);
       throw error; // ThreadPanelでエラーハンドリング
     }
-  };
+  }, [myUserId, currentThreadParent, addThreadReply]);  // 依存配列: これらが変わった時だけ関数を再生成
 
   // データ読み込み中・認証チェック
   if (authLoading || !isInitialized) {

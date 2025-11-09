@@ -1,7 +1,7 @@
 'use client';
 
 // React Hooks
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 // Next.js
 import { useParams, notFound } from 'next/navigation';
 
@@ -70,6 +70,38 @@ export default function DirectMessagePage() {
 
   // 最新メッセージへの自動スクロール用ref
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * DM相手のオンライン状態を取得（パフォーマンス最適化）
+   *
+   * useMemoを使用して、dmPartnerかisUserOnlineが変わった時だけ再計算
+   * early returnより前に配置する必要がある（Reactのルール）
+   */
+  const dmPartnerWithPresence = useMemo(() => {
+    if (!dmPartner) return null;
+    const isPartnerOnlineFromPresence = dmPartner.authId ? isUserOnline(dmPartner.authId) : false;
+    return {
+      ...dmPartner,
+      isOnline: isPartnerOnlineFromPresence,
+    };
+  }, [dmPartner, isUserOnline]);
+
+  /**
+   * メッセージにオンライン状態を追加（パフォーマンス最適化）
+   *
+   * useMemoを使用して、messagesかisUserOnlineが変わった時だけ再計算
+   * early returnより前に配置する必要がある（Reactのルール）
+   */
+  const messagesWithOnlineStatus = useMemo(() =>
+    messages.map(msg => ({
+      ...msg,
+      sender: msg.sender ? {
+        ...msg.sender,
+        isOnline: msg.sender.authId ? isUserOnline(msg.sender.authId) : false
+      } : null
+    })),
+    [messages, isUserOnline]
+  );
 
   // コンポーネントがマウントされた時とuserIdが変更された時に実行
   useEffect(() => {
@@ -144,13 +176,16 @@ export default function DirectMessagePage() {
   }
 
   /**
-   * DMメッセージ送信処理
+   * DMメッセージ送信処理（パフォーマンス最適化）
    * テキストメッセージとファイル情報をAPIに送信する
+   *
+   * useCallbackを使用して、依存する値が変わらない限り同じ関数参照を保持
+   * これによりMessageFormコンポーネントの不要な再レンダリングを防ぐ
    *
    * @param content - メッセージ内容
    * @param fileInfo - ファイル情報（オプショナル）
    */
-  const handleSendMessage = async (
+  const handleSendMessage = useCallback(async (
     content: string,
     fileInfo?: { url: string; name: string; type: string; size: number }
   ) => {
@@ -209,7 +244,7 @@ export default function DirectMessagePage() {
       console.error('❌ DMメッセージの送信に失敗しました:', error);
       alert('メッセージの送信に失敗しました。もう一度お試しください。');
     }
-  };
+  }, [dmChannelId, myUserId, addMessage]);  // 依存配列: これらが変わった時だけ関数を再生成
 
   // データ読み込み中・認証チェック
   if (!isInitialized) {
@@ -242,33 +277,13 @@ export default function DirectMessagePage() {
   }
 
   // ユーザーが見つからない場合
-  if (!dmPartner || !user || !myUserId) {
+  if (!dmPartner || !user || !myUserId || !dmPartnerWithPresence) {
     return (
       <div className="flex items-center justify-center h-screen">
         <LoadingSpinner size={60} />
       </div>
     );
   }
-
-  // Presenceからリアルタイムオンライン状態を取得
-  // DM相手のauthIdを使ってオンライン状態を確認（userIdではなくauthIdを使用）
-  const isPartnerOnlineFromPresence = dmPartner.authId ? isUserOnline(dmPartner.authId) : false;
-
-  // dmPartnerにリアルタイムオンライン状態を反映
-  // Presenceのみを使用（データベースのisOnlineは削除済み）
-  const dmPartnerWithPresence = {
-    ...dmPartner,
-    isOnline: isPartnerOnlineFromPresence,
-  };
-
-  // メッセージにオンライン状態を追加
-  const messagesWithOnlineStatus = messages.map(msg => ({
-    ...msg,
-    sender: msg.sender ? {
-      ...msg.sender,
-      isOnline: msg.sender.authId ? isUserOnline(msg.sender.authId) : false
-    } : null
-  }));
 
   return (
     <div className="flex flex-col h-full">

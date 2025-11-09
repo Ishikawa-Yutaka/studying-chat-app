@@ -15,7 +15,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Send, Bot, User, Plus, MessageSquare, Trash2, Menu, X, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
