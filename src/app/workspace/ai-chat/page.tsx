@@ -488,8 +488,8 @@ export default function AiChatPage() {
           </div>
         ) : (
           <>
-            {/* メッセージ表示エリア - 入力フォーム分の下部余白を確保 */}
-            <div className="flex-1 overflow-y-auto pb-24 px-4 md:px-6 pt-4 space-y-6">
+            {/* メッセージ表示エリア - 入力フォーム分の下部余白を確保（デバイス別に最適化） */}
+            <div className="flex-1 overflow-y-auto pb-28 sm:pb-24 md:pb-28 px-4 md:px-6 pt-4 space-y-6">
               {isLoadingMessages ? (
                 <div className="flex items-center justify-center h-full">
                   <LoadingSpinner size={60} />
