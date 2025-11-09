@@ -3,7 +3,7 @@
  * 無限ループ問題を根本的に解決
  */
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 // ダッシュボード統計の型定義
@@ -51,14 +51,17 @@ export function useRealtimeDashboard({
   // useMemoでsupabaseインスタンスを安定化（無限ループ防止）
   const supabase = useMemo(() => createClient(), []);
 
+  // デバウンス用のタイマーID（複数イベントをまとめて1回だけ実行）
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // ダッシュボードデータ全体を再取得する関数
   const refreshDashboardData = useCallback(async () => {
     try {
       console.log('🔄 ダッシュボードデータを再取得中...');
-      
+
       const response = await fetch(`/api/dashboard?userId=${currentUserId}`);
       const data = await response.json();
-      
+
       if (data.success) {
         setStats(data.stats);
         setChannels(data.channels);
@@ -69,6 +72,19 @@ export function useRealtimeDashboard({
       console.error('❌ ダッシュボードデータの更新に失敗:', error);
     }
   }, [currentUserId]);
+
+  // デバウンス版のrefreshDashboardData（1秒以内の複数回の呼び出しを1回にまとめる）
+  const refreshDashboardDataDebounced = useCallback(() => {
+    // 既存のタイマーをクリア
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // 1秒後に実行するタイマーを設定
+    debounceTimerRef.current = setTimeout(() => {
+      refreshDashboardData();
+    }, 1000); // 1秒待つ
+  }, [refreshDashboardData]);
 
   // 初期データが変更された時の処理（useMemoで安定した比較）
   const hasInitialDataChanged = useMemo(() => {
@@ -112,9 +128,9 @@ export function useRealtimeDashboard({
           schema: 'public',
           table: 'Message'
         },
-        async (payload) => {
-          console.log('📨 新しいメッセージが送信されました（ダッシュボード更新）');
-          await refreshDashboardData();
+        () => {
+          console.log('📨 新しいメッセージが送信されました（ダッシュボード更新予約）');
+          refreshDashboardDataDebounced(); // デバウンス版を使用
         }
       )
       .subscribe();
@@ -129,9 +145,9 @@ export function useRealtimeDashboard({
           schema: 'public',
           table: 'Channel'
         },
-        async (payload) => {
-          console.log('🏢 チャンネルが変更されました（ダッシュボード更新）');
-          await refreshDashboardData();
+        () => {
+          console.log('🏢 チャンネルが変更されました（ダッシュボード更新予約）');
+          refreshDashboardDataDebounced(); // デバウンス版を使用
         }
       )
       .subscribe();
@@ -146,9 +162,9 @@ export function useRealtimeDashboard({
           schema: 'public',
           table: 'User'
         },
-        async (payload) => {
-          console.log('👤 ユーザーが変更されました（ダッシュボード更新）');
-          await refreshDashboardData();
+        () => {
+          console.log('👤 ユーザーが変更されました（ダッシュボード更新予約）');
+          refreshDashboardDataDebounced(); // デバウンス版を使用
         }
       )
       .subscribe();
@@ -163,9 +179,9 @@ export function useRealtimeDashboard({
           schema: 'public',
           table: 'ChannelMember'
         },
-        async (payload) => {
-          console.log('👥 チャンネルメンバーが変更されました（ダッシュボード更新）');
-          await refreshDashboardData();
+        () => {
+          console.log('👥 チャンネルメンバーが変更されました（ダッシュボード更新予約）');
+          refreshDashboardDataDebounced(); // デバウンス版を使用
         }
       )
       .subscribe();
@@ -173,6 +189,10 @@ export function useRealtimeDashboard({
     // クリーンアップ関数：コンポーネントがアンマウントされた時にサブスクリプションを解除
     return () => {
       console.log('🔌 ダッシュボードのリアルタイム監視を停止');
+      // タイマーもクリア
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
       supabase.removeChannel(messageChannel);
       supabase.removeChannel(channelChannel);
       supabase.removeChannel(userChannel);
@@ -180,7 +200,7 @@ export function useRealtimeDashboard({
     };
     // supabaseはuseMemoで安定化されているため、依存配列に含めない
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshDashboardData]);
+  }, [refreshDashboardDataDebounced]);
 
   return {
     stats,

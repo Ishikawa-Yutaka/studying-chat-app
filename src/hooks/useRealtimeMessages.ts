@@ -5,6 +5,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { userCache } from '@/lib/userCache';
 
 // メッセージの型定義
 interface User {
@@ -112,25 +113,17 @@ export function useRealtimeMessages({ channelId, initialMessages }: UseRealtimeM
             }
 
             // 送信者の情報を取得
+            // senderId が存在する場合のみユーザーキャッシュから取得
             // senderId が null の場合は削除済みユーザーとして扱う
-            let senderInfo = {
-              id: newMessage.senderId || 'deleted-user',
-              name: '削除済みユーザー',
-              email: '',
-              authId: undefined,
-              avatarUrl: null
-            };
-
-            // senderId が存在する場合のみAPI呼び出し
-            if (newMessage.senderId) {
-              const response = await fetch(`/api/user/${newMessage.senderId}`);
-              if (response.ok) {
-                const userData = await response.json();
-                if (userData.success) {
-                  senderInfo = userData.user;
-                }
-              }
-            }
+            const senderInfo = newMessage.senderId
+              ? await userCache.get(newMessage.senderId)
+              : {
+                  id: 'deleted-user',
+                  name: '削除済みユーザー',
+                  email: undefined,
+                  authId: undefined,
+                  avatarUrl: null
+                };
 
             // メッセージにsender情報とファイル情報を追加
             const messageWithSender: Message = {

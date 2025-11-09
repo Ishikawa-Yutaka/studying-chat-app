@@ -23,6 +23,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePresenceContext, PresenceProvider } from '@/contexts/PresenceContext';
 import { useOnlineStatusSync } from '@/hooks/useOnlineStatusSync';
 import { createClient } from '@/lib/supabase/client';
+import { userCache } from '@/lib/userCache';
 
 function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -73,6 +74,22 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
       return;
     }
   }, [authLoading, isAuthenticated, router]);
+
+  // ユーザーキャッシュの初期化（ログイン時）とクリーンアップ（ログアウト時）
+  useEffect(() => {
+    if (isAuthenticated && !userCache.isReady()) {
+      console.log('🚀 ユーザーキャッシュを初期化');
+      userCache.initialize();
+    }
+
+    // ログアウト時のクリーンアップ
+    return () => {
+      if (!isAuthenticated) {
+        console.log('👋 ログアウト - ユーザーキャッシュをクリーンアップ');
+        userCache.cleanup();
+      }
+    };
+  }, [isAuthenticated]);
 
   // チャンネル参加時の即座のUI更新
   const handleChannelJoined = useCallback((channel: { id: string; name: string; description?: string; memberCount: number }) => {
