@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
     
     console.log('📋 チャンネルメンバー検索開始...');
-    // ユーザーが参加しているチャンネルを取得
+    // パフォーマンス最適化: メンバー数は_countで取得、DM相手の情報のみ取得
     const userChannels = await prisma.channelMember.findMany({
       where: {
         userId: user.id
@@ -33,8 +33,17 @@ export async function GET(request: NextRequest) {
             description: true,
             type: true,
             creatorId: true,
+            // メンバー数のみカウント（全メンバーデータを取得しない）
+            _count: {
+              select: { members: true }
+            },
+            // DM用に相手のユーザー情報のみ取得（1件のみ）
             members: {
-              include: {
+              where: {
+                userId: { not: user.id }
+              },
+              take: 1,
+              select: {
                 user: {
                   select: channelMemberUserSelect
                 }
@@ -60,12 +69,12 @@ export async function GET(request: NextRequest) {
           id: channel.id,
           name: channel.name,
           description: channel.description,
-          memberCount: channel.members.length,
+          memberCount: channel._count.members,  // _countを使用
           creatorId: channel.creatorId  // チャンネル作成者のID
         });
       } else if (channel.type === 'dm') {
-        // DM - 相手のユーザー情報を取得
-        const partner = channel.members.find(member => member.userId !== user.id);
+        // DM - 相手のユーザー情報を取得（1件のみ取得済み）
+        const partner = channel.members[0];
         if (partner) {
           directMessages.push({
             id: channel.id,
