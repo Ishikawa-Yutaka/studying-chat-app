@@ -20,6 +20,9 @@ model User {
   createdChannels Channel[]
   channels        ChannelMember[]
   messages        Message[]
+
+  // インデックス: authIdでの検索を高速化（Supabase認証との連携で頻繁に使用）
+  @@index([authId])
 }
 
 model Channel {
@@ -33,6 +36,9 @@ model Channel {
   creator     User?           @relation(fields: [creatorId], references: [id], onDelete: SetNull)
   members     ChannelMember[]
   messages    Message[]
+
+  // インデックス: typeでの検索を高速化（チャンネルとDMを分類する時に使用）
+  @@index([type])
 }
 
 model ChannelMember {
@@ -45,6 +51,10 @@ model ChannelMember {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, channelId])
+  // インデックス: ユーザーの参加チャンネル一覧取得を高速化
+  @@index([userId])
+  // インデックス: チャンネルのメンバー一覧取得を高速化
+  @@index([channelId])
 }
 
 model Message {
@@ -63,6 +73,15 @@ model Message {
   parentMessage   Message?  @relation("ThreadReplies", fields: [parentMessageId], references: [id], onDelete: Cascade)
   replies         Message[] @relation("ThreadReplies")
   sender          User?     @relation(fields: [senderId], references: [id], onDelete: SetNull)
+
+  // インデックス: チャンネル内のメッセージ取得を高速化
+  @@index([channelId])
+  // インデックス: 送信者のメッセージ一覧取得を高速化
+  @@index([senderId])
+  // インデックス: スレッド返信の取得を高速化
+  @@index([parentMessageId])
+  // 複合インデックス: チャンネル内の親メッセージのみ取得（スレッド除外）を高速化
+  @@index([channelId, parentMessageId])
 }
 
 model AiChatSession {
@@ -72,6 +91,9 @@ model AiChatSession {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   messages  AiChat[]
+
+  // インデックス: ユーザーのAIセッション一覧取得を高速化
+  @@index([userId])
 }
 
 model AiChat {
@@ -82,4 +104,9 @@ model AiChat {
   createdAt DateTime       @default(now())
   sessionId String?
   session   AiChatSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // インデックス: セッション内のメッセージ取得を高速化
+  @@index([sessionId])
+  // インデックス: ユーザーのAIチャット履歴取得を高速化
+  @@index([userId])
 }
