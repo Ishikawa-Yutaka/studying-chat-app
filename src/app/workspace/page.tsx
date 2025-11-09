@@ -7,7 +7,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { Hash, Users, Plus, Search, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -172,6 +172,25 @@ export default function WorkspacePage() {
     fetchDashboardData();
   }, [user]);
 
+  /**
+   * DM統計にオンライン状態を追加（パフォーマンス最適化）
+   *
+   * useMemoを使用して、dmStatsかisUserOnlineが変わった時だけ再計算
+   * これにより、親コンポーネントの再レンダリングで不要な配列生成を防ぐ
+   *
+   * IMPORTANT: useMemoは早期リターンの前に配置する必要がある（Reactのルール）
+   * ロード中でもhook順序を一定に保つため、内部でnullチェックを行う
+   */
+  const dmStatsWithOnlineStatus = useMemo(() => {
+    // データがまだロードされていない場合は空配列を返す
+    if (!dmStats || dmStats.length === 0) return [];
+
+    return dmStats.map((stat) => ({
+      ...stat,
+      isOnline: isUserOnline(stat.partnerId),
+    }));
+  }, [dmStats, isUserOnline]);
+
   // ロード中の表示
   if (isLoading || !initialStats) {
     return (
@@ -180,12 +199,6 @@ export default function WorkspacePage() {
       </div>
     );
   }
-
-  // DM統計にオンライン状態を追加
-  const dmStatsWithOnlineStatus = dmStats.map((stat) => ({
-    ...stat,
-    isOnline: isUserOnline(stat.partnerId),
-  }));
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 pb-8 md:pb-16">

@@ -10,7 +10,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -122,33 +122,109 @@ export default function DirectMessageList({
   // オンライン状態判定関数はpropsから受け取る（layout.tsxのusePresenceの結果）
   // ローカルでusePresenceを呼び出す必要はない
 
+  /**
+   * Presence leaveイベントハンドラー（パフォーマンス最適化）
+   *
+   * useCallbackでメモ化して、useEffect内で使用
+   * これにより不要な再サブスクリプションを防ぐ
+   */
+  const handlePresenceLeave = useCallback(({ leftPresences }: any) => {
+    leftPresences.forEach((presence: any) => {
+      const offlineUserId = presence.user_id;
+      console.log(`👋 DM一覧: ユーザーがオフライン - ${offlineUserId}`);
+
+      // ローカル状態のlastSeenを更新
+      setLocalDirectMessages((prev) =>
+        prev.map((dm) =>
+          dm.partnerId === offlineUserId
+            ? { ...dm, lastSeen: new Date() }
+            : dm
+        )
+      );
+    });
+  }, []);
+
   // Presence leaveイベントをリッスンしてlastSeenを更新
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase.channel("dm-list-online-users");
 
     channel
-      .on("presence", { event: "leave" }, ({ leftPresences }) => {
-        leftPresences.forEach((presence: any) => {
-          const offlineUserId = presence.user_id;
-          console.log(`👋 DM一覧: ユーザーがオフライン - ${offlineUserId}`);
-
-          // ローカル状態のlastSeenを更新
-          setLocalDirectMessages((prev) =>
-            prev.map((dm) =>
-              dm.partnerId === offlineUserId
-                ? { ...dm, lastSeen: new Date() }
-                : dm
-            )
-          );
-        });
-      })
+      .on("presence", { event: "leave" }, handlePresenceLeave)
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [handlePresenceLeave]);
+
+  /**
+   * 表示するDM一覧を生成（パフォーマンス最適化）
+   *
+   * useMemoでメモ化して、必要な時だけ再計算
+   * 依存配列: localDirectMessages, showAllDms, pathname, isUserOnline, onLinkClick, setLeaveDm
+   */
+  const renderedDmList = useMemo(() =>
+    localDirectMessages
+      .slice(0, showAllDms ? undefined : 5)
+      .map((dm) => {
+        const isActive = pathname === `/workspace/dm/${dm.partnerId}`;
+        // Presenceでリアルタイムオンライン状態を取得
+        const isOnline = isUserOnline(dm.partnerId);
+
+        return (
+          <div
+            key={dm.id}
+            data-testid="dm-item"
+            className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground mb-1 ${
+              isActive ? "bg-accent text-accent-foreground" : ""
+            }`}
+          >
+            <Link
+              href={`/workspace/dm/${dm.partnerId}`}
+              className="flex items-center gap-2 flex-1 min-w-0"
+              onClick={onLinkClick}
+            >
+              <UserAvatar
+                name={dm.partnerName}
+                avatarUrl={dm.partnerAvatarUrl}
+                size="sm"
+                className="h-6 w-6"
+                showOnlineStatus={true}
+                isOnline={isOnline}
+              />
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="truncate">{dm.partnerName}</span>
+                {/* オフライン時のみlastSeenを表示 */}
+                {!isOnline && dm.lastSeen && (
+                  <span className="text-xs text-muted-foreground truncate">
+                    {formatRelativeTime(dm.lastSeen)}にアクティブ
+                  </span>
+                )}
+              </div>
+            </Link>
+            {/* アクションボタンエリア */}
+            <div className="flex items-center gap-0.5">
+              {/* 削除アイコン */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="group/delete h-5 w-5 flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setLeaveDm(dm);
+                }}
+                title="DMから退出"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-gray-400 group-hover/delete:text-red-500 transition-colors" />
+              </Button>
+            </div>
+          </div>
+        );
+      }),
+    [localDirectMessages, showAllDms, pathname, isUserOnline, onLinkClick]
+  );
 
   return (
     <div className="px-2 py-2">
@@ -173,64 +249,7 @@ export default function DirectMessageList({
             showAllDms ? "max-h-[400px]" : "max-h-[200px]"
           } overflow-y-auto transition-all duration-300`}
         >
-          {localDirectMessages
-            .slice(0, showAllDms ? undefined : 5)
-            .map((dm) => {
-              const isActive = pathname === `/workspace/dm/${dm.partnerId}`;
-              // Presenceでリアルタイムオンライン状態を取得
-              const isOnline = isUserOnline(dm.partnerId);
-
-              return (
-                <div
-                  key={dm.id}
-                  data-testid="dm-item"
-                  className={`group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground mb-1 ${
-                    isActive ? "bg-accent text-accent-foreground" : ""
-                  }`}
-                >
-                  <Link
-                    href={`/workspace/dm/${dm.partnerId}`}
-                    className="flex items-center gap-2 flex-1 min-w-0"
-                    onClick={onLinkClick}
-                  >
-                    <UserAvatar
-                      name={dm.partnerName}
-                      avatarUrl={dm.partnerAvatarUrl}
-                      size="sm"
-                      className="h-6 w-6"
-                      showOnlineStatus={true}
-                      isOnline={isOnline}
-                    />
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <span className="truncate">{dm.partnerName}</span>
-                      {/* オフライン時のみlastSeenを表示 */}
-                      {!isOnline && dm.lastSeen && (
-                        <span className="text-xs text-muted-foreground truncate">
-                          {formatRelativeTime(dm.lastSeen)}にアクティブ
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                  {/* アクションボタンエリア */}
-                  <div className="flex items-center gap-0.5">
-                    {/* 削除アイコン */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="group/delete h-5 w-5 flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setLeaveDm(dm);
-                      }}
-                      title="DMから退出"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-gray-400 group-hover/delete:text-red-500 transition-colors" />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
+          {renderedDmList}
           {localDirectMessages.length === 0 && (
             <p className="px-2 text-sm text-muted-foreground">DMがありません</p>
           )}
