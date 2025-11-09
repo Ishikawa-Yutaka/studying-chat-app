@@ -107,9 +107,10 @@ export default function WorkspacePage() {
   const { isUserOnline } = usePresenceContext();
 
   // データ取得
+  // パフォーマンス最適化: user.idのみを依存配列に含める（不要な再実行を防ぐ）
   useEffect(() => {
     // 認証が完了していない場合は実行しない
-    if (!user) return;
+    if (!user?.id) return;
 
     const fetchDashboardData = async () => {
       try {
@@ -170,7 +171,7 @@ export default function WorkspacePage() {
     };
 
     fetchDashboardData();
-  }, [user]);
+  }, [user?.id]); // user.idのみ監視（不要な再実行を防ぐ）
 
   /**
    * DM統計にオンライン状態を追加（パフォーマンス最適化）

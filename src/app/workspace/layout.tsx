@@ -116,6 +116,7 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
   }, []);
 
   // サイドバーデータ更新関数
+  // パフォーマンス最適化: user.idのみを依存配列に含める（不要な再実行を防ぐ）
   const updateSidebarData = useCallback(async () => {
     if (!user) return;
 
@@ -157,15 +158,16 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user?.id]); // user.idのみ監視（不要な再実行を防ぐ）
 
   // データベースからチャンネル・DM一覧を取得
+  // パフォーマンス最適化: user.idのみを依存配列に含める
   useEffect(() => {
     // 認証が完了していない場合は実行しない
-    if (!user) return;
+    if (!user?.id) return;
 
     updateSidebarData();
-  }, [user, updateSidebarData]);
+  }, [user?.id, updateSidebarData]); // user.idのみ監視
 
   // 注:
   // - オンライン状態はPresenceで管理（データベースのisOnlineは削除済み）
