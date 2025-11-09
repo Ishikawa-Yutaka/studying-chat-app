@@ -202,6 +202,8 @@ export default function WorkspacePage() {
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 pb-8 md:pb-16">
+      {/* コンテンツ全体を中央寄せ・最大幅制限 */}
+      <div className="max-w-7xl mx-auto space-y-4">
       {/* ヘッダー */}
       <div className="space-y-4">
         <h2 className="text-3xl font-bold tracking-tight">ダッシュボード</h2>
@@ -261,8 +263,8 @@ export default function WorkspacePage() {
       {/* DM開始モーダル */}
       <StartDmDialog open={isStartDmOpen} onOpenChange={setIsStartDmOpen} />
 
-      {/* チャンネル・DM一覧 */}
-      <div className="space-y-4 md:grid md:gap-4 md:grid-cols-2 md:space-y-0">
+      {/* コンテンツエリア全体（1つのグリッドに統一） */}
+      <div className="grid gap-4 md:grid-cols-2">
         {/* 参加チャンネル一覧 */}
         <Card id="channel-list">
           <CardHeader>
@@ -380,10 +382,9 @@ export default function WorkspacePage() {
             )}
           </CardContent>
         </Card>
-      </div>
 
-      {/* AIチャット一覧（一番下に全幅表示） */}
-      <Card id="ai-chat-sessions">
+        {/* AIチャット一覧（左側1列のみ） */}
+        <Card id="ai-chat-sessions">
         <CardHeader>
           <CardTitle>AIチャット一覧</CardTitle>
           <CardDescription>あなたのAIとの会話履歴</CardDescription>
@@ -446,6 +447,8 @@ export default function WorkspacePage() {
           )}
         </CardContent>
       </Card>
+      </div>
+      </div>
     </div>
   );
 }
