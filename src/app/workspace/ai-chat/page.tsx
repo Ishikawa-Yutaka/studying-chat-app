@@ -143,7 +143,7 @@ export default function AiChatPage() {
    * メッセージ送信時に最下部へ瞬時にジャンプ（内部リンクのように）
    */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
   }, [messages]);
 
   /**
