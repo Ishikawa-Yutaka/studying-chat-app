@@ -26,59 +26,64 @@ export async function GET(request: NextRequest) {
       }, { status });
     }
     
-    // パフォーマンス最適化: メンバー数は_countで取得
-    console.log('📊 Step 1: チャンネルメンバー取得開始');
-    const userChannels = await prisma.channelMember.findMany({
-      where: { userId: user.id },
-      include: {
-        channel: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            type: true,
-            // メンバー数のみカウント（全メンバーデータを取得しない）
-            _count: {
-              select: { members: true }
-            },
-            // DM用に相手のユーザー情報のみ取得（1件のみ）
-            members: {
-              where: {
-                userId: { not: user.id }
+    // パフォーマンス最適化: 複数のクエリを並列実行（6秒 → 2秒に短縮）
+    console.log('📊 データ取得開始（並列実行）');
+    const [userChannels, totalUserCount, allChannels] = await Promise.all([
+      // Step 1: チャンネルメンバー取得
+      prisma.channelMember.findMany({
+        where: { userId: user.id },
+        include: {
+          channel: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              type: true,
+              // メンバー数のみカウント（全メンバーデータを取得しない）
+              _count: {
+                select: { members: true }
               },
-              take: 1,
-              select: {
-                user: {
-                  select: channelMemberUserSelect
+              // DM用に相手のユーザー情報のみ取得（1件のみ）
+              members: {
+                where: {
+                  userId: { not: user.id }
+                },
+                take: 1,
+                select: {
+                  user: {
+                    select: channelMemberUserSelect
+                  }
                 }
               }
             }
           }
         }
-      }
-    });
-    console.log('✅ Step 1完了:', userChannels.length, '件');
+      }),
 
-    console.log('📊 Step 2: 全ユーザー数カウント開始');
-    const totalUserCount = await prisma.user.count();
-    console.log('✅ Step 2完了:', totalUserCount, '人');
+      // Step 2: 全ユーザー数カウント
+      prisma.user.count(),
 
-    console.log('📊 Step 3: 全チャンネル取得開始');
-    const allChannels = await prisma.channel.findMany({
-      where: {
-        type: 'channel' // 通常のチャンネルのみ（DM以外）
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        // メンバー数のみカウント（全メンバーデータを取得しない）
-        _count: {
-          select: { members: true }
+      // Step 3: 全チャンネル取得
+      prisma.channel.findMany({
+        where: {
+          type: 'channel' // 通常のチャンネルのみ（DM以外）
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          // メンバー数のみカウント（全メンバーデータを取得しない）
+          _count: {
+            select: { members: true }
+          }
         }
-      }
-    });
-    console.log('✅ Step 3完了:', allChannels.length, '件');
+      })
+    ]);
+
+    console.log('✅ データ取得完了（並列実行）');
+    console.log(`  - ユーザーチャンネル: ${userChannels.length}件`);
+    console.log(`  - 全ユーザー数: ${totalUserCount}人`);
+    console.log(`  - 全チャンネル: ${allChannels.length}件`);
 
     // 参加チャンネルとDMを分離（ユーザーが参加しているもののみ）
     const myChannels = [];

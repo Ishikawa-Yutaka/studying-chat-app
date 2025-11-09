@@ -18,7 +18,11 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: ['query'], // クエリをログに出力（デバッグ用）
+    // 本番環境ではエラーのみログ出力（パフォーマンス改善）
+    // 開発環境では全てのクエリをログ出力（デバッグ用）
+    log: process.env.NODE_ENV === 'development'
+      ? ['query', 'info', 'warn', 'error']
+      : ['error'],
   });
 
 // 開発環境でのみグローバル変数に保存
