@@ -7,12 +7,14 @@ const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
+  preload: true,  // フォントを事前読み込み
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
   display: "swap",
+  preload: true,  // フォントを事前読み込み
 });
 
 export const metadata: Metadata = {
