@@ -158,9 +158,11 @@ export default function AiChatPage() {
   }, [inputMessage]);
 
   /**
-   * 新しい会話を開始
+   * 新しい会話を開始（パフォーマンス最適化）
+   *
+   * useCallbackでメモ化し、ボタンコンポーネントの不要な再レンダリングを防ぐ
    */
-  const handleNewSession = async () => {
+  const handleNewSession = useCallback(async () => {
     try {
       console.log('🔄 新しいセッション作成中...');
       const response = await fetch('/api/ai/sessions', {
@@ -190,12 +192,14 @@ export default function AiChatPage() {
       console.error('❌ セッション作成エラー:', error);
       alert('新しい会話の作成中にエラーが発生しました');
     }
-  };
+  }, [sessions]);  // 依存配列: sessionsが変わった時だけ関数を再生成
 
   /**
-   * セッション削除
+   * セッション削除（パフォーマンス最適化）
+   *
+   * useCallbackでメモ化し、セッションリストアイテムの不要な再レンダリングを防ぐ
    */
-  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
+  const handleDeleteSession = useCallback(async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // セッション選択イベントを防ぐ
 
     if (!confirm('この会話を削除しますか？')) return;
@@ -232,12 +236,14 @@ export default function AiChatPage() {
       console.error('❌ セッション削除エラー:', error);
       alert('会話の削除中にエラーが発生しました');
     }
-  };
+  }, [sessions, currentSessionId]);  // 依存配列: これらが変わった時だけ関数を再生成
 
   /**
-   * メッセージ送信処理
+   * メッセージ送信処理（パフォーマンス最適化）
+   *
+   * useCallbackでメモ化し、フォームコンポーネントの不要な再レンダリングを防ぐ
    */
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!inputMessage.trim() || isSending || !currentSessionId) return;
@@ -306,12 +312,14 @@ export default function AiChatPage() {
     } finally {
       setIsSending(false);
     }
-  };
+  }, [inputMessage, isSending, currentSessionId]);  // 依存配列: これらが変わった時だけ関数を再生成
 
   /**
-   * 日時フォーマット（例: 2025/01/15 14:30）
+   * 日時フォーマット（例: 2025/01/15 14:30）（パフォーマンス最適化）
+   *
+   * useCallbackでメモ化し、毎回同じ関数参照を保持
    */
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('ja-JP', {
       year: 'numeric',
@@ -320,12 +328,14 @@ export default function AiChatPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
+  }, []);  // 依存配列: 空配列（最初の1回だけ関数を生成）
 
   /**
-   * 短い日時フォーマット（例: 01/15 14:30）
+   * 短い日時フォーマット（例: 01/15 14:30）（パフォーマンス最適化）
+   *
+   * useCallbackでメモ化し、毎回同じ関数参照を保持
    */
-  const formatShortDateTime = (dateString: string) => {
+  const formatShortDateTime = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('ja-JP', {
       month: '2-digit',
@@ -333,7 +343,7 @@ export default function AiChatPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
-  };
+  }, []);  // 依存配列: 空配列（最初の1回だけ関数を生成）
 
   if (loading || isLoadingSessions) {
     return (
