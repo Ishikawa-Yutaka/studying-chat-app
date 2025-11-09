@@ -16,7 +16,7 @@ export default function ChannelHeader({
   memberCount
 }: ChannelHeaderProps) {
   return (
-    <header className="sticky top-0 z-10 border-b bg-background" data-testid="channel-header">
+    <header className="sticky top-0 z-10 border-b bg-background" data-testid="channel-header" style={{ backgroundColor: 'hsl(var(--background))' }}>
       <div className="h-14 flex items-center gap-3 px-4">
         {/* 戻るボタン */}
         <Link
