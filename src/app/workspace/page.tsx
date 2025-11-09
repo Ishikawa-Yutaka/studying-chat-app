@@ -29,6 +29,9 @@ import { useRealtimeDashboard } from "@/hooks/useRealtimeDashboard";
 import { usePresenceContext } from "@/contexts/PresenceContext";
 // 認証フック
 import { useAuth } from "@/hooks/useAuth";
+// SWR（データキャッシュ・自動再検証）
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
 
 // 型定義
 interface Channel {
@@ -73,15 +76,7 @@ export default function WorkspacePage() {
   // 認証状態
   const { user } = useAuth();
 
-  // 状態管理
-  const [isLoading, setIsLoading] = useState(true);
-  const [initialStats, setInitialStats] = useState<DashboardStats | null>(null);
-  const [initialChannels, setInitialChannels] = useState<Channel[]>([]);
-  const [initialDirectMessages, setInitialDirectMessages] = useState<
-    DirectMessage[]
-  >([]);
-  const [dmStats, setDmStats] = useState<DmStat[]>([]); // DM統計情報
-  const [aiSessions, setAiSessions] = useState<AiSession[]>([]); // AIチャットセッション一覧
+  // ダイアログ状態管理
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
   const [isStartDmOpen, setIsStartDmOpen] = useState(false);
   const [isJoinChannelOpen, setIsJoinChannelOpen] = useState(false);
@@ -91,13 +86,44 @@ export default function WorkspacePage() {
   const [showAllDmStats, setShowAllDmStats] = useState(false);
   const [showAllAiSessions, setShowAllAiSessions] = useState(false);
 
+  /**
+   * SWRでダッシュボードデータを取得（キャッシュ・自動再検証）
+   *
+   * メリット:
+   * 1. 初回: サーバーからデータ取得
+   * 2. 2回目以降: キャッシュから即座に表示 → バックグラウンドで最新データ取得
+   * 3. ページ切り替え後に戻ってきた時も高速表示
+   */
+  const { data: dashboardData, error: dashboardError } = useSWR(
+    user?.id ? `/api/dashboard?userId=${user.id}` : null,
+    fetcher
+  );
+
+  /**
+   * SWRでAIセッションを取得（キャッシュ・自動再検証）
+   */
+  const { data: aiSessionsData, error: aiSessionsError } = useSWR(
+    user?.id ? "/api/ai/sessions" : null,
+    fetcher
+  );
+
+  // データ取得状態の判定
+  const isLoading = !dashboardData && !dashboardError;
+
+  // データの抽出（SWRのレスポンスから必要な情報を取り出す）
+  const initialStats = dashboardData?.success ? dashboardData.stats : {
+    channelCount: 0,
+    dmPartnerCount: 0,
+    totalUserCount: 0,
+  };
+  const initialChannels = dashboardData?.success ? (dashboardData.myChannels || []) : [];
+  const initialDirectMessages = dashboardData?.success ? (dashboardData.directMessages || []) : [];
+  const dmStats = dashboardData?.success ? (dashboardData.dmStats || []) : [];
+  const aiSessions = aiSessionsData?.success ? (aiSessionsData.sessions || []) : [];
+
   // リアルタイムダッシュボードフック：自動的に統計情報がリアルタイム更新される
   const { stats } = useRealtimeDashboard({
-    initialStats: initialStats || {
-      channelCount: 0,
-      dmPartnerCount: 0,
-      totalUserCount: 0,
-    },
+    initialStats,
     initialChannels,
     initialDirectMessages,
     currentUserId: user?.id || "",
@@ -105,73 +131,6 @@ export default function WorkspacePage() {
 
   // PresenceContextからオンライン状態取得
   const { isUserOnline } = usePresenceContext();
-
-  // データ取得
-  // パフォーマンス最適化: user.idのみを依存配列に含める（不要な再実行を防ぐ）
-  useEffect(() => {
-    // 認証が完了していない場合は実行しない
-    if (!user?.id) return;
-
-    const fetchDashboardData = async () => {
-      try {
-        console.log("📊 ダッシュボードデータ取得開始...", user.email);
-
-        // ダッシュボードデータとAIセッションを並列で取得
-        const [dashboardResponse, aiSessionsResponse] = await Promise.all([
-          fetch(`/api/dashboard?userId=${user.id}`),
-          fetch("/api/ai/sessions"),
-        ]);
-
-        // ダッシュボードデータ処理
-        const dashboardData = await dashboardResponse.json();
-        if (!dashboardResponse.ok) {
-          throw new Error(
-            dashboardData.error || "ダッシュボードデータの取得に失敗しました"
-          );
-        }
-
-        if (dashboardData.success) {
-          console.log("✅ ダッシュボードデータ取得成功:", dashboardData.stats);
-          setInitialStats(dashboardData.stats);
-          setInitialChannels(dashboardData.myChannels || []); // 参加チャンネル
-          setInitialDirectMessages(dashboardData.directMessages);
-          setDmStats(dashboardData.dmStats || []); // DM統計情報
-        } else {
-          throw new Error(dashboardData.error);
-        }
-
-        // AIセッションデータ処理
-        const aiSessionsData = await aiSessionsResponse.json();
-        if (aiSessionsResponse.ok && aiSessionsData.success) {
-          console.log(
-            "✅ AIセッション取得成功:",
-            aiSessionsData.sessions.length,
-            "件"
-          );
-          setAiSessions(aiSessionsData.sessions);
-        } else {
-          console.log("📭 AIセッションなし");
-          setAiSessions([]);
-        }
-      } catch (error) {
-        console.error("❌ ダッシュボードデータ取得エラー:", error);
-        // エラー時は空のデータを設定
-        setInitialStats({
-          channelCount: 0,
-          dmPartnerCount: 0,
-          totalUserCount: 0,
-        });
-        setInitialChannels([]);
-        setInitialDirectMessages([]);
-        setDmStats([]);
-        setAiSessions([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, [user?.id]); // user.idのみ監視（不要な再実行を防ぐ）
 
   /**
    * DM統計にオンライン状態を追加（パフォーマンス最適化）
@@ -192,11 +151,21 @@ export default function WorkspacePage() {
     }));
   }, [dmStats, isUserOnline]);
 
-  // ロード中の表示
-  if (isLoading || !initialStats) {
+  // ロード中の表示（SWRでデータ取得中）
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <LoadingSpinner size={60} />
+      </div>
+    );
+  }
+
+  // エラー時の表示
+  if (dashboardError || aiSessionsError) {
+    console.error("❌ データ取得エラー:", { dashboardError, aiSessionsError });
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-red-500">データの取得に失敗しました</p>
       </div>
     );
   }
