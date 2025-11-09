@@ -30,13 +30,31 @@ interface User {
 }
 
 /**
- * ユーザー情報のキャッシュストア（Realtime更新対応）
+ * キャッシュエントリ（タイムスタンプ付き）
+ */
+interface CacheEntry {
+  user: User;
+  timestamp: number; // キャッシュした時刻
+  lastAccessed: number; // 最終アクセス時刻（LRU用）
+}
+
+/**
+ * ユーザー情報のキャッシュストア（Realtime更新対応 + TTL + LRU）
+ *
+ * 最適化機能:
+ * - TTL（Time To Live）: 30分経過したキャッシュは自動削除
+ * - LRU（Least Recently Used）: キャッシュサイズが上限を超えたら最も古いものから削除
+ * - Realtime更新: ユーザー情報が変更されたら自動的にキャッシュ更新
  */
 class UserCache {
-  private cache: Map<string, User>;
+  private cache: Map<string, CacheEntry>;
   private fetchPromises: Map<string, Promise<User>>;
   private realtimeChannel: any = null;
   private isInitialized: boolean = false;
+
+  // キャッシュ設定
+  private readonly MAX_CACHE_SIZE = 100; // 最大100ユーザーまでキャッシュ
+  private readonly TTL = 30 * 60 * 1000; // 30分（ミリ秒）
 
   constructor() {
     this.cache = new Map();
@@ -68,7 +86,7 @@ class UserCache {
         (payload) => {
           console.log('🔄 ユーザー情報が更新されました:', payload);
 
-          // キャッシュを更新
+          // キャッシュを更新（Realtime更新時はTTLをリセット）
           const updatedUser = payload.new as any;
           if (updatedUser && updatedUser.id) {
             const cachedUser: User = {
@@ -79,8 +97,13 @@ class UserCache {
               avatarUrl: updatedUser.avatarUrl,
             };
 
-            this.cache.set(updatedUser.id, cachedUser);
-            console.log('✅ キャッシュを更新:', updatedUser.id);
+            const now = Date.now();
+            this.cache.set(updatedUser.id, {
+              user: cachedUser,
+              timestamp: now,
+              lastAccessed: now,
+            });
+            console.log('✅ キャッシュを更新（TTLリセット）:', updatedUser.id);
           }
         }
       )
@@ -96,14 +119,29 @@ class UserCache {
   /**
    * ユーザー情報を取得（キャッシュがあればそれを返す）
    *
+   * TTL（Time To Live）チェック:
+   * - 30分以上経過したキャッシュは削除して再取得
+   *
    * @param userId - ユーザーID（Prismaの内部ID）
    * @returns ユーザー情報
    */
   async get(userId: string): Promise<User> {
-    // キャッシュにあればそれを返す
+    const now = Date.now();
+
+    // キャッシュにあるかチェック
     if (this.cache.has(userId)) {
-      console.log(`📦 キャッシュヒット: ${userId}`);
-      return this.cache.get(userId)!;
+      const entry = this.cache.get(userId)!;
+
+      // TTLチェック: 30分以上経過していたら削除
+      if (now - entry.timestamp > this.TTL) {
+        console.log(`⏰ TTL期限切れ（${Math.floor((now - entry.timestamp) / 1000 / 60)}分経過）: ${userId}`);
+        this.cache.delete(userId);
+      } else {
+        // キャッシュヒット: 最終アクセス時刻を更新（LRU用）
+        entry.lastAccessed = now;
+        console.log(`📦 キャッシュヒット: ${userId}`);
+        return entry.user;
+      }
     }
 
     // 既に同じユーザーのフェッチ中なら、その Promise を返す（重複リクエスト防止）
@@ -119,10 +157,44 @@ class UserCache {
 
     try {
       const user = await fetchPromise;
-      this.cache.set(userId, user);
+
+      // LRUチェック: キャッシュサイズが上限を超えたら最も古いものを削除
+      if (this.cache.size >= this.MAX_CACHE_SIZE) {
+        this.evictLRU();
+      }
+
+      // 新しいエントリをキャッシュに追加
+      this.cache.set(userId, {
+        user,
+        timestamp: now,
+        lastAccessed: now,
+      });
+
       return user;
     } finally {
       this.fetchPromises.delete(userId);
+    }
+  }
+
+  /**
+   * LRU（Least Recently Used）アルゴリズム: 最も長くアクセスされていないエントリを削除
+   */
+  private evictLRU(): void {
+    let oldestKey: string | null = null;
+    let oldestTime = Infinity;
+
+    // 最も古い lastAccessed を持つエントリを探す
+    for (const [key, entry] of this.cache.entries()) {
+      if (entry.lastAccessed < oldestTime) {
+        oldestTime = entry.lastAccessed;
+        oldestKey = key;
+      }
+    }
+
+    // 最も古いエントリを削除
+    if (oldestKey) {
+      this.cache.delete(oldestKey);
+      console.log(`🗑️ LRU削除（キャッシュサイズ上限）: ${oldestKey}`);
     }
   }
 
@@ -189,6 +261,34 @@ class UserCache {
    */
   size(): number {
     return this.cache.size;
+  }
+
+  /**
+   * キャッシュの統計情報を取得（デバッグ用）
+   */
+  getStats(): {
+    size: number;
+    maxSize: number;
+    ttlMinutes: number;
+    entries: Array<{
+      userId: string;
+      ageMinutes: number;
+      lastAccessedMinutes: number;
+    }>;
+  } {
+    const now = Date.now();
+    const entries = Array.from(this.cache.entries()).map(([userId, entry]) => ({
+      userId,
+      ageMinutes: Math.floor((now - entry.timestamp) / 1000 / 60),
+      lastAccessedMinutes: Math.floor((now - entry.lastAccessed) / 1000 / 60),
+    }));
+
+    return {
+      size: this.cache.size,
+      maxSize: this.MAX_CACHE_SIZE,
+      ttlMinutes: this.TTL / 1000 / 60,
+      entries,
+    };
   }
 
   /**
