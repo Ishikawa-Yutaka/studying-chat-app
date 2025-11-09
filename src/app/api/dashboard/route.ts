@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     
     // パフォーマンス最適化: 複数のクエリを並列実行（6秒 → 2秒に短縮）
     console.log('📊 データ取得開始（並列実行）');
+    const startTime = Date.now();
     const [userChannels, totalUserCount, allChannels] = await Promise.all([
       // Step 1: チャンネルメンバー取得
       prisma.channelMember.findMany({
@@ -80,7 +81,8 @@ export async function GET(request: NextRequest) {
       })
     ]);
 
-    console.log('✅ データ取得完了（並列実行）');
+    const parallelTime = Date.now() - startTime;
+    console.log(`✅ データ取得完了（並列実行）: ${parallelTime}ms`);
     console.log(`  - ユーザーチャンネル: ${userChannels.length}件`);
     console.log(`  - 全ユーザー数: ${totalUserCount}人`);
     console.log(`  - 全チャンネル: ${allChannels.length}件`);

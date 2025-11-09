@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
     
     // パフォーマンス最適化: DMと通常チャンネルを分離クエリで並列実行（3.4秒 → 1秒）
     console.log('📋 チャンネル・DM取得開始（並列実行）...');
+    const startTime = Date.now();
     const [channelMemberships, dmMemberships] = await Promise.all([
       // 通常チャンネルのみ取得（DM相手情報不要）
       prisma.channelMember.findMany({
@@ -74,7 +75,8 @@ export async function GET(request: NextRequest) {
       })
     ]);
 
-    console.log('✅ チャンネル・DM取得完了（並列実行）');
+    const parallelTime = Date.now() - startTime;
+    console.log(`✅ チャンネル・DM取得完了（並列実行）: ${parallelTime}ms`);
     console.log(`  - 通常チャンネル: ${channelMemberships.length}件`);
     console.log(`  - DM: ${dmMemberships.length}件`);
 
