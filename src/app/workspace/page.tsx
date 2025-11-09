@@ -145,7 +145,7 @@ export default function WorkspacePage() {
     // データがまだロードされていない場合は空配列を返す
     if (!dmStats || dmStats.length === 0) return [];
 
-    return dmStats.map((stat) => ({
+    return dmStats.map((stat: DmStat) => ({
       ...stat,
       isOnline: isUserOnline(stat.partnerId),
     }));
@@ -249,7 +249,7 @@ export default function WorkspacePage() {
             >
               {initialChannels
                 .slice(0, showAllChannels ? undefined : 5)
-                .map((channel) => (
+                .map((channel: Channel) => (
                   <div key={channel.id} className="flex items-center">
                     <div className="mr-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
                       <Hash className="h-5 w-5 text-primary" />
@@ -302,7 +302,7 @@ export default function WorkspacePage() {
             >
               {dmStatsWithOnlineStatus
                 .slice(0, showAllDmStats ? undefined : 5)
-                .map((stat) => (
+                .map((stat: DmStat & { isOnline: boolean }) => (
                   <div
                     key={stat.partnerId}
                     className="flex items-center justify-between"
@@ -367,7 +367,7 @@ export default function WorkspacePage() {
           >
             {aiSessions
               .slice(0, showAllAiSessions ? undefined : 5)
-              .map((session) => (
+              .map((session: AiSession) => (
                 <div
                   key={session.id}
                   className="flex items-center justify-between"
