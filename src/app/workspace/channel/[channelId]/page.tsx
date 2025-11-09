@@ -1,7 +1,7 @@
 'use client';
 
 // React Hooks: コンポーネントの状態管理とライフサイクル管理
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 // Next.js: URLパラメータ取得とページが見つからない場合の処理
 import { useParams, notFound } from 'next/navigation';
 
@@ -100,6 +100,9 @@ export default function ChannelPage() {
   const [currentThreadParent, setCurrentThreadParent] = useState<Message | null>(null);
   const [threadReplies, setThreadReplies] = useState<Message[]>([]);
 
+  // 最新メッセージへの自動スクロール用ref
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   // 認証が完了してからデータ取得を開始するuseEffect
   useEffect(() => {
     // 認証が完了していない場合は何もしない
@@ -154,6 +157,11 @@ export default function ChannelPage() {
 
     initData();
   }, [channelId, authLoading, user]); // 認証状態とchannelIdが変更された時に再実行
+
+  // メッセージが変更されたら最新メッセージまで瞬時にジャンプ（内部リンクのように）
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+  }, [messages]);
 
   /**
    * メッセージ送信処理
@@ -351,11 +359,13 @@ export default function ChannelPage() {
           myUserId={myUserId}
           onThreadOpen={handleThreadOpen}
         />
+        {/* 最新メッセージへの自動スクロール用の要素 */}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* メッセージ入力フォーム - 画面下部に固定（PC時はサイドバーを避ける） */}
       {myUserId && (
-        <div className="fixed bottom-0 left-0 right-0 lg:left-[280px] bg-background border-t px-4 md:px-6 py-4 z-10">
+        <div className="fixed bottom-0 left-0 right-0 lg:left-[280px] bg-background border-t px-4 md:px-6 py-4 z-10" style={{ backgroundColor: 'hsl(var(--background))' }}>
           <MessageForm
             channelDisplayName={`# ${channel.name}`}
             handleSendMessage={handleSendMessage}

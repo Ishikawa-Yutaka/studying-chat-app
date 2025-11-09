@@ -149,7 +149,7 @@ export default function WorkspacePage() {
   }));
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 pb-[50vh]">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 pb-8 md:pb-16">
       {/* ヘッダー */}
       <div className="space-y-4">
         <h2 className="text-3xl font-bold tracking-tight">ダッシュボード</h2>

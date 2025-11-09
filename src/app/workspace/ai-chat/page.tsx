@@ -140,10 +140,10 @@ export default function AiChatPage() {
   }, [currentSessionId]);
 
   /**
-   * メッセージ送信時に最下部へスクロール
+   * メッセージ送信時に最下部へ瞬時にジャンプ（内部リンクのように）
    */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [messages]);
 
   /**
@@ -546,7 +546,7 @@ export default function AiChatPage() {
             </div>
 
             {/* メッセージ入力フォーム - 画面下部に固定（PC時はサイドバーを避ける） */}
-            <div className="fixed bottom-0 left-0 right-0 lg:left-[280px] bg-background border-t px-4 md:px-6 py-4 z-10">
+            <div className="fixed bottom-0 left-0 right-0 lg:left-[280px] bg-background border-t px-4 md:px-6 py-4 z-10" style={{ backgroundColor: 'hsl(var(--background))' }}>
               <form onSubmit={handleSendMessage} className="flex items-end gap-2">
                 <textarea
                   ref={textareaRef}

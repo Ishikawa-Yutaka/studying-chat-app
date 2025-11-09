@@ -1,7 +1,7 @@
 'use client';
 
 // React Hooks
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 // Next.js
 import { useParams, notFound } from 'next/navigation';
 
@@ -68,6 +68,9 @@ export default function DirectMessagePage() {
   // 現在のユーザーID（認証されたユーザー）
   const myUserId = user?.id;
 
+  // 最新メッセージへの自動スクロール用ref
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   // コンポーネントがマウントされた時とuserIdが変更された時に実行
   useEffect(() => {
     // 認証が完了していない場合は実行しない
@@ -122,6 +125,11 @@ export default function DirectMessagePage() {
 
     initData();
   }, [userId, myUserId]);
+
+  // メッセージが変更されたら最新メッセージまで瞬時にジャンプ（内部リンクのように）
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+  }, [messages]);
 
   // ユーザーIDから名前を取得する関数（仮実装）
   function getUserNameById(id: string): string {
@@ -269,10 +277,12 @@ export default function DirectMessagePage() {
       {/* メッセージ表示エリア - 入力フォーム分の下部余白を確保 */}
       <div className="flex-1 overflow-y-auto pb-24 px-4 md:px-6 pt-4">
         <MessageView messages={messagesWithOnlineStatus} myUserId={myUserId} />
+        {/* 最新メッセージへの自動スクロール用の要素 */}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* メッセージ入力フォーム - 画面下部に固定（PC時はサイドバーを避ける） */}
-      <div className="fixed bottom-0 left-0 right-0 lg:left-[280px] bg-background border-t px-4 md:px-6 py-4 z-10">
+      <div className="fixed bottom-0 left-0 right-0 lg:left-[280px] bg-background border-t px-4 md:px-6 py-4 z-10" style={{ backgroundColor: 'hsl(var(--background))' }}>
         <MessageForm
           channelDisplayName={`${dmPartner.name}さん`}
           handleSendMessage={handleSendMessage}
