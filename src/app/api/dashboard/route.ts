@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       }, { status });
     }
     
-    // データを順次取得（エラー特定のため）
+    // パフォーマンス最適化: メンバー数は_countで取得
     console.log('📊 Step 1: チャンネルメンバー取得開始');
     const userChannels = await prisma.channelMember.findMany({
       where: { userId: user.id },
@@ -37,8 +37,17 @@ export async function GET(request: NextRequest) {
             name: true,
             description: true,
             type: true,
+            // メンバー数のみカウント（全メンバーデータを取得しない）
+            _count: {
+              select: { members: true }
+            },
+            // DM用に相手のユーザー情報のみ取得（1件のみ）
             members: {
-              include: {
+              where: {
+                userId: { not: user.id }
+              },
+              take: 1,
+              select: {
                 user: {
                   select: channelMemberUserSelect
                 }
@@ -59,13 +68,13 @@ export async function GET(request: NextRequest) {
       where: {
         type: 'channel' // 通常のチャンネルのみ（DM以外）
       },
-      include: {
-        members: {
-          include: {
-            user: {
-              select: userBasicSelect
-            }
-          }
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        // メンバー数のみカウント（全メンバーデータを取得しない）
+        _count: {
+          select: { members: true }
         }
       }
     });
@@ -84,11 +93,11 @@ export async function GET(request: NextRequest) {
           id: channel.id,
           name: channel.name,
           description: channel.description,
-          memberCount: channel.members.length
+          memberCount: channel._count.members  // _countを使用
         });
       } else if (channel.type === 'dm') {
-        // DM - 相手のユーザー情報を取得
-        const partner = channel.members.find(member => member.userId !== user.id);
+        // DM - 相手のユーザー情報を取得（1件のみ取得済み）
+        const partner = channel.members[0];
         if (partner) {
           directMessages.push({
             id: channel.id,
@@ -102,35 +111,41 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('📊 Step 4: DM相手ごとのメッセージ数を集計開始');
-    // DM相手ごとのメッセージ統計を取得
-    const dmStats = [];
-    for (const dm of directMessages) {
-      // このDMチャンネル内の自分が送信したメッセージ数
-      const sentCount = await prisma.message.count({
-        where: {
-          channelId: dm.id,
-          senderId: user.id
-        }
-      });
+    // パフォーマンス最適化: N+1問題を解決（1回のクエリで全DM統計取得）
+    const dmChannelIds = directMessages.map(dm => dm.id);
 
-      // このDMチャンネル内の相手が送信したメッセージ数
-      const receivedCount = await prisma.message.count({
-        where: {
-          channelId: dm.id,
-          senderId: { not: user.id }
-        }
-      });
+    // 全DMチャンネルのメッセージを一括取得してグループ化
+    const dmMessagesGrouped = await prisma.message.groupBy({
+      by: ['channelId', 'senderId'],
+      where: {
+        channelId: { in: dmChannelIds }
+      },
+      _count: {
+        id: true
+      }
+    });
 
-      dmStats.push({
+    // DM統計を作成
+    const dmStats = directMessages.map(dm => {
+      // このDMチャンネルの送信/受信メッセージ数を計算
+      const sentCount = dmMessagesGrouped.find(
+        msg => msg.channelId === dm.id && msg.senderId === user.id
+      )?._count.id || 0;
+
+      const receivedCount = dmMessagesGrouped.find(
+        msg => msg.channelId === dm.id && msg.senderId !== user.id
+      )?._count.id || 0;
+
+      return {
         partnerId: dm.partnerId,
         partnerName: dm.partnerName,
         partnerEmail: dm.partnerEmail,
-        partnerAvatarUrl: dm.partnerAvatarUrl,  // アバターURL追加
+        partnerAvatarUrl: dm.partnerAvatarUrl,
         sentCount: sentCount,        // 自分が送信したメッセージ数
         receivedCount: receivedCount, // 相手から受信したメッセージ数
         totalCount: sentCount + receivedCount // 合計メッセージ数
-      });
-    }
+      };
+    });
     console.log('✅ Step 4完了:', dmStats.length, '件');
 
     // ダッシュボード表示用: 全チャンネル（参加・未参加問わず）
@@ -138,7 +153,7 @@ export async function GET(request: NextRequest) {
       id: channel.id,
       name: channel.name,
       description: channel.description,
-      memberCount: channel.members.length
+      memberCount: channel._count.members  // _countを使用
     }));
     
     // 統計情報を作成

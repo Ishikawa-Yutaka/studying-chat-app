@@ -35,7 +35,7 @@ export async function GET(
       }, { status: memberStatus });
     }
     
-    // メッセージ取得（送信者情報、ファイル情報、スレッド返信も含む）
+    // パフォーマンス最適化: スレッド返信は_countのみ取得（詳細は別APIで取得）
     // 注意: parentMessageIdがnullのもののみ取得（スレッドの返信は除外）
     // 注意: senderId が null のメッセージ（削除済みユーザー）も取得する
     const messages = await prisma.message.findMany({
@@ -53,22 +53,10 @@ export async function GET(
             avatarUrl: true,
           }
         },
-        replies: {
-          include: {
-            sender: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                authId: true,
-                avatarUrl: true,
-              }
-            }
-          },
-          orderBy: {
-            createdAt: 'asc' as const,
-          },
-        },
+        // スレッド返信数のみカウント（全返信データは取得しない）
+        _count: {
+          select: { replies: true }
+        }
       },
       orderBy: {
         createdAt: 'asc'  // 古いメッセージから順番に

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       }, { status: authStatus });
     }
 
-    // 全チャンネルを取得（DMは除外、通常チャンネルのみ）
+    // パフォーマンス最適化: メンバー数は_countで取得、参加状態は別途確認
     const allChannels = await prisma.channel.findMany({
       where: {
         type: 'channel'
@@ -37,10 +37,8 @@ export async function GET(request: NextRequest) {
         description: true,
         creatorId: true,  // チャンネル作成者のID
         createdAt: true,
-        members: {
-          select: {
-            userId: true
-          }
+        _count: {
+          select: { members: true }
         }
       },
       orderBy: {
@@ -48,14 +46,25 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // ユーザーが参加しているチャンネルIDを取得
+    const userChannelIds = await prisma.channelMember.findMany({
+      where: {
+        userId: user.id
+      },
+      select: {
+        channelId: true
+      }
+    });
+    const joinedChannelIds = new Set(userChannelIds.map(uc => uc.channelId));
+
     // 各チャンネルに参加状態を追加
     const channelsWithJoinStatus = allChannels.map(channel => ({
       id: channel.id,
       name: channel.name,
       description: channel.description,
-      memberCount: channel.members.length,
-      creatorId: channel.creatorId,  // チャンネル作成者のID
-      isJoined: channel.members.some(member => member.userId === user.id),
+      memberCount: channel._count.members,  // _countを使用
+      creatorId: channel.creatorId,
+      isJoined: joinedChannelIds.has(channel.id),  // Set検索で高速化
       createdAt: channel.createdAt
     }));
 
