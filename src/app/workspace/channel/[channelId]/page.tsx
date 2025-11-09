@@ -313,7 +313,7 @@ export default function ChannelPage() {
   // データ読み込み中・認証チェック
   if (authLoading || !isInitialized) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-screen">
         <LoadingSpinner size={60} />
       </div>
     );
@@ -351,7 +351,7 @@ export default function ChannelPage() {
   // チャンネル情報がない場合
   if (!channel || !user || !myUserId) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-screen">
         <LoadingSpinner size={60} />
       </div>
     );

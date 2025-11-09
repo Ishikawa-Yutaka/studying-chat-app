@@ -213,7 +213,7 @@ export default function DirectMessagePage() {
   // データ読み込み中・認証チェック
   if (!isInitialized) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-screen">
         <LoadingSpinner size={60} />
       </div>
     );
@@ -243,7 +243,7 @@ export default function DirectMessagePage() {
   // ユーザーが見つからない場合
   if (!dmPartner || !user || !myUserId) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-screen">
         <LoadingSpinner size={60} />
       </div>
     );
