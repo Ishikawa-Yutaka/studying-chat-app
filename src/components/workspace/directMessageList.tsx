@@ -11,10 +11,15 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import StartDmDialog from "@/components/dm/startDmDialog";
+
+// StartDmDialogを遅延読み込み（初回ページロード時のバンドルサイズを削減）
+const StartDmDialog = dynamic(() => import("@/components/dm/startDmDialog"), {
+  ssr: false, // サーバーサイドレンダリングを無効化（クライアントのみで読み込み）
+});
 import { UserAvatar } from "@/components/userAvatar";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";

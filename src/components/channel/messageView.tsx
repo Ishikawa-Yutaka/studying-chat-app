@@ -1,6 +1,7 @@
 // 基本的なスタイリングのみで実装（shadcn/ui依存を削除）
 
-import { useState } from "react";
+import { useState, memo } from "react";
+import Image from "next/image";
 import { MessageSquare, FileText, Download } from "lucide-react";
 import FilePreviewModal from "./filePreviewModal";
 import { UserAvatar } from "@/components/userAvatar";
@@ -35,7 +36,17 @@ interface MessageViewProps {
   onThreadOpen?: (messageId: string) => void; // スレッドパネルを開く関数
 }
 
-export default function MessageView({ messages, myUserId, onThreadOpen }: MessageViewProps) {
+/**
+ * メッセージ一覧を表示するコンポーネント
+ *
+ * React.memoで最適化済み:
+ * - messages配列の長さが変わらなければ再レンダリングしない
+ * - myUserIdが変わらなければ再レンダリングしない
+ * - onThreadOpenが変わらなければ再レンダリングしない
+ *
+ * これにより、親コンポーネントの再レンダリング時に不要な再描画を防ぎます。
+ */
+const MessageView = memo(function MessageView({ messages, myUserId, onThreadOpen }: MessageViewProps) {
   // ファイルプレビューモーダルの状態管理
   const [previewFile, setPreviewFile] = useState<{
     url: string;
@@ -136,12 +147,18 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
                 type: message.fileType || '',
               })
             }
-            className="cursor-pointer"
+            className="cursor-pointer relative max-w-md"
           >
-            <img
+            {/* Next.js Imageコンポーネントで自動最適化・lazy loading */}
+            <Image
               src={message.fileUrl}
               alt={message.fileName || 'image'}
-              className="max-w-full max-h-64 rounded-lg object-cover hover:opacity-90 transition-opacity"
+              width={500}
+              height={300}
+              className="max-w-full h-auto max-h-64 rounded-lg object-cover hover:opacity-90 transition-opacity"
+              loading="lazy"
+              quality={85}
+              sizes="(max-width: 768px) 100vw, 500px"
             />
           </div>
           <p className="text-xs mt-1 opacity-70">
@@ -329,4 +346,16 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
       </div>
     </>
   );
-}
+}, (prevProps, nextProps) => {
+  // カスタム比較関数: 以下の条件が全て満たされたら再レンダリングをスキップ
+  return (
+    prevProps.myUserId === nextProps.myUserId &&
+    prevProps.messages.length === nextProps.messages.length &&
+    prevProps.onThreadOpen === nextProps.onThreadOpen &&
+    // メッセージ配列の中身が変わっていないかチェック（最初と最後のIDを比較）
+    prevProps.messages[0]?.id === nextProps.messages[0]?.id &&
+    prevProps.messages[prevProps.messages.length - 1]?.id === nextProps.messages[nextProps.messages.length - 1]?.id
+  );
+});
+
+export default MessageView;

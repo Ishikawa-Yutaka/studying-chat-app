@@ -114,13 +114,21 @@ export function useRealtimeDashboard({
     }
   }, [hasInitialDataChanged, initialStats, initialChannels, initialDirectMessages]);
 
-  // Supabase Realtimeの設定
+  // Supabase Realtimeの設定（最適化版: 1つのチャンネルで複数テーブルを監視）
   useEffect(() => {
     console.log('🔄 ダッシュボードのリアルタイム監視を開始');
 
-    // メッセージ数の変化を監視（統計情報に影響）
-    const messageChannel = supabase
-      .channel('dashboard_messages')
+    /**
+     * 1つのRealtimeチャンネルで複数のテーブル変更を監視
+     *
+     * メリット:
+     * - WebSocket接続数を削減（4個 → 1個）
+     * - メモリ使用量の削減
+     * - Supabase Realtimeの接続制限に余裕ができる
+     */
+    const dashboardChannel = supabase
+      .channel('dashboard-all-changes')
+      // メッセージ数の変化を監視（統計情報に影響）
       .on(
         'postgres_changes',
         {
@@ -130,14 +138,10 @@ export function useRealtimeDashboard({
         },
         () => {
           console.log('📨 新しいメッセージが送信されました（ダッシュボード更新予約）');
-          refreshDashboardDataDebounced(); // デバウンス版を使用
+          refreshDashboardDataDebounced();
         }
       )
-      .subscribe();
-
-    // チャンネルの変化を監視（チャンネル数・一覧に影響）
-    const channelChannel = supabase
-      .channel('dashboard_channels')
+      // チャンネルの変化を監視（チャンネル数・一覧に影響）
       .on(
         'postgres_changes',
         {
@@ -147,14 +151,10 @@ export function useRealtimeDashboard({
         },
         () => {
           console.log('🏢 チャンネルが変更されました（ダッシュボード更新予約）');
-          refreshDashboardDataDebounced(); // デバウンス版を使用
+          refreshDashboardDataDebounced();
         }
       )
-      .subscribe();
-
-    // ユーザーの変化を監視（メンバー数に影響）
-    const userChannel = supabase
-      .channel('dashboard_users')
+      // ユーザーの変化を監視（メンバー数に影響）
       .on(
         'postgres_changes',
         {
@@ -164,14 +164,10 @@ export function useRealtimeDashboard({
         },
         () => {
           console.log('👤 ユーザーが変更されました（ダッシュボード更新予約）');
-          refreshDashboardDataDebounced(); // デバウンス版を使用
+          refreshDashboardDataDebounced();
         }
       )
-      .subscribe();
-
-    // チャンネルメンバーの変化を監視（参加・脱退）
-    const memberChannel = supabase
-      .channel('dashboard_members')
+      // チャンネルメンバーの変化を監視（参加・脱退）
       .on(
         'postgres_changes',
         {
@@ -181,7 +177,7 @@ export function useRealtimeDashboard({
         },
         () => {
           console.log('👥 チャンネルメンバーが変更されました（ダッシュボード更新予約）');
-          refreshDashboardDataDebounced(); // デバウンス版を使用
+          refreshDashboardDataDebounced();
         }
       )
       .subscribe();
@@ -193,10 +189,8 @@ export function useRealtimeDashboard({
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
-      supabase.removeChannel(messageChannel);
-      supabase.removeChannel(channelChannel);
-      supabase.removeChannel(userChannel);
-      supabase.removeChannel(memberChannel);
+      // 1つのチャンネルのみ削除（4個から1個に削減）
+      supabase.removeChannel(dashboardChannel);
     };
     // supabaseはuseMemoで安定化されているため、依存配列に含めない
     // eslint-disable-next-line react-hooks/exhaustive-deps

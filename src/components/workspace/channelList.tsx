@@ -8,12 +8,19 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Hash, Plus, Search, Trash2, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import CreateChannelDialog from './createChannelDialog';
-import JoinChannelDialog from '@/components/channel/joinChannelDialog';
+
+// モーダルコンポーネントを遅延読み込み（初回ページロード時のバンドルサイズを削減）
+const CreateChannelDialog = dynamic(() => import('./createChannelDialog'), {
+  ssr: false, // サーバーサイドレンダリングを無効化（クライアントのみで読み込み）
+});
+const JoinChannelDialog = dynamic(() => import('@/components/channel/joinChannelDialog'), {
+  ssr: false,
+});
 import {
   AlertDialog,
   AlertDialogAction,
