@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -23,6 +23,14 @@ export const metadata: Metadata = {
   },
 };
 
+// スマホでテキスト入力時に画面が拡大されないようにする設定
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,6 +40,8 @@ export default function RootLayout({
     <html lang="ja" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
+        {/* iOSで数字が電話番号リンクになるのを防ぐ */}
+        <meta name="format-detection" content="telephone=no" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
