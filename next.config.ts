@@ -16,6 +16,10 @@ const nextConfig: NextConfig = {
       exclude: ['error', 'warn'], // errorとwarnは残す
     } : false,
   },
+
+  // JavaScriptファイルをgzip圧縮（ページ読み込み速度を向上）
+  // ビルド時に圧縮版が生成され、Vercelで配信される
+  compress: true,
 };
 
 export default nextConfig;

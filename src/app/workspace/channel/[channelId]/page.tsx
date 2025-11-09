@@ -4,12 +4,18 @@
 import { useState, useEffect, useRef } from 'react';
 // Next.js: URLパラメータ取得とページが見つからない場合の処理
 import { useParams, notFound } from 'next/navigation';
+// Next.js dynamic import: 遅延読み込みでページ読み込み速度を向上
+import dynamic from 'next/dynamic';
 
 // 作成したコンポーネント
 import ChannelHeader from '@/components/channel/channelHeader';
 import MessageView from '@/components/channel/messageView';
 import MessageForm from '@/components/channel/messageForm';
-import ThreadPanel from '@/components/channel/threadPanel';
+// ThreadPanelは遅延読み込み（スレッドを開いたときだけ読み込む）
+const ThreadPanel = dynamic(() => import('@/components/channel/threadPanel'), {
+  loading: () => <div className="flex items-center justify-center h-full"><LoadingSpinner size={60} /></div>,
+  ssr: false // サーバーサイドレンダリングを無効化（クライアントのみで使用）
+});
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // リアルタイム機能のカスタムフック
