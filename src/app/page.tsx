@@ -39,27 +39,35 @@ export default function TopPage() {
     <div className="flex min-h-screen flex-col">
       {/* ヘッダー */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between mx-auto px-4 md:px-6">
-          <div className="flex items-center gap-2 font-bold text-2xl">
-            <span>Chat App</span>
-          </div>
-          <div className="flex items-center gap-4">
-            {mounted && (
-              <div className="flex items-center gap-2">
-                <Sun className="h-4 w-4 text-muted-foreground" />
-                <Switch
-                  checked={theme === "dark"}
-                  onCheckedChange={handleThemeChange}
-                />
-                <Moon className="h-4 w-4 text-muted-foreground" />
+        <div className="container mx-auto px-4 md:px-6">
+          {/* PC表示: 1行、スマホ表示: 2段 */}
+          <div className="flex flex-col md:flex-row md:h-16 md:items-center md:justify-between">
+            {/* 1段目（スマホ）/ 左側（PC）: ロゴとテーマ切り替え */}
+            <div className="flex h-14 md:h-16 items-center justify-between">
+              <div className="flex items-center gap-2 font-bold text-2xl">
+                <span>Chat App</span>
               </div>
-            )}
-            <Link href="/login">
-              <Button variant="outline">ログイン</Button>
-            </Link>
-            <Link href="/signup">
-              <Button>新規登録</Button>
-            </Link>
+              {mounted && (
+                <div className="flex items-center gap-2 md:ml-4">
+                  <Sun className="h-4 w-4 text-muted-foreground" />
+                  <Switch
+                    checked={theme === "dark"}
+                    onCheckedChange={handleThemeChange}
+                  />
+                  <Moon className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+
+            {/* 2段目（スマホ）/ 右側（PC）: ログイン・新規登録ボタン */}
+            <div className="flex items-center gap-3 pb-3 md:pb-0 md:gap-4">
+              <Link href="/login" className="flex-1 md:flex-none">
+                <Button variant="outline" className="w-full">ログイン</Button>
+              </Link>
+              <Link href="/signup" className="flex-1 md:flex-none">
+                <Button className="w-full">新規登録</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
