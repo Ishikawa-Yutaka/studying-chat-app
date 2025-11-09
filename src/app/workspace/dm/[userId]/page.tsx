@@ -128,7 +128,7 @@ export default function DirectMessagePage() {
 
   // メッセージが変更されたら最新メッセージまで瞬時にジャンプ（内部リンクのように）
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
   }, [messages]);
 
   // ユーザーIDから名前を取得する関数（仮実装）

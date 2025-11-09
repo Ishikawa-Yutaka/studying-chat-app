@@ -160,7 +160,7 @@ export default function ChannelPage() {
 
   // メッセージが変更されたら最新メッセージまで瞬時にジャンプ（内部リンクのように）
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
   }, [messages]);
 
   /**
