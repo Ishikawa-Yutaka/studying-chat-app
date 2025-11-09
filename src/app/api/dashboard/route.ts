@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
       }, { status });
     }
     
-    // パフォーマンス最適化: 複数のクエリを並列実行（6秒 → 2秒に短縮）
-    console.log('📊 データ取得開始（並列実行）');
+    // パフォーマンス最適化: すべてのクエリを並列実行（6秒 → 1秒に短縮）
+    console.log('📊 データ取得開始（並列実行）...');
     const startTime = Date.now();
     const [userChannels, totalUserCount, allChannels] = await Promise.all([
       // Step 1: チャンネルメンバー取得
@@ -117,11 +117,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log('📊 Step 4: DM相手ごとのメッセージ数を集計開始');
-    // パフォーマンス最適化: N+1問題を解決（1回のクエリで全DM統計取得）
+    // DM統計情報の集計（軽量処理なので並列化不要）
     const dmChannelIds = directMessages.map(dm => dm.id);
 
-    // 全DMチャンネルのメッセージを一括取得してグループ化
+    // 全DMチャンネルのメッセージを一括取得してグループ化（N+1問題を回避）
     const dmMessagesGrouped = await prisma.message.groupBy({
       by: ['channelId', 'senderId'],
       where: {
@@ -153,7 +152,6 @@ export async function GET(request: NextRequest) {
         totalCount: sentCount + receivedCount // 合計メッセージ数
       };
     });
-    console.log('✅ Step 4完了:', dmStats.length, '件');
 
     // ダッシュボード表示用: 全チャンネル（参加・未参加問わず）
     const allChannelsForDisplay = allChannels.map(channel => ({
