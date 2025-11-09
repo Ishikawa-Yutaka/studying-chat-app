@@ -190,24 +190,49 @@ export default function DirectMessagePage() {
     fileInfo?: { url: string; name: string; type: string; size: number }
   ) => {
     // 認証チェック
-    if (!myUserId) {
+    if (!myUserId || !user) {
       console.error('❌ ユーザーが認証されていません');
       alert('メッセージを送信するにはログインが必要です。');
       return;
     }
 
+    if (!dmChannelId) {
+      alert('DMチャンネルが初期化されていません。ページをリロードしてください。');
+      return;
+    }
+
+    // 楽観的更新用の仮メッセージID（一時的なID）
+    const tempId = `temp-${Date.now()}`;
+
+    // 楽観的更新：API呼び出しの前に即座に画面を更新
+    const optimisticMessage = {
+      id: tempId,
+      content,
+      createdAt: new Date().toISOString(),
+      sender: {
+        id: user.id,
+        name: user.user_metadata?.full_name || user.email || 'Unknown',
+        email: user.email || '',
+        authId: user.id,
+        avatarUrl: user.user_metadata?.avatar_url || null,
+      },
+      fileUrl: fileInfo?.url || null,
+      fileName: fileInfo?.name || null,
+      fileType: fileInfo?.type || null,
+      fileSize: fileInfo?.size || null,
+    };
+
+    // 即座に画面に表示（ユーザーは待たない）
+    addMessage(optimisticMessage);
+    console.log('⚡ 楽観的更新: DMメッセージを即座に表示');
+
     try {
-      console.log('DMメッセージ送信:', content, 'by user:', myUserId);
+      console.log('📤 APIにDMメッセージ送信中:', content);
       if (fileInfo) {
         console.log('📎 ファイル添付:', fileInfo.name);
       }
 
-      if (!dmChannelId) {
-        alert('DMチャンネルが初期化されていません。ページをリロードしてください。');
-        return;
-      }
-
-      // 実際のAPIにDMメッセージを送信
+      // 実際のAPIにDMメッセージを送信（バックグラウンドで実行）
       const response = await fetch(`/api/messages/${dmChannelId}`, {
         method: 'POST',
         headers: {
@@ -232,10 +257,7 @@ export default function DirectMessagePage() {
 
       if (data.success) {
         console.log('✅ DMメッセージ送信成功:', data.message);
-
-        // 楽観的更新：送信成功時、メッセージリストに新しいメッセージを即座に追加
-        // リアルタイム機能により、他のユーザーの画面にも自動的に表示される
-        addMessage(data.message);
+        // Realtimeで他のユーザーに自動配信される
       } else {
         throw new Error(data.error);
       }
@@ -244,7 +266,7 @@ export default function DirectMessagePage() {
       console.error('❌ DMメッセージの送信に失敗しました:', error);
       alert('メッセージの送信に失敗しました。もう一度お試しください。');
     }
-  }, [dmChannelId, myUserId, addMessage]);  // 依存配列: これらが変わった時だけ関数を再生成
+  }, [dmChannelId, myUserId, user, addMessage]);  // 依存配列: これらが変わった時だけ関数を再生成
 
   // データ読み込み中・認証チェック
   if (!isInitialized) {

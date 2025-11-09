@@ -201,19 +201,44 @@ export default function ChannelPage() {
     fileInfo?: { url: string; name: string; type: string; size: number }
   ) => {
     // 認証チェック
-    if (!myUserId) {
+    if (!myUserId || !user) {
       console.error('❌ ユーザーが認証されていません');
       alert('メッセージを送信するにはログインが必要です。');
       return;
     }
 
+    // 楽観的更新用の仮メッセージID（一時的なID）
+    const tempId = `temp-${Date.now()}`;
+
+    // 楽観的更新：API呼び出しの前に即座に画面を更新
+    const optimisticMessage = {
+      id: tempId,
+      content,
+      createdAt: new Date().toISOString(),
+      sender: {
+        id: user.id,
+        name: user.user_metadata?.full_name || user.email || 'Unknown',
+        email: user.email || '',
+        authId: user.id,
+        avatarUrl: user.user_metadata?.avatar_url || null,
+      },
+      fileUrl: fileInfo?.url || null,
+      fileName: fileInfo?.name || null,
+      fileType: fileInfo?.type || null,
+      fileSize: fileInfo?.size || null,
+    };
+
+    // 即座に画面に表示（ユーザーは待たない）
+    addMessage(optimisticMessage);
+    console.log('⚡ 楽観的更新: メッセージを即座に表示');
+
     try {
-      console.log('メッセージ送信:', content, 'by user:', myUserId);
+      console.log('📤 APIにメッセージ送信中:', content);
       if (fileInfo) {
         console.log('📎 ファイル添付:', fileInfo.name);
       }
 
-      // 実際のAPIにメッセージを送信
+      // 実際のAPIにメッセージを送信（バックグラウンドで実行）
       const response = await fetch(`/api/messages/${channelId}`, {
         method: 'POST',
         headers: {
@@ -238,10 +263,7 @@ export default function ChannelPage() {
 
       if (data.success) {
         console.log('✅ メッセージ送信成功:', data.message);
-
-        // 楽観的更新：送信成功時、メッセージリストに新しいメッセージを即座に追加
-        // リアルタイム機能により、他のユーザーの画面にも自動的に表示される
-        addMessage(data.message);
+        // Realtimeで他のユーザーに自動配信される
       } else {
         throw new Error(data.error);
       }
@@ -250,7 +272,7 @@ export default function ChannelPage() {
       console.error('❌ メッセージの送信に失敗しました:', error);
       alert('メッセージの送信に失敗しました。もう一度お試しください。');
     }
-  }, [channelId, myUserId, addMessage]);  // 依存配列: これらが変わった時だけ関数を再生成
+  }, [channelId, myUserId, user, addMessage]);  // 依存配列: これらが変わった時だけ関数を再生成
 
   /**
    * スレッドパネルを開く処理（パフォーマンス最適化）
@@ -304,13 +326,35 @@ export default function ChannelPage() {
    * useCallbackでメモ化し、ThreadPanelに安定した関数参照を渡す
    */
   const handleSendReply = useCallback(async (content: string) => {
-    if (!myUserId || !currentThreadParent) {
+    if (!myUserId || !currentThreadParent || !user) {
       console.error('❌ ユーザーまたは親メッセージが存在しません');
       return;
     }
 
+    // 楽観的更新用の仮メッセージID
+    const tempId = `temp-thread-${Date.now()}`;
+
+    // 楽観的更新：API呼び出しの前に即座に画面を更新
+    const optimisticReply = {
+      id: tempId,
+      content,
+      createdAt: new Date().toISOString(),
+      sender: {
+        id: user.id,
+        name: user.user_metadata?.full_name || user.email || 'Unknown',
+        email: user.email || '',
+        authId: user.id,
+        avatarUrl: user.user_metadata?.avatar_url || null,
+      },
+      parentMessageId: currentThreadParent.id,
+    };
+
+    // 即座に画面に表示（ユーザーは待たない）
+    addThreadReply(optimisticReply);
+    console.log('⚡ 楽観的更新: スレッド返信を即座に表示');
+
     try {
-      console.log('🔄 スレッド返信送信:', content);
+      console.log('📤 APIにスレッド返信送信中:', content);
 
       const response = await fetch(`/api/threads/${currentThreadParent.id}`, {
         method: 'POST',
@@ -330,15 +374,13 @@ export default function ChannelPage() {
       }
 
       console.log('✅ スレッド返信送信成功:', data.message);
-
-      // 楽観的更新：リアルタイムフックを使って即座に画面更新
-      addThreadReply(data.message);
+      // Realtimeで他のユーザーに自動配信される
 
     } catch (error) {
       console.error('❌ スレッド返信の送信に失敗しました:', error);
       throw error; // ThreadPanelでエラーハンドリング
     }
-  }, [myUserId, currentThreadParent, addThreadReply]);  // 依存配列: これらが変わった時だけ関数を再生成
+  }, [myUserId, user, currentThreadParent, addThreadReply]);  // 依存配列: これらが変わった時だけ関数を再生成
 
   // データ読み込み中・認証チェック
   if (authLoading || !isInitialized) {
