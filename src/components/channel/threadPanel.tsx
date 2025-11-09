@@ -12,6 +12,7 @@
 import { useState, useLayoutEffect, useRef } from 'react';
 import { X, Send } from 'lucide-react';
 import { UserAvatar } from '@/components/userAvatar';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // 型定義
 interface User {
@@ -37,6 +38,7 @@ interface ThreadPanelProps {
   replies: Message[];                 // スレッド返信一覧
   myUserId: string;                   // 現在のユーザーID
   onSendReply: (content: string) => Promise<void>; // スレッド返信送信関数
+  isLoading?: boolean;                // スレッドデータ読み込み中フラグ
 }
 
 export default function ThreadPanel({
@@ -45,7 +47,8 @@ export default function ThreadPanel({
   parentMessage,
   replies,
   myUserId,
-  onSendReply
+  onSendReply,
+  isLoading = false
 }: ThreadPanelProps) {
   const [replyContent, setReplyContent] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -93,7 +96,8 @@ export default function ThreadPanel({
   };
 
   // パネルが閉じている場合は何も表示しない
-  if (!isOpen || !parentMessage) {
+  // ローディング中は parentMessage が null でもパネルを表示する
+  if (!isOpen) {
     return null;
   }
 
@@ -122,65 +126,72 @@ export default function ThreadPanel({
 
         {/* スレッド内容表示エリア */}
         <div ref={containerRef} className="flex-1 overflow-y-auto p-4 bg-white">
-          <div className="space-y-4">
-            {/* 親メッセージ */}
-            <div className="pb-4 border-b">
-              <div className="flex items-start gap-3">
-                <UserAvatar
-                  name={getSenderName(parentMessage)}
-                  avatarUrl={parentMessage.sender?.avatarUrl}
-                  size="md"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-gray-900">
-                      {getSenderName(parentMessage)}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {typeof parentMessage.createdAt === "string"
-                        ? new Date(parentMessage.createdAt).toLocaleString("ja-JP")
-                        : parentMessage.createdAt instanceof Date
-                        ? parentMessage.createdAt.toLocaleString("ja-JP")
-                        : ""}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-900">{parentMessage.content}</p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    {replies.length}件の返信
-                  </p>
-                </div>
-              </div>
+          {/* ローディング中の表示 */}
+          {isLoading || !parentMessage ? (
+            <div className="flex items-center justify-center h-full">
+              <LoadingSpinner size={60} />
             </div>
-
-            {/* スレッド返信一覧 */}
-            {replies.map((reply) => (
-              <div key={reply.id} className="flex items-start gap-3">
-                <UserAvatar
-                  name={getSenderName(reply)}
-                  avatarUrl={reply.sender?.avatarUrl}
-                  size="sm"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm text-gray-900">
-                      {isMyMessage(reply) ? '自分' : getSenderName(reply)}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {typeof reply.createdAt === "string"
-                        ? new Date(reply.createdAt).toLocaleString("ja-JP")
-                        : reply.createdAt instanceof Date
-                        ? reply.createdAt.toLocaleString("ja-JP")
-                        : ""}
-                    </span>
+          ) : (
+            <div className="space-y-4">
+              {/* 親メッセージ */}
+              <div className="pb-4 border-b">
+                <div className="flex items-start gap-3">
+                  <UserAvatar
+                    name={getSenderName(parentMessage)}
+                    avatarUrl={parentMessage.sender?.avatarUrl}
+                    size="md"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-gray-900">
+                        {getSenderName(parentMessage)}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {typeof parentMessage.createdAt === "string"
+                          ? new Date(parentMessage.createdAt).toLocaleString("ja-JP")
+                          : parentMessage.createdAt instanceof Date
+                          ? parentMessage.createdAt.toLocaleString("ja-JP")
+                          : ""}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-900">{parentMessage.content}</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {replies.length}件の返信
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-900">{reply.content}</p>
                 </div>
               </div>
-            ))}
 
-            {/* 最下部の目印 */}
-            <div ref={messagesEndRef} />
-          </div>
+              {/* スレッド返信一覧 */}
+              {replies.map((reply) => (
+                <div key={reply.id} className="flex items-start gap-3">
+                  <UserAvatar
+                    name={getSenderName(reply)}
+                    avatarUrl={reply.sender?.avatarUrl}
+                    size="sm"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-sm text-gray-900">
+                        {isMyMessage(reply) ? '自分' : getSenderName(reply)}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {typeof reply.createdAt === "string"
+                          ? new Date(reply.createdAt).toLocaleString("ja-JP")
+                          : reply.createdAt instanceof Date
+                          ? reply.createdAt.toLocaleString("ja-JP")
+                          : ""}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-900">{reply.content}</p>
+                  </div>
+                </div>
+              ))}
+
+              {/* 最下部の目印 */}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
         </div>
 
         {/* メッセージ入力フォーム */}

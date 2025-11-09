@@ -278,9 +278,15 @@ export default function MessageView({ messages, myUserId, onThreadOpen }: Messag
 
                     <span className="text-xs text-gray-500">
                       {typeof message.createdAt === "string"
-                        ? new Date(message.createdAt).toLocaleString("ja-JP")
+                        ? new Date(message.createdAt).toLocaleString("ja-JP", {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
                         : message.createdAt instanceof Date
-                        ? message.createdAt.toLocaleString("ja-JP")
+                        ? message.createdAt.toLocaleString("ja-JP", {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
                         : ""}
                     </span>
                   </div>

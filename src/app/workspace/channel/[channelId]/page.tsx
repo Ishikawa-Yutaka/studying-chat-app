@@ -14,6 +14,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // リアルタイム機能のカスタムフック
 import { useRealtimeMessages } from '@/hooks/useRealtimeMessages';
+import { useRealtimeThreadReplies } from '@/hooks/useRealtimeThreadReplies';
 import { usePresenceContext } from '@/contexts/PresenceContext';
 // 認証フック
 import { useAuth } from '@/hooks/useAuth';
@@ -98,7 +99,14 @@ export default function ChannelPage() {
   // スレッドパネルの状態管理
   const [isThreadOpen, setIsThreadOpen] = useState(false);
   const [currentThreadParent, setCurrentThreadParent] = useState<Message | null>(null);
-  const [threadReplies, setThreadReplies] = useState<Message[]>([]);
+  const [initialThreadReplies, setInitialThreadReplies] = useState<Message[]>([]); // 初期スレッド返信
+  const [isThreadLoading, setIsThreadLoading] = useState(false); // スレッド読み込み状態
+
+  // スレッド返信のリアルタイム更新フック
+  const { replies: threadReplies, addReply: addThreadReply } = useRealtimeThreadReplies({
+    parentMessageId: currentThreadParent?.id || null,
+    initialReplies: initialThreadReplies
+  });
 
   // 最新メッセージへの自動スクロール用ref
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -231,6 +239,10 @@ export default function ChannelPage() {
     try {
       console.log('🔄 スレッド取得開始 - メッセージID:', messageId);
 
+      // ローディング状態を開始
+      setIsThreadLoading(true);
+      setIsThreadOpen(true); // パネルを開く（ローディング表示用）
+
       // スレッド情報を取得
       const response = await fetch(`/api/threads/${messageId}`);
       const data = await response.json();
@@ -242,12 +254,14 @@ export default function ChannelPage() {
       console.log('✅ スレッド取得成功:', data.replies.length, '件の返信');
 
       setCurrentThreadParent(data.parentMessage);
-      setThreadReplies(data.replies);
-      setIsThreadOpen(true);
+      setInitialThreadReplies(data.replies); // リアルタイムフックの初期値を設定
 
     } catch (error) {
       console.error('❌ スレッドの取得に失敗しました:', error);
       alert('スレッドの取得に失敗しました。もう一度お試しください。');
+      setIsThreadOpen(false); // エラー時はパネルを閉じる
+    } finally {
+      setIsThreadLoading(false); // ローディング終了
     }
   };
 
@@ -255,7 +269,7 @@ export default function ChannelPage() {
   const handleThreadClose = () => {
     setIsThreadOpen(false);
     setCurrentThreadParent(null);
-    setThreadReplies([]);
+    setInitialThreadReplies([]); // 初期スレッド返信をクリア
   };
 
   // スレッド返信送信処理
@@ -287,8 +301,8 @@ export default function ChannelPage() {
 
       console.log('✅ スレッド返信送信成功:', data.message);
 
-      // スレッド返信一覧に追加
-      setThreadReplies((prev) => [...prev, data.message]);
+      // 楽観的更新：リアルタイムフックを使って即座に画面更新
+      addThreadReply(data.message);
 
     } catch (error) {
       console.error('❌ スレッド返信の送信に失敗しました:', error);
@@ -381,6 +395,7 @@ export default function ChannelPage() {
         replies={threadReplies}
         myUserId={myUserId || ''}
         onSendReply={handleSendReply}
+        isLoading={isThreadLoading}
       />
     </div>
   );

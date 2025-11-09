@@ -49,6 +49,14 @@ interface DmStat {
   totalCount: number;
 }
 
+interface AiSession {
+  id: string;
+  title: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  messageCount: number;
+}
+
 interface DashboardStats {
   channelCount: number;
   dmPartnerCount: number;
@@ -65,6 +73,7 @@ export default function WorkspacePage() {
   const [initialChannels, setInitialChannels] = useState<Channel[]>([]);
   const [initialDirectMessages, setInitialDirectMessages] = useState<DirectMessage[]>([]);
   const [dmStats, setDmStats] = useState<DmStat[]>([]); // DM統計情報
+  const [aiSessions, setAiSessions] = useState<AiSession[]>([]); // AIチャットセッション一覧
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
   const [isStartDmOpen, setIsStartDmOpen] = useState(false);
   const [isJoinChannelOpen, setIsJoinChannelOpen] = useState(false);
@@ -72,6 +81,7 @@ export default function WorkspacePage() {
   // 「さらに表示」機能用の状態
   const [showAllChannels, setShowAllChannels] = useState(false);
   const [showAllDmStats, setShowAllDmStats] = useState(false);
+  const [showAllAiSessions, setShowAllAiSessions] = useState(false);
   
   // リアルタイムダッシュボードフック：自動的に統計情報がリアルタイム更新される
   const { stats } = useRealtimeDashboard({
@@ -96,24 +106,39 @@ export default function WorkspacePage() {
     const fetchDashboardData = async () => {
       try {
         console.log('📊 ダッシュボードデータ取得開始...', user.email);
-        
-        const response = await fetch(`/api/dashboard?userId=${user.id}`);
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'ダッシュボードデータの取得に失敗しました');
+
+        // ダッシュボードデータとAIセッションを並列で取得
+        const [dashboardResponse, aiSessionsResponse] = await Promise.all([
+          fetch(`/api/dashboard?userId=${user.id}`),
+          fetch('/api/ai/sessions')
+        ]);
+
+        // ダッシュボードデータ処理
+        const dashboardData = await dashboardResponse.json();
+        if (!dashboardResponse.ok) {
+          throw new Error(dashboardData.error || 'ダッシュボードデータの取得に失敗しました');
         }
-        
-        if (data.success) {
-          console.log('✅ ダッシュボードデータ取得成功:', data.stats);
-          setInitialStats(data.stats);
-          setInitialChannels(data.myChannels || []); // 参加チャンネル
-          setInitialDirectMessages(data.directMessages);
-          setDmStats(data.dmStats || []); // DM統計情報
+
+        if (dashboardData.success) {
+          console.log('✅ ダッシュボードデータ取得成功:', dashboardData.stats);
+          setInitialStats(dashboardData.stats);
+          setInitialChannels(dashboardData.myChannels || []); // 参加チャンネル
+          setInitialDirectMessages(dashboardData.directMessages);
+          setDmStats(dashboardData.dmStats || []); // DM統計情報
         } else {
-          throw new Error(data.error);
+          throw new Error(dashboardData.error);
         }
-        
+
+        // AIセッションデータ処理
+        const aiSessionsData = await aiSessionsResponse.json();
+        if (aiSessionsResponse.ok && aiSessionsData.success) {
+          console.log('✅ AIセッション取得成功:', aiSessionsData.sessions.length, '件');
+          setAiSessions(aiSessionsData.sessions);
+        } else {
+          console.log('📭 AIセッションなし');
+          setAiSessions([]);
+        }
+
       } catch (error) {
         console.error('❌ ダッシュボードデータ取得エラー:', error);
         // エラー時は空のデータを設定
@@ -125,6 +150,7 @@ export default function WorkspacePage() {
         setInitialChannels([]);
         setInitialDirectMessages([]);
         setDmStats([]);
+        setAiSessions([]);
       } finally {
         setIsLoading(false);
       }
@@ -293,6 +319,60 @@ export default function WorkspacePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* AIチャット一覧（一番下に全幅表示） */}
+      <Card id="ai-chat-sessions">
+        <CardHeader>
+          <CardTitle>AIチャット一覧</CardTitle>
+          <CardDescription>あなたのAIとの会話履歴</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className={`space-y-4 ${showAllAiSessions ? 'max-h-[500px]' : 'max-h-[400px]'} overflow-y-auto transition-all duration-300`}>
+            {aiSessions.slice(0, showAllAiSessions ? undefined : 5).map((session) => (
+              <div key={session.id} className="flex items-center justify-between">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="mr-4 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 flex-shrink-0">
+                    <Bot className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <Link
+                      href={`/workspace/ai-chat?sessionId=${session.id}`}
+                      className="font-medium hover:underline block truncate"
+                    >
+                      {session.title || '新しい会話'}
+                    </Link>
+                    <p className="text-xs text-muted-foreground">
+                      {session.messageCount}件のメッセージ
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0 ml-4">
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(session.updatedAt).toLocaleDateString('ja-JP', {
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {aiSessions.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                まだAIとの会話がありません
+              </p>
+            )}
+          </div>
+          {aiSessions.length > 5 && (
+            <Button
+              variant="outline"
+              className="w-[280px] mx-auto block border-2"
+              onClick={() => setShowAllAiSessions(!showAllAiSessions)}
+            >
+              {showAllAiSessions ? '表示を減らす' : `さらに表示 (${aiSessions.length - 5}件)`}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
