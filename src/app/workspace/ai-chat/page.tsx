@@ -360,7 +360,7 @@ export default function AiChatPage() {
   }
 
   return (
-    <div className="relative h-full overflow-hidden">
+    <div className="flex flex-col h-full">
       {/* オーバーレイ */}
       {isSidebarOpen && (
         <div
