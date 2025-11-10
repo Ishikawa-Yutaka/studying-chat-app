@@ -248,7 +248,7 @@ const MessageView = memo(function MessageView({ messages, myUserId, onThreadOpen
         fileType={previewFile?.type || ''}
       />
 
-      <div className="space-y-4 py-4">
+      <div className="space-y-4 py-4 pb-24">
         {/* メッセージ配列をループして表示（通常のメッセージのみ） */}
         {messages
           .filter((message) => !message.parentMessageId) // スレッド返信は表示しない
