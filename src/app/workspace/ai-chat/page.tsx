@@ -558,6 +558,8 @@ export default function AiChatPage() {
                   ))}
                 </>
               )}
+              {/* 最新メッセージへの自動スクロール用の要素 */}
+              <div ref={messagesEndRef} />
             </div>
 
             {/* メッセージ入力フォーム - 画面下部に固定（PC時はサイドバーを避ける） */}
