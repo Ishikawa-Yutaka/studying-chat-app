@@ -261,8 +261,14 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
         currentAvatarUrl={currentUser?.avatarUrl}
         currentUserName={currentUser?.name || ''}
         onAvatarUpdated={(newUrl) => {
-          // アバターURLを更新
-          setCurrentUser(prev => prev ? { ...prev, avatarUrl: newUrl } : null);
+          // アバターURLを更新（SWRキャッシュを即座に更新）
+          mutateSidebar((currentData: any) => {
+            if (!currentData || !currentData.currentUser) return currentData;
+            return {
+              ...currentData,
+              currentUser: { ...currentData.currentUser, avatarUrl: newUrl }
+            };
+          }, false); // false = サーバー再検証なし（楽観的更新）
         }}
       />
     </div>
