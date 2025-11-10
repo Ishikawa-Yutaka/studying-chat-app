@@ -450,8 +450,8 @@ export default function AiChatPage() {
 
       {/* チャットエリア（フル幅） */}
       <div className="flex flex-col h-full w-full" style={{ backgroundColor: 'hsl(var(--background))' }}>
-        {/* ヘッダー（フレックスレイアウトの一部として常に表示） */}
-        <div className="border-b px-4 py-3 flex items-center gap-3" style={{ backgroundColor: 'hsl(var(--background))' }}>
+        {/* ヘッダー */}
+        <div className="sticky top-0 z-10 border-b bg-background px-4 py-3 flex items-center gap-3" style={{ backgroundColor: 'hsl(var(--background))' }}>
           {/* 戻るボタン（ワークスペースに戻る） */}
           <Link
             href="/workspace"
