@@ -27,6 +27,10 @@ interface Message {
   fileName?: string | null;
   fileType?: string | null;
   fileSize?: number | null;
+  // Prismaの_count（スレッド返信数）
+  _count?: {
+    replies: number;
+  };
 }
 
 // MessageViewコンポーネントのprops型定義
@@ -63,7 +67,14 @@ const MessageView = memo(function MessageView({ messages, myUserId, onThreadOpen
   };
 
   // スレッド返信数を取得
+  // APIから取得した場合: message._count.replies（Prismaの_count）
+  // リアルタイム更新の場合: message.replies?.length（配列）
   const getReplyCount = (message: Message) => {
+    // _countプロパティがある場合（APIレスポンス）
+    if (message._count?.replies !== undefined) {
+      return message._count.replies;
+    }
+    // repliesプロパティがある場合（リアルタイム更新）
     return message.replies?.length || 0;
   };
 
