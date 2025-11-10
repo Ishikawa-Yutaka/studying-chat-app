@@ -234,6 +234,7 @@ export default function UserManagement({ onUserUpdate }: UserManagementProps) {
           usersWithOnlineStatus.map((user) => (
             <div
               key={user.id}
+              data-testid="user-item"
               className="flex items-center justify-between p-2 rounded-md bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border mb-1"
             >
               {/* ユーザー情報エリア */}
