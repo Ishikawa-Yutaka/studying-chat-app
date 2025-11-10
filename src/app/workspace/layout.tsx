@@ -24,6 +24,8 @@ import { usePresenceContext, PresenceProvider } from '@/contexts/PresenceContext
 import { useOnlineStatusSync } from '@/hooks/useOnlineStatusSync';
 import { createClient } from '@/lib/supabase/client';
 import { userCache } from '@/lib/userCache';
+import useSWR from 'swr';
+import { fetcher } from '@/lib/fetcher';
 
 function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -43,28 +45,25 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
   // 認証されている時のみ有効化
   useOnlineStatusSync({ enabled: isAuthenticated });
 
-  // データベース状態管理
-  const [channels, setChannels] = useState<Array<{
-    id: string;
-    name: string;
-    description?: string;
-    memberCount: number;
-    creatorId?: string | null;
-  }>>([]);
-  const [directMessages, setDirectMessages] = useState<Array<{
-    id: string;
-    partnerId: string;
-    partnerName: string;
-    partnerEmail: string;
-    partnerAvatarUrl?: string | null;
-  }>>([]);
-  const [currentUser, setCurrentUser] = useState<{
-    id: string;
-    name: string;
-    email: string;
-    avatarUrl?: string | null;
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // SWRでチャンネル・DM一覧を取得（キャッシュ機能付き）
+  // 認証されている場合のみAPIを呼び出す
+  const shouldFetch = isAuthenticated && user?.id;
+  const { data: sidebarData, error: sidebarError, mutate: mutateSidebar } = useSWR(
+    shouldFetch ? '/api/channels' : null,
+    fetcher,
+    {
+      // ページにフォーカスが戻った時に自動で最新データを取得
+      revalidateOnFocus: true,
+      // 5秒間はキャッシュを使用（同じデータへのリクエストを削減）
+      dedupingInterval: 5000,
+    }
+  );
+
+  // SWRのデータから状態を抽出（後方互換性のため）
+  const channels = sidebarData?.channels || [];
+  const directMessages = sidebarData?.directMessages || [];
+  const currentUser = sidebarData?.currentUser || null;
+  const isLoading = !sidebarData && !sidebarError;
 
   // 認証チェック
   useEffect(() => {
@@ -91,83 +90,60 @@ function WorkspaceLayoutInner({ children }: { children: React.ReactNode }) {
     };
   }, [isAuthenticated]);
 
-  // チャンネル参加時の即座のUI更新
+  // チャンネル参加時の即座のUI更新（楽観的更新 + SWRキャッシュ更新）
   const handleChannelJoined = useCallback((channel: { id: string; name: string; description?: string; memberCount: number }) => {
-    console.log('🔄 チャンネルをUIに即座に追加:', channel.name);
-    setChannels((prev) => [...prev, channel]);
-  }, []);
+    console.log('⚡ 楽観的更新: チャンネルをUIに即座に追加:', channel.name);
+    // SWRのキャッシュを即座に更新（画面に即座に反映）
+    mutateSidebar((currentData: any) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        channels: [...currentData.channels, channel]
+      };
+    }, false); // false = サーバーに再検証しない（楽観的更新）
+  }, [mutateSidebar]);
 
-  // チャンネル退出時の即座のUI更新
+  // チャンネル退出時の即座のUI更新（楽観的更新 + SWRキャッシュ更新）
   const handleChannelLeft = useCallback((channelId: string) => {
-    console.log('🔄 チャンネルをUIから即座に削除（退出）:', channelId);
-    setChannels((prev) => prev.filter((ch) => ch.id !== channelId));
-  }, []);
+    console.log('⚡ 楽観的更新: チャンネルをUIから即座に削除（退出）:', channelId);
+    mutateSidebar((currentData: any) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        channels: currentData.channels.filter((ch: any) => ch.id !== channelId)
+      };
+    }, false);
+  }, [mutateSidebar]);
 
-  // チャンネル削除時の即座のUI更新
+  // チャンネル削除時の即座のUI更新（楽観的更新 + SWRキャッシュ更新）
   const handleChannelDeleted = useCallback((channelId: string) => {
-    console.log('🔄 チャンネルをUIから即座に削除（削除）:', channelId);
-    setChannels((prev) => prev.filter((ch) => ch.id !== channelId));
-  }, []);
+    console.log('⚡ 楽観的更新: チャンネルをUIから即座に削除（削除）:', channelId);
+    mutateSidebar((currentData: any) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        channels: currentData.channels.filter((ch: any) => ch.id !== channelId)
+      };
+    }, false);
+  }, [mutateSidebar]);
 
-  // DM退出時の即座のUI更新
+  // DM退出時の即座のUI更新（楽観的更新 + SWRキャッシュ更新）
   const handleDmLeft = useCallback((dmId: string) => {
-    console.log('🔄 DMをUIから即座に削除:', dmId);
-    setDirectMessages((prev) => prev.filter((dm) => dm.id !== dmId));
-  }, []);
+    console.log('⚡ 楽観的更新: DMをUIから即座に削除:', dmId);
+    mutateSidebar((currentData: any) => {
+      if (!currentData) return currentData;
+      return {
+        ...currentData,
+        directMessages: currentData.directMessages.filter((dm: any) => dm.id !== dmId)
+      };
+    }, false);
+  }, [mutateSidebar]);
 
-  // サイドバーデータ更新関数
-  // パフォーマンス最適化: user.idのみを依存配列に含める（不要な再実行を防ぐ）
-  const updateSidebarData = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      console.log('🔄 サイドバーデータ更新開始...');
-      setIsLoading(true);
-
-      // チャンネル・DM一覧取得（認証トークンから自動的にユーザーを判定）
-      const channelsResponse = await fetch('/api/channels');  // userIdパラメータ削除
-      const channelsData = await channelsResponse.json();
-
-      if (!channelsResponse.ok) {
-        throw new Error(channelsData.error || 'チャンネル取得に失敗しました');
-      }
-
-      if (channelsData.success) {
-        console.log(`✅ サイドバーデータ更新成功:`, channelsData.counts);
-        setChannels(channelsData.channels);
-        setDirectMessages(channelsData.directMessages);
-
-        // 現在のユーザー情報も同時に取得（avatarUrlを含む）
-        if (channelsData.currentUser) {
-          setCurrentUser({
-            id: channelsData.currentUser.id,
-            name: channelsData.currentUser.name,
-            email: channelsData.currentUser.email,
-            avatarUrl: channelsData.currentUser.avatarUrl
-          });
-        }
-      } else {
-        throw new Error(channelsData.error);
-      }
-
-    } catch (error) {
-      console.error('❌ サイドバーデータ更新エラー:', error);
-      // エラー時は空配列を設定
-      setChannels([]);
-      setDirectMessages([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id]); // user.idのみ監視（不要な再実行を防ぐ）
-
-  // データベースからチャンネル・DM一覧を取得
-  // パフォーマンス最適化: user.idのみを依存配列に含める
-  useEffect(() => {
-    // 認証が完了していない場合は実行しない
-    if (!user?.id) return;
-
-    updateSidebarData();
-  }, [user?.id, updateSidebarData]); // user.idのみ監視
+  // チャンネル作成後の手動更新関数（必要に応じて呼び出し）
+  const updateSidebarData = useCallback(() => {
+    console.log('🔄 SWRキャッシュを手動で再検証...');
+    mutateSidebar(); // SWRのキャッシュを再検証（サーバーから最新データを取得）
+  }, [mutateSidebar]);
 
   // 注:
   // - オンライン状態はPresenceで管理（データベースのisOnlineは削除済み）
