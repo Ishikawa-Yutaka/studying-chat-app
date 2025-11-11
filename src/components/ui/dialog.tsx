@@ -2,9 +2,9 @@
 
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
-import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { CloseButton } from "@/components/ui/close-button"
 
 const Dialog = DialogPrimitive.Root
 
@@ -45,9 +45,11 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-2 top-2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground h-12 w-12 flex items-center justify-center">
-        <X style={{ width: '20px', height: '20px', minWidth: '20px', minHeight: '20px' }} />
-        <span className="sr-only">Close</span>
+      <DialogPrimitive.Close asChild>
+        <CloseButton
+          onClick={() => {}}
+          className="absolute right-2 top-2 opacity-70 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground"
+        />
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPortal>

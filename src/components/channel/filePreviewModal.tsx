@@ -1,6 +1,6 @@
 'use client';
 
-import { X } from 'lucide-react';
+import { CloseButton } from '@/components/ui/close-button';
 
 /**
  * ファイルプレビューモーダルのProps型定義
@@ -85,13 +85,7 @@ export default function FilePreviewModal({
           <h3 className="text-lg font-semibold truncate flex-1 mr-4 text-gray-900 dark:text-gray-100">
             {fileName}
           </h3>
-          <button
-            onClick={onClose}
-            className="flex-shrink-0 h-14 w-14 flex items-center justify-center rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-gray-100"
-            aria-label="閉じる"
-          >
-            <X style={{ width: '20px', height: '20px', minWidth: '20px', minHeight: '20px' }} />
-          </button>
+          <CloseButton onClick={onClose} size="lg" className="flex-shrink-0 text-gray-900 dark:text-gray-100" />
         </div>
 
         {/* プレビュー本体 */}

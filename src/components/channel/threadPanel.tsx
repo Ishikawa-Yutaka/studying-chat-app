@@ -10,7 +10,8 @@
 'use client';
 
 import { useState, useLayoutEffect, useRef } from 'react';
-import { X, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
+import { CloseButton } from '@/components/ui/close-button';
 import { UserAvatar } from '@/components/userAvatar';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { formatMessageTime } from '@/lib/dateUtils';
@@ -116,13 +117,7 @@ export default function ThreadPanel({
         {/* ヘッダー */}
         <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
           <h2 className="font-semibold text-gray-900">スレッド</h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-900"
-            aria-label="スレッドを閉じる"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <CloseButton onClick={onClose} ariaLabel="スレッドを閉じる" className="text-gray-900" />
         </div>
 
         {/* スレッド内容表示エリア */}
