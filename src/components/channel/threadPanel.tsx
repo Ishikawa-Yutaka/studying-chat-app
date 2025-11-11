@@ -13,6 +13,7 @@ import { useState, useLayoutEffect, useRef } from 'react';
 import { X, Send } from 'lucide-react';
 import { UserAvatar } from '@/components/userAvatar';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { formatMessageTime } from '@/lib/dateUtils';
 
 // 型定義
 interface User {
@@ -147,11 +148,7 @@ export default function ThreadPanel({
                         {getSenderName(parentMessage)}
                       </span>
                       <span className="text-xs text-gray-500">
-                        {typeof parentMessage.createdAt === "string"
-                          ? new Date(parentMessage.createdAt).toLocaleString("ja-JP")
-                          : parentMessage.createdAt instanceof Date
-                          ? parentMessage.createdAt.toLocaleString("ja-JP")
-                          : ""}
+                        {formatMessageTime(parentMessage.createdAt)}
                       </span>
                     </div>
                     <p className="text-sm text-gray-900">{parentMessage.content}</p>
@@ -176,11 +173,7 @@ export default function ThreadPanel({
                         {isMyMessage(reply) ? '自分' : getSenderName(reply)}
                       </span>
                       <span className="text-xs text-gray-500">
-                        {typeof reply.createdAt === "string"
-                          ? new Date(reply.createdAt).toLocaleString("ja-JP")
-                          : reply.createdAt instanceof Date
-                          ? reply.createdAt.toLocaleString("ja-JP")
-                          : ""}
+                        {formatMessageTime(reply.createdAt)}
                       </span>
                     </div>
                     <p className="text-sm text-gray-900">{reply.content}</p>

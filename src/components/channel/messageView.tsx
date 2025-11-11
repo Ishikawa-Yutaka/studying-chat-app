@@ -5,6 +5,7 @@ import Image from "next/image";
 import { MessageSquare, FileText, Download } from "lucide-react";
 import FilePreviewModal from "./filePreviewModal";
 import { UserAvatar } from "@/components/userAvatar";
+import { formatMessageTime } from "@/lib/dateUtils";
 
 // 型定義（仮の型定義）
 interface User {
@@ -292,36 +293,7 @@ const MessageView = memo(function MessageView({ messages, myUserId, onThreadOpen
                     )}
 
                     <span className="text-xs text-gray-500">
-                      {(() => {
-                        const messageDate = typeof message.createdAt === "string"
-                          ? new Date(message.createdAt)
-                          : message.createdAt instanceof Date
-                          ? message.createdAt
-                          : null;
-
-                        if (!messageDate) return "";
-
-                        const now = new Date();
-                        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-                        // 今日のメッセージ: 時刻のみ
-                        if (messageDate >= todayStart) {
-                          return messageDate.toLocaleString("ja-JP", {
-                            timeZone: 'Asia/Tokyo',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          });
-                        }
-                        // それ以前: 日付のみ
-                        else {
-                          return messageDate.toLocaleString("ja-JP", {
-                            timeZone: 'Asia/Tokyo',
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit'
-                          });
-                        }
-                      })()}
+                      {formatMessageTime(message.createdAt)}
                     </span>
                   </div>
 
