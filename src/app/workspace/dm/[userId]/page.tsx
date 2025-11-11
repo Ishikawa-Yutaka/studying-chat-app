@@ -314,7 +314,7 @@ export default function DirectMessagePage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* DM専用ヘッダー（リアルタイムオンライン状態を反映） */}
       <DmHeader dmPartner={dmPartnerWithPresence} />
 

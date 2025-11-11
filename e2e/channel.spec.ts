@@ -106,7 +106,7 @@ test.describe('チャンネル機能', () => {
     // メッセージを入力
     const messageContent = `テストメッセージ ${Date.now()}`;
     await page.fill(
-      'input[data-testid="message-input"]',
+      'textarea[data-testid="message-input"]',
       messageContent
     );
 
@@ -154,13 +154,13 @@ test.describe('チャンネル機能', () => {
     await page2.waitForTimeout(2000); // Realtimeサブスクリプション完了を待機
 
     // メッセージ入力フォームが表示されていることを確認
-    await expect(page1.locator('input[data-testid="message-input"]')).toBeVisible();
-    await expect(page2.locator('input[data-testid="message-input"]')).toBeVisible();
+    await expect(page1.locator('textarea[data-testid="message-input"]')).toBeVisible();
+    await expect(page2.locator('textarea[data-testid="message-input"]')).toBeVisible();
 
     // ユーザー1がメッセージを送信
     const messageContent = `リアルタイムテスト ${Date.now()}`;
     await page1.fill(
-      'input[data-testid="message-input"]',
+      'textarea[data-testid="message-input"]',
       messageContent
     );
     await page1.click('button[data-testid="send-button"]');

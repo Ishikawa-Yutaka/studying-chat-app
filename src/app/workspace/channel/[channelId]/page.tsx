@@ -436,7 +436,7 @@ export default function ChannelPage() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* チャンネルヘッダー */}
       <ChannelHeader
         channelName={channel.name}
