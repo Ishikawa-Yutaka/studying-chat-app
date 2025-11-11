@@ -8,7 +8,6 @@
 
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface MobileSidebarProps {
   open: boolean;
@@ -83,15 +82,13 @@ export default function MobileSidebar({ open, onOpenChange, children }: MobileSi
         {children}
 
         {/* 閉じるボタン */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute right-4 top-4 z-[60]"
+        <button
+          className="absolute right-2 top-0 z-[60] h-14 w-14 flex items-center justify-center rounded-md hover:bg-gray-200 transition-colors"
           onClick={() => onOpenChange(false)}
+          aria-label="閉じる"
         >
-          <X className="h-5 w-5" />
-          <span className="sr-only">閉じる</span>
-        </Button>
+          <X style={{ width: '20px', height: '20px', minWidth: '20px', minHeight: '20px' }} />
+        </button>
       </div>
     </>
   );

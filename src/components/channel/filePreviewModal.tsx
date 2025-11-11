@@ -1,7 +1,6 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 /**
  * ファイルプレビューモーダルのProps型定義
@@ -80,20 +79,19 @@ export default function FilePreviewModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75"
       onClick={handleBackdropClick}
     >
-      <div className="relative w-full h-full max-w-6xl max-h-[90vh] m-4 bg-white rounded-lg shadow-xl overflow-hidden">
+      <div className="relative w-full h-full max-w-6xl max-h-[90vh] m-4 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700">
         {/* ヘッダー */}
-        <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-          <h3 className="text-lg font-semibold truncate flex-1 mr-4">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+          <h3 className="text-lg font-semibold truncate flex-1 mr-4 text-gray-900 dark:text-gray-100">
             {fileName}
           </h3>
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             onClick={onClose}
-            className="flex-shrink-0"
+            className="flex-shrink-0 h-14 w-14 flex items-center justify-center rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-900 dark:text-gray-100"
+            aria-label="閉じる"
           >
-            <X className="h-5 w-5" />
-          </Button>
+            <X style={{ width: '20px', height: '20px', minWidth: '20px', minHeight: '20px' }} />
+          </button>
         </div>
 
         {/* プレビュー本体 */}
