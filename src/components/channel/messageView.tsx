@@ -292,19 +292,36 @@ const MessageView = memo(function MessageView({ messages, myUserId, onThreadOpen
                     )}
 
                     <span className="text-xs text-gray-500">
-                      {typeof message.createdAt === "string"
-                        ? new Date(message.createdAt).toLocaleString("ja-JP", {
+                      {(() => {
+                        const messageDate = typeof message.createdAt === "string"
+                          ? new Date(message.createdAt)
+                          : message.createdAt instanceof Date
+                          ? message.createdAt
+                          : null;
+
+                        if (!messageDate) return "";
+
+                        const now = new Date();
+                        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+                        // 今日のメッセージ: 時刻のみ
+                        if (messageDate >= todayStart) {
+                          return messageDate.toLocaleString("ja-JP", {
                             timeZone: 'Asia/Tokyo',
                             hour: '2-digit',
                             minute: '2-digit'
-                          })
-                        : message.createdAt instanceof Date
-                        ? message.createdAt.toLocaleString("ja-JP", {
+                          });
+                        }
+                        // それ以前: 日付のみ
+                        else {
+                          return messageDate.toLocaleString("ja-JP", {
                             timeZone: 'Asia/Tokyo',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                        : ""}
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit'
+                          });
+                        }
+                      })()}
                     </span>
                   </div>
 
