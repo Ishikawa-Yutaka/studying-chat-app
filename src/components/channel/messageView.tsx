@@ -173,9 +173,22 @@ const MessageView = memo(function MessageView({ messages, myUserId, onThreadOpen
               sizes="(max-width: 768px) 100vw, 500px"
             />
           </div>
-          <p className="text-xs mt-1 opacity-70">
-            {message.fileName} ({formatFileSize(message.fileSize)})
-          </p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-xs opacity-70">
+              {message.fileName} ({formatFileSize(message.fileSize)})
+            </p>
+            {/* ダウンロードボタン */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownload(message.fileUrl!, message.fileName || 'image');
+              }}
+              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              title="ダウンロード"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       );
     }
@@ -191,9 +204,22 @@ const MessageView = memo(function MessageView({ messages, myUserId, onThreadOpen
           >
             お使いのブラウザは動画タグをサポートしていません。
           </video>
-          <p className="text-xs mt-1 opacity-70">
-            {message.fileName} ({formatFileSize(message.fileSize)})
-          </p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-xs opacity-70">
+              {message.fileName} ({formatFileSize(message.fileSize)})
+            </p>
+            {/* ダウンロードボタン */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownload(message.fileUrl!, message.fileName || 'video');
+              }}
+              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              title="ダウンロード"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       );
     }

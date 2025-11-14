@@ -51,13 +51,13 @@ export async function POST(request: NextRequest) {
       size: file.size
     });
 
-    // ファイルサイズチェック（10MB = 10 * 1024 * 1024 bytes）
-    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    // ファイルサイズチェック（50MB = 50 * 1024 * 1024 bytes）
+    const MAX_FILE_SIZE = 50 * 1024 * 1024;
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         {
           success: false,
-          error: 'ファイルサイズが大きすぎます（最大10MB）'
+          error: 'ファイルサイズが大きすぎます（最大50MB）'
         },
         { status: 400 }
       );
