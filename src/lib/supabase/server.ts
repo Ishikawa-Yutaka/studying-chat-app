@@ -17,7 +17,12 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, {
+                ...options,
+                httpOnly: true, // XSS攻撃対策: JavaScriptからアクセス不可にする
+                secure: process.env.NODE_ENV === 'production', // 本番環境ではHTTPSのみ
+                sameSite: 'lax', // CSRF攻撃対策
+              })
             )
           } catch {
             // サーバーコンポーネントではcookieの設定ができない場合があるため
